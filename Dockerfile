@@ -35,8 +35,8 @@ RUN bash -c "ghcup install cabal 3.4.0.0"
 RUN bash -c "ghcup set cabal 3.4.0.0"
 
 # Install GHC
-RUN bash -c "ghcup install ghc 8.10.4"
-RUN bash -c "ghcup set ghc 8.10.4"
+RUN bash -c "ghcup install ghc 8.10.7"
+RUN bash -c "ghcup set ghc 8.10.7"
 
 # Update Path to include Cabal and GHC exports
 RUN bash -c "echo PATH="$HOME/.local/bin:$PATH" >> $HOME/.bashrc"
@@ -72,6 +72,10 @@ RUN cd libsodium && \
 ENV LD_LIBRARY_PATH="/usr/local/lib"
 ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 
-COPY --from=build /app/aada-staking /usr/local/bin/
+COPY --from=build /app/aada-finance /usr/local/bin/
 WORKDIR /app
-#CMD ["/usr/local/bin/aada-staking", "1", "mint.script", "72193caa8e2eaca97c8461f837e7a4d7cd781b0ba6bf626a883cc102", "aa#0"]
+
+#CMD ["/usr/local/bin/compile-validators"]
+#CMD ["/usr/local/bin/mint-borrower-nft", "ff"0"]
+#CMD ["/usr/local/bin/mint-lender-nft", "ff"0"]
+#CMD ["/usr/local/bin/mint-time-nft"]

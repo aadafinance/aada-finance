@@ -1,9 +1,9 @@
 cabal-version:      3.4
-name:               aada-staking
+name:               aada-lend
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis: on-chain part of Aada staking application
+synopsis: on-chain part of Aada lend application
 
 -- The license under which the package is released.
 license:            AGPL-3.0-only
@@ -59,8 +59,12 @@ library
 
   hs-source-dirs:       src
 
-  exposed-modules:      NFTStaking
-                      , StakingPolicy 
+  exposed-modules:      TimeNft
+                      , BorrowerNft
+                      , LenderNft
+                      , Collateral
+                      , Interest
+                      , Request 
 
   build-depends:        bytestring
                       , cardano-api
@@ -71,20 +75,67 @@ library
                       , plutus-tx
                       , plutus-tx-plugin
                       , serialise
+                      , aeson
 
-  ghc-options: -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+  ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
 
-executable aada-staking
+executable compile-validators
   import:               base, project-config
   hs-source-dirs:       app
-  main-is:              Main.hs
-  ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
+  main-is:              compile-validators.hs
+  ghc-options:          -Wall
 
   build-depends:        cardano-api
                       , cardano-ledger-alonzo
                       , plutus-ledger
-                      , aada-staking 
+                      , aada-lend 
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
+                      , aeson
+
+executable mint-borrower-nft
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              mint-borrower-nft.hs
+  ghc-options:          -Wall
+
+  build-depends:        cardano-api
+                      , cardano-ledger-alonzo
+                      , plutus-ledger
+                      , aada-lend 
+                      , plutus-tx
+                      , plutus-ledger-api
+                      , bytestring
+                      , aeson
+
+executable mint-lender-nft
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              mint-lender-nft.hs
+  ghc-options:          -Wall
+
+  build-depends:        cardano-api
+                      , cardano-ledger-alonzo
+                      , plutus-ledger
+                      , aada-lend 
+                      , plutus-tx
+                      , plutus-ledger-api
+                      , bytestring
+                      , aeson
+
+executable mint-time-nft
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              mint-time-nft.hs
+  ghc-options:          -Wall
+
+  build-depends:        cardano-api
+                      , cardano-ledger-alonzo
+                      , plutus-ledger
+                      , aada-lend 
+                      , plutus-tx
+                      , plutus-ledger-api
+                      , bytestring
+                      , aeson
