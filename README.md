@@ -20,23 +20,30 @@ cd aada-finance
 ### Build image
 
 ```bash
-docker build -t aada_staking .
+docker build -t aada_lend .
 ```
 
-### Compile smartcontract
+### Compile smartcontracts
+
+Compile and receive validators
 
 ```bash
-docker run -v <host_directory>:/app aada_staking bash -c "/usr/local/bin/aada-staking 0 <validation_script_name>"
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/compile-validators <validation_script_name>"
 ```
 
 ### Compile minting script
 
 General:
 ```bash
-docker run -v <host_directory>:/app aada_staking bash -c "/usr/local/bin/aada-staking 1 <minting_script_name> <PubKeyHash> <utxo>"
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-<option>-nft <minting_script_name> <utxo>"
 ```
+
+Options:
+- `mint-borrower-nft <utxo>`. Script name -> `<utxo>.borrowernft`
+- `mint-lender-nft <utxo>`. Script name -> `<utxo>.lendernft`
+- `mint-time-nft`. Script name -> `policyscript.timenft`
 
 Example:
 ```bash
-docker run -v /home/user/Programming/aada-finance:/app aada_staking bash -c "/usr/local/bin/aada-staking 1 mint.script 72193caa8e2eaca97c8461f837e7a4d7cd781b0ba6bf626a883cc102 0a630191d2ba7fa96ecdc9096b826a1f9c210028e02fabc9c0288e2e37d3e2b8#0"
+docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-lender-nft 0a630191d2ba7fa96ecdc9096b826a1f9c210028e02fabc9c0288e2e37d3e2b8#0.borrowernft"
 ```
