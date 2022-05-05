@@ -150,9 +150,18 @@ mkValidator contractInfo@ContractInfo{..} dat mintdate ctx = traceIfFalse "Colla
     checkMintTnName :: Bool
     checkMintTnName = maybe False tokenNameIsCorrect getTimeTokenName
 
+    inputHasBurntLNft :: CurrencySymbol -> Bool
+    inputHasBurntLNft cs = case ownValue of
+      Just v  -> valueOf v cs lender == 1
+      Nothing -> False
+
+    checkLNftsAreBurnt :: Bool
+    checkLNftsAreBurnt = any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) mintFlattened
+
     validateLender :: Bool
     validateLender = checkDeadline &&
-                     checkMintTnName
+                     checkMintTnName &&
+                     checkLNftsAreBurnt
 
     validate :: Bool
     validate = validateLender || validateBorrower
