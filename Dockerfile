@@ -72,7 +72,10 @@ RUN cd libsodium && \
 ENV LD_LIBRARY_PATH="/usr/local/lib"
 ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 
-COPY --from=build /app/aada-finance /usr/local/bin/
+COPY --from=build /app/compile-validators /usr/local/bin/
+COPY --from=build /app/mint-borrower-nft /usr/local/bin/
+COPY --from=build /app/mint-lender-nft /usr/local/bin/
+COPY --from=build /app/mint-time-nft /usr/local/bin/
 WORKDIR /app
 
 #CMD ["/usr/local/bin/compile-validators"]
