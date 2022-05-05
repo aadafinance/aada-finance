@@ -57,8 +57,7 @@ mkPolicy utxo _ ctx = validate
     mintedFlattened = filter ownNftFilter $ flattenValue $ txInfoMint info
 
     validate :: Bool
-    validate = validateMint (head mintedFlattened) ||
-               validateBurn (head mintedFlattened)
+    validate = validateMint (head mintedFlattened) || validateBurn (head mintedFlattened)
 
 policy :: TxOutRef -> Scripts.MintingPolicy
 policy utxo = mkMintingPolicyScript $

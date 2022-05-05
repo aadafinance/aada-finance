@@ -93,13 +93,13 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
 
     validateTimeNftIsSentToCollateralSc :: Bool
     validateTimeNftIsSentToCollateralSc = elem 1 $ (\(_, tn, _) -> valueOf valueToCollateralSc timeNft tn) <$> flattenValue valueToCollateralSc
-    
+
     filterOutTimeNft :: (CurrencySymbol, TokenName, Integer) -> Bool
     filterOutTimeNft (cs, _, _) = cs /= timeNft
 
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
     mintFlattened = filter filterOutTimeNft $ flattenValue $ txInfoMint info
-    
+
     validateMint :: Bool
     validateMint = case mintFlattened of
       [(cs, tn, amt)] -> (amt == 2) &&
@@ -112,7 +112,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       [(cs, tn, amt)] -> (amt == (-1)) &&
                          (tn == borrower && cs == borrowersNFT dat)
       _               -> False
-    
+
     getCollateralScHashes :: [DatumHash]
     getCollateralScHashes = map fst (scriptOutputsAt collateralcsvh info)
 
@@ -121,7 +121,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
 
     ownInputHash :: Bool
     ownInputHash = case ownInput of
-      Just txin -> (maybe False validateOutputHash (txOutDatumHash txin))
+      Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
       Nothing   -> False
 
     validate :: Bool

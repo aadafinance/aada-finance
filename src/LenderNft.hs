@@ -27,11 +27,8 @@ import           Ledger                   hiding (singleton)
 import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
-import           PlutusTx.Builtins        (modInteger)
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
-import qualified Plutus.V1.Ledger.Scripts as Plutus
-import           Prelude                  (Semigroup (..), Show)
-import Plutus.V1.Ledger.Ada (adaSymbol, adaToken)
+import           Prelude                  (Semigroup (..))
 
 {-# INLINABLE flattenBuiltinByteString #-}
 flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString

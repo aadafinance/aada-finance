@@ -57,14 +57,15 @@ library
   if flag(unexpected_thunks)
     cpp-options: -DUNEXPECTED_THUNKS
 
-  hs-source-dirs:       src
+  hs-source-dirs:       src, testing
 
   exposed-modules:      TimeNft
                       , BorrowerNft
                       , LenderNft
                       , Collateral
                       , Interest
-                      , Request 
+                      , Request
+                      , TestingOffChain
 
   build-depends:        bytestring
                       , cardano-api
@@ -76,6 +77,17 @@ library
                       , plutus-tx-plugin
                       , serialise
                       , aeson
+                      , openapi3
+                      , data-default
+                      , containers
+                      , text
+                      , cardano-ledger-core
+                      , cardano-ledger-shelley
+                      , cardano-crypto-class
+                      , cardano-wallet-core
+                      , plutus-ledger-constraints
+                      , plutus-contract
+
 
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
@@ -139,3 +151,35 @@ executable mint-time-nft
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+
+executable test
+  import:              base, project-config
+  hs-source-dirs:      testing
+  main-is:             EmulatorTrace.hs
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       aeson
+                     , bytestring
+                     , cardano-api
+                     , cardano-crypto-class
+                     , cardano-ledger-core
+                     , cardano-ledger-shelley
+                     , cardano-wallet-core
+                     , containers
+                     , data-default
+                     , freer-extras
+                     , playground-common
+                     , plutus-contract
+                     , plutus-ledger
+                     , plutus-ledger-api
+                     , plutus-ledger-constraints
+                     , plutus-pab
+                     , plutus-tx-plugin
+                     , plutus-tx
+                     , plutus-use-cases
+                     , prettyprinter
+                     , serialise
+                     , text
+                     , lens
+                     , time
+                     , openapi3
+                     , aada-lend

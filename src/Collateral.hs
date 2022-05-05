@@ -108,7 +108,8 @@ mkValidator contractInfo@ContractInfo{..} dat mintdate ctx = traceIfFalse "Colla
 
     validateDebtAndInterestAmnt :: Bool
     validateDebtAndInterestAmnt =
-      not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getInterestAmnt valueToInterestCs + getLoanAmnt valueToInterestCs >= loanamnt dat + interestamnt dat)
+     not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) ||
+     (getInterestAmnt valueToInterestCs + getLoanAmnt valueToInterestCs >= loanamnt dat + interestamnt dat)
 
     lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     lenderNftFilter (cs, tn, n) = tn == lender && n == 1 && cs /= collateralcs dat
