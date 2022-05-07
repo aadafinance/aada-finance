@@ -7,7 +7,7 @@ x-logging:
         max-size: "10m"
 services:
   aada-finance:
-    image: mozedz/bot:latest
+    image: mantasand/aada-finance:latest
     stdin_open: true
     tty: true
     volumes:
