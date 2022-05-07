@@ -8,6 +8,7 @@ x-logging:
 services:
   aada-finance:
     image: mantasand/aada-finance:latest
+    restart: always
     stdin_open: true
     tty: true
     volumes:
