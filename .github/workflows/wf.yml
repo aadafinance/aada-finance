@@ -29,4 +29,4 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ${{ env.IMG_NAME }}:${{ env.GITHUB_REF_NAME }}-${{ env.GITHUB_RUN_ID }},${{ env.IMG_NAME }}:latest
+          tags: ${{ env.IMG_NAME }}:${{ GITHUB_REF_NAME }}-${{ GITHUB_RUN_ID }},${{ env.IMG_NAME }}:latest
