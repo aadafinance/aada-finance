@@ -1,0 +1,17 @@
+version: '3.4'
+x-logging:
+      &default-logging
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+volumes:
+  aada-finance:
+services:
+  aada-finance:
+    image: aada-finance:1
+    stdin_open: true
+    tty: true
+    volumes:
+      - aada-finance:/app/
+    logging: *default-logging
