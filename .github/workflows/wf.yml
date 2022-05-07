@@ -5,6 +5,9 @@ on:
     branches:
       - 'master'
 
+env:
+  IMG_NAME: "mozedz/bot"
+
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -26,4 +29,4 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: mozedz/bot:latest
+          tags: ${{ env.IMG_NAME }}:${{ env.GITHUB_REF_NAME }}-${{ env.GITHUB_RUN_ID }},${{ env.IMG_NAME }}:latest
