@@ -55,8 +55,8 @@ writePlutusMintingScript scriptnum filename scriptSerial scriptSBS pkh1 pkh2 pkh
   result <- writeFileTextEnvelope filename Nothing $ scriptSerial pkh1 pkh2 pkh3 dest
   print ("Compiled oracle minting script with: " :: [Char])
   print $ "Public Key Hash 1: " ++ show pkh1
-  print $ "Public Key Hash 1: " ++ show pkh2
-  print $ "Public Key Hash 1: " ++ show pkh2
+  print $ "Public Key Hash 2: " ++ show pkh2
+  print $ "Public Key Hash 3: " ++ show pkh2
   print $ "Destination smart contract validator hash: " ++ show dest
   case result of
     Left err -> print $ displayError err
