@@ -16,6 +16,7 @@ module Helpers.TestValidator
   , testValidatorShortBs
   , validator
   , typedValidator
+  , mkValidator
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)

@@ -23,7 +23,7 @@ import qualified Interest
 import qualified TimeNft
 import qualified BorrowerNft
 import qualified LenderNft
-import           OracleNft
+import qualified OracleNft
 import Plutus.Test.Model
 import Ledger.Address (PaymentPubKeyHash(..), pubKeyHashAddress)
 import Ledger (validatorHash, scriptCurrencySymbol, CurrencySymbol, POSIXTime)
@@ -38,6 +38,7 @@ import Control.Monad.State.Strict
 import qualified Data.Set as S
 import qualified Plutus.V1.Ledger.Tx as P
 import Data.Maybe
+import Helpers.TestValidator
 
 -- TODO tidy this up, descriptions are incorrect
 tests :: BchConfig -> TestTree
@@ -48,6 +49,7 @@ tests cfg =
     , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns full interest when loan return time has passed" returnFullLoan
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns less than it should then full time has passed" (mustFail returnNotEnoughInterest)
     , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns loan when half the time passed returning less than full interest" returnPartialLoan
+    , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft" mintOracleNft
     ]
 
 -- TODO move to utils section later
@@ -56,6 +58,9 @@ adaValue = singleton adaSymbol adaToken
 
 setupUsers :: Run [PubKeyHash]
 setupUsers = sequenceA [newUser borrowerInitialFunds, newUser lenderInitialFunds]
+
+setupSimpleNUsers :: Int -> Run [PubKeyHash]
+setupSimpleNUsers n = replicateM n $ newUser $ adaValue 1000
 
 -- TODO could this be done better?
 fakeCoinCs :: FakeCoin -> CurrencySymbol
@@ -426,7 +431,7 @@ returnNotEnoughInterest = do
           let [(lockRef, lockOut)] = utxos
 
           let tx2 = getTxInFromLend sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
-                    getTxOutReturn 25 borrower mintTime bmp lenderCs
+                    getTxOutReturn 25 borrower mintTime bmp lenderCs
           tx2 <- validateIn (from 6000) tx2
           submitTx lender tx2
           pure True
@@ -514,3 +519,33 @@ returnPartialLoan = do
 --           tx <- signTx u1 $ getCancelRequestTx u1 valFromSc1 dat lockRef <> getBurnBorrowerNftTx u1 oref sp
 --           isRight <$> sendTx tx
 --       Nothing -> pure False
+
+getOracleNftVal :: CurrencySymbol -> Integer -> Value
+getOracleNftVal cs = Value.singleton cs "random"
+
+getMintOracleNftTx :: PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
+getMintOracleNftTx pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
+  mconcat
+    [ mintValue mp (getOracleNftVal cs 1)
+    , payToScript Helpers.TestValidator.typedValidator
+      0
+      (adaValue 2 <> getOracleNftVal cs 1)
+    , userSpend usp
+    ]
+  where
+    valh = validatorHash Helpers.TestValidator.validator
+    mp   = OracleNft.policy pkh1 pkh2 pkh3 valh
+    cs   = scriptCurrencySymbol mp
+    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+
+mintOracleNft :: Run ()
+mintOracleNft = do
+  users <- setupSimpleNUsers 3
+  let [u1, u2, u3] = users
+  sp1 <- spend u1 (adaValue 2)
+  let oref = getHeadRef sp1
+  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  tx <- signTx u1 tx
+  tx <- signTx u2 tx
+  tx <- signTx u3 tx
+  submitTx u1 tx
