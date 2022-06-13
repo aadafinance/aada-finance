@@ -58,6 +58,7 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail6)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail7)
     , testNoErrorsTrace (adaValue 10_000_000) cfg "test mint oracle nft send to wrong validator hash" (mustFail mintOracleNftShouldFail8)
+    , testNoErrorsTrace (adaValue 10_000_000) cfg "test mint oracle nft mint two values" (mustFail mintOracleNftShouldFail9)
     ]
 
 -- TODO move to utils section later
@@ -534,13 +535,13 @@ returnPartialLoan = do
 getOracleNftVal :: CurrencySymbol -> Integer -> Value
 getOracleNftVal cs = Value.singleton cs getOracleNftTn
 
-getMintOracleNftTx :: PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
-getMintOracleNftTx pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
+getMintOracleNftTx :: Integer -> PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
+getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
   mconcat
-    [ mintValue mp (getOracleNftVal cs 1)
+    [ mintValue mp (getOracleNftVal cs n)
     , payToScript Helpers.TestValidator.typedValidator
       0
-      (adaValue 2 <> getOracleNftVal cs 1)
+      (adaValue 2 <> getOracleNftVal cs n)
     , userSpend usp
     ]
   where
@@ -570,7 +571,7 @@ mintOracleNft = do
   let [u1, u2, u3] = users
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   tx <- signTx u1 tx
   tx <- signTx u2 tx
   tx <- signTx u3 tx
@@ -582,7 +583,7 @@ mintOracleNftShouldFail2 = do
   let [u1, u2, u3] = users
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   tx <- signTx u1 tx
   -- tx <- signTx u2 tx
   tx <- signTx u3 tx
@@ -594,7 +595,7 @@ mintOracleNftShouldFail3 = do
   let [u1, u2, u3] = users
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   tx <- signTx u1 tx
   tx <- signTx u2 tx
   -- tx <- signTx u3 tx
@@ -606,7 +607,7 @@ mintOracleNftShouldFail4 = do
   let [u1, u2, u3] = users
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   -- tx <- signTx u1 tx
   -- tx <- signTx u2 tx
   tx <- signTx u3 tx
@@ -619,7 +620,7 @@ mintOracleNftShouldFail5 = do
   let [u1, u2, u3] = users
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   tx <- signTx u1 tx
   -- tx <- signTx u2 tx
   -- tx <- signTx u3 tx
@@ -632,7 +633,7 @@ mintOracleNftShouldFail6 = do
   let [u1, u2, u3] = users
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   -- tx <- signTx u1 tx
   tx <- signTx u2 tx
   -- tx <- signTx u3 tx
@@ -645,7 +646,7 @@ mintOracleNftShouldFail7 = do
   let [u1, u2, u3] = users
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   -- tx <- signTx u1 tx
   -- tx <- signTx u2 tx
   -- tx <- signTx u3 tx
@@ -658,6 +659,18 @@ mintOracleNftShouldFail8 = do
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
   let tx = getMintOracleNftTxInvalidValHash u1 u2 u3 sp1
+  tx <- signTx u1 tx
+  tx <- signTx u2 tx
+  tx <- signTx u3 tx
+  submitTx u1 tx
+
+mintOracleNftShouldFail9 :: Run ()
+mintOracleNftShouldFail9 = do
+  users <- setupSimpleNUsers 3
+  let [u1, u2, u3] = users
+  sp1 <- spend u1 (adaValue 2)
+  let oref = getHeadRef sp1
+  let tx = getMintOracleNftTx 2 u1 u2 u3 sp1
   tx <- signTx u1 tx
   tx <- signTx u2 tx
   tx <- signTx u3 tx
