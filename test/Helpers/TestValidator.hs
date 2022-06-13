@@ -17,6 +17,7 @@ module Helpers.TestValidator
   , validator
   , typedValidator
   , mkValidator
+  , failValidator
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
@@ -37,6 +38,10 @@ import           Ledger.Typed.Scripts as Scripts
 mkValidator :: Integer -> Integer -> ScriptContext -> Bool
 mkValidator lock guess _ = lock == guess
 
+{-# INLINABLE alwaysFail #-}
+alwaysFail :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+alwaysFail _ _ _ = PlutusTx.Prelude.error ()
+
 data TestValidator
 instance Scripts.ValidatorTypes TestValidator where
     type instance DatumType TestValidator = Integer
@@ -44,6 +49,18 @@ instance Scripts.ValidatorTypes TestValidator where
 
 typedValidator :: Scripts.TypedValidator TestValidator
 typedValidator = Scripts.mkTypedValidator @TestValidator
+    $$(PlutusTx.compile [|| mkValidator ||])
+    $$(PlutusTx.compile [|| wrap ||])
+  where
+    wrap = Scripts.wrapValidator @Integer @Integer
+
+data FailValidator
+instance Scripts.ValidatorTypes FailValidator where
+    type instance DatumType FailValidator = Integer
+    type instance RedeemerType FailValidator = Integer
+
+failValidator :: Scripts.TypedValidator FailValidator
+failValidator = Scripts.mkTypedValidator @FailValidator
     $$(PlutusTx.compile [|| mkValidator ||])
     $$(PlutusTx.compile [|| wrap ||])
   where
