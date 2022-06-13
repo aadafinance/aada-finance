@@ -45,3 +45,20 @@ interestcs        :: !CurrencySymbol
 interestamnt      :: !Integer
 collateralcs      :: !CurrencySymbol
 repayinterval     :: !POSIXTime
+
+
+mintdate        :: !POSIXTime
+interestPayDate :: !POSIXTime
+
+{
+        "constructor":0,
+        "fields":
+        [
+                {
+                        "int":0
+                },
+                {
+                        "int":0
+                }
+        ]
+}
