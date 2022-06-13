@@ -39,8 +39,8 @@ mkValidator :: Integer -> Integer -> ScriptContext -> Bool
 mkValidator lock guess _ = lock == guess
 
 {-# INLINABLE alwaysFail #-}
-alwaysFail :: BuiltinData -> BuiltinData -> BuiltinData -> ()
-alwaysFail _ _ _ = PlutusTx.Prelude.error ()
+alwaysFail :: Integer -> Integer -> ScriptContext -> Bool
+alwaysFail _ _ _ = False
 
 data TestValidator
 instance Scripts.ValidatorTypes TestValidator where
@@ -61,7 +61,7 @@ instance Scripts.ValidatorTypes FailValidator where
 
 failValidator :: Scripts.TypedValidator FailValidator
 failValidator = Scripts.mkTypedValidator @FailValidator
-    $$(PlutusTx.compile [|| mkValidator ||])
+    $$(PlutusTx.compile [|| alwaysFail ||])
     $$(PlutusTx.compile [|| wrap ||])
   where
     wrap = Scripts.wrapValidator @Integer @Integer

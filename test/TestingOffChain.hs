@@ -99,7 +99,7 @@ lock = do
     o    <- fromJust <$> Contract.txOutFromRef oref
     pkh  <- Contract.ownPaymentPubKeyHash
 
-    let liqNftCs = scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff"
+    let liqNftCs = scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff"
 
     let borrowersNftPolicy = BorrowerNft.policy oref
     let lookups = Constraints.mintingPolicy borrowersNftPolicy <>
@@ -144,7 +144,7 @@ lend ts = do
     let dl = getTimeNftDl
     let timeRdm = Redeemer $ Builtins.mkI dl
 
-    let liqNftCs = scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff"
+    let liqNftCs = scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff"
 
     if Map.null utxos
         then logInfo @String $ "No utxo in script found"
@@ -277,13 +277,13 @@ lenderCancelLoanLiquidate ts = do
       timeNftVal      = Value.singleton (scriptCurrencySymbol timePolicy) getTimeNftDlTn 1
       collatVal       = Value.singleton "ffffff" "CONY" 100
       lenderNftVal    = Value.singleton (scriptCurrencySymbol lendersMintingPolicy) "L" 1
-      liquidateNftVal = Value.singleton (scriptCurrencySymbol $ liquidatePolicy "ff" "ff" "ff" "ff") "ORACLE" 0
+      liquidateNftVal = Value.singleton (scriptCurrencySymbol $ liquidatePolicy "ff" "ff" "ff" "ff" "ff") "ORACLE" 0
       valToLender     = minAda <> collatVal <> timeNftVal <> lenderNftVal <> liquidateNftVal
 
   logInfo @String $ printf "Value to lender: %s" (show valToLender)
 
   let lookups = Constraints.otherScript (Collateral.validator getSc2Params) <>
-                Constraints.mintingPolicy (liquidatePolicy "ff" "ff" "ff" "ff") <>
+                Constraints.mintingPolicy (liquidatePolicy "ff" "ff" "ff" "ff" "ff") <>
                 Constraints.unspentOutputs (uncurry Map.singleton soref)
 
   let constraints = TxConstraints.mustSpendScriptOutput (fst soref) rdm <>

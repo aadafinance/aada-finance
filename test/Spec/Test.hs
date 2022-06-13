@@ -50,7 +50,6 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns less than it should then full time has passed" (mustFail returnNotEnoughInterest)
     , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns loan when half the time passed returning less than full interest" returnPartialLoan
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft" mintOracleNft
-    , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail2)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail3)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail4)
@@ -58,7 +57,7 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail5)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail6)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail7)
-    , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail8)
+    , testNoErrorsTrace (adaValue 10_000_000) cfg "test mint oracle nft send to wrong validator hash" (mustFail mintOracleNftShouldFail8)
     ]
 
 -- TODO move to utils section later
@@ -147,7 +146,7 @@ createLockFundsTx t pkh oref usp v =
       [ userSpend usp
       , payToScript
         (requestTypedValidator getSc1Params)
-        (getTestDatum t (getBNftCs oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh))
+        (getTestDatum t (getBNftCs oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh))
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
@@ -167,6 +166,9 @@ getTxIn usp dat scriptTxOut =
 
 getTimeNftTn :: POSIXTime -> TokenName
 getTimeNftTn n = TokenName . toBuiltin . BSC.pack $ show (getPOSIXTime n)
+
+getOracleNftTn :: TokenName
+getOracleNftTn = TokenName "ff"
 
 getTNftVal :: POSIXTime -> Integer -> CurrencySymbol -> Value
 getTNftVal dl n cs = Value.singleton cs (getTimeNftTn dl) n
@@ -530,7 +532,7 @@ returnPartialLoan = do
 --       Nothing -> pure False
 
 getOracleNftVal :: CurrencySymbol -> Integer -> Value
-getOracleNftVal cs = Value.singleton cs "random"
+getOracleNftVal cs = Value.singleton cs getOracleNftTn
 
 getMintOracleNftTx :: PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
 getMintOracleNftTx pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
@@ -543,7 +545,7 @@ getMintOracleNftTx pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     ]
   where
     valh = validatorHash Helpers.TestValidator.validator
-    mp   = OracleNft.policy pkh1 pkh2 pkh3 valh
+    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 valh
     cs   = scriptCurrencySymbol mp
     rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
 
@@ -558,9 +560,9 @@ getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     ]
   where
     valh = validatorHash Helpers.TestValidator.validator
-    mp   = OracleNft.policy pkh1 pkh2 pkh3 valh
+    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 valh
     cs   = scriptCurrencySymbol mp
-    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+    rdm  = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
 
 mintOracleNft :: Run ()
 mintOracleNft = do
@@ -570,18 +572,6 @@ mintOracleNft = do
   let oref = getHeadRef sp1
   let tx = getMintOracleNftTx u1 u2 u3 sp1
   tx <- signTx u1 tx
-  tx <- signTx u2 tx
-  tx <- signTx u3 tx
-  submitTx u1 tx
-
-mintOracleNftShouldFail :: Run ()
-mintOracleNftShouldFail = do
-  users <- setupSimpleNUsers 3
-  let [u1, u2, u3] = users
-  sp1 <- spend u1 (adaValue 2)
-  let oref = getHeadRef sp1
-  let tx = getMintOracleNftTx u1 u2 u3 sp1
-  -- tx <- signTx u1 tx
   tx <- signTx u2 tx
   tx <- signTx u3 tx
   submitTx u1 tx

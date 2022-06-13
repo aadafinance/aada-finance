@@ -28,14 +28,18 @@ main = do
   putStrLn $ "Writing output to: " ++ scriptname
   writePlutusMintingScript scriptnum scriptname oracleNft oracleNftShortBs (Plutus.PubKeyHash $ strToBbs pkh1) (Plutus.PubKeyHash $ strToBbs pkh2) (Plutus.PubKeyHash $ strToBbs pkh3) (Plutus.ValidatorHash $ strToBbs dest)
 
+-- TODO move this to args
+testTn :: Plutus.TokenName
+testTn = Plutus.TokenName "ff"
+
 strToBbs :: String -> BuiltinByteString
 strToBbs str = undefined
 
 writePlutusMintingScript 
   :: Integer 
   -> FilePath 
-  -> (Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.ValidatorHash -> PlutusScript PlutusScriptV1)
-  -> (Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.ValidatorHash -> SBS.ShortByteString)
+  -> (Plutus.TokenName -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.ValidatorHash -> PlutusScript PlutusScriptV1)
+  -> (Plutus.TokenName -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.ValidatorHash -> SBS.ShortByteString)
   -> Plutus.PubKeyHash
   -> Plutus.PubKeyHash
   -> Plutus.PubKeyHash
@@ -46,13 +50,13 @@ writePlutusMintingScript scriptnum filename scriptSerial scriptSBS pkh1 pkh2 pkh
   case Plutus.defaultCostModelParams of
         Just m ->
           let Alonzo.Data pData = toAlonzoData (ScriptDataNumber scriptnum)
-              (logout, e) = Plutus.evaluateScriptCounting Plutus.Verbose m (scriptSBS pkh1 pkh2 pkh3 dest) [pData]
+              (logout, e) = Plutus.evaluateScriptCounting Plutus.Verbose m (scriptSBS testTn pkh1 pkh2 pkh3 dest) [pData]
           in do print ("Log output" :: String) >> print logout
                 case e of
                   Left evalErr -> print ("Eval Error" :: String) >> print evalErr
                   Right exbudget -> print ("Ex Budget" :: String) >> print exbudget
         Nothing -> error "defaultCostModelParams failed"
-  result <- writeFileTextEnvelope filename Nothing $ scriptSerial pkh1 pkh2 pkh3 dest
+  result <- writeFileTextEnvelope filename Nothing $ scriptSerial testTn pkh1 pkh2 pkh3 dest
   print ("Compiled oracle minting script with: " :: [Char])
   print $ "Public Key Hash 1: " ++ show pkh1
   print $ "Public Key Hash 2: " ++ show pkh2
