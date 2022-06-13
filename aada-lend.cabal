@@ -68,6 +68,7 @@ library
                       , Request
                       , TestingOffChain
                       , OracleNft
+                      , Helpers.TestValidator
 
   build-depends:        bytestring
                       , cardano-api
