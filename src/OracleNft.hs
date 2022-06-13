@@ -35,7 +35,12 @@ import           Prelude                  (Semigroup (..), Show)
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> BuiltinData -> ScriptContext -> Bool
-mkPolicy pkh1 pkh2 pkh3 dest _redeemer _ctx = True
+mkPolicy pkh1 pkh2 pkh3 dest _redeemer ctx = validate
+  where
+    info :: TxInfo
+    info = scriptContextTxInfo ctx
+    
+    validate = txSignedBy info pkh1 && txSignedBy info pkh2 && txSignedBy info pkh3
 
 policy :: PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> Scripts.MintingPolicy
 policy pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $
