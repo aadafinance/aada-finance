@@ -24,7 +24,7 @@ main = do
   let pkh3 = if nargs > 2 then args !! 2 else "ff"
   let dest = if nargs > 3 then args !! 3 else "ff"
   let scriptnum = 0
-  let scriptname = "oralce.nft"
+  let scriptname = "oracle.nft"
   putStrLn $ "Writing output to: " ++ scriptname
   writePlutusMintingScript scriptnum scriptname oracleNft oracleNftShortBs (Plutus.PubKeyHash $ strToBbs pkh1) (Plutus.PubKeyHash $ strToBbs pkh2) (Plutus.PubKeyHash $ strToBbs pkh3) (Plutus.ValidatorHash $ strToBbs dest)
 
