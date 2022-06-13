@@ -50,6 +50,7 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns less than it should then full time has passed" (mustFail returnNotEnoughInterest)
     , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns loan when half the time passed returning less than full interest" returnPartialLoan
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft" mintOracleNft
+    , testNoErrors  (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail)
     ]
 
 -- TODO move to utils section later
@@ -547,5 +548,17 @@ mintOracleNft = do
   let tx = getMintOracleNftTx u1 u2 u3 sp1
   tx <- signTx u1 tx
   tx <- signTx u2 tx
+  tx <- signTx u3 tx
+  submitTx u1 tx
+
+mintOracleNftShouldFail :: Run ()
+mintOracleNftShouldFail = do
+  users <- setupSimpleNUsers 3
+  let [u1, u2, u3] = users
+  sp1 <- spend u1 (adaValue 2)
+  let oref = getHeadRef sp1
+  let tx = getMintOracleNftTx u1 u2 u3 sp1
+  tx <- signTx u1 tx
+  -- tx <- signTx u2 tx
   tx <- signTx u3 tx
   submitTx u1 tx
