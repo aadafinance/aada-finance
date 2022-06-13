@@ -133,7 +133,7 @@ createLockFundsTx t pkh oref usp v =
       [ userSpend usp
       , payToScript
         (requestTypedValidator getSc1Params)
-        (getTestDatum t (getBNftCs oref) (scriptCurrencySymbol OracleNft.policy) (PaymentPubKeyHash pkh))
+        (getTestDatum t (getBNftCs oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh))
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
