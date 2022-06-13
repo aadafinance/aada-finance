@@ -59,6 +59,7 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail7)
     , testNoErrorsTrace (adaValue 10_000_000) cfg "test mint oracle nft send to wrong validator hash" (mustFail mintOracleNftShouldFail8)
     , testNoErrorsTrace (adaValue 10_000_000) cfg "test mint oracle nft mint two values" (mustFail mintOracleNftShouldFail9)
+    , testNoErrorsTrace (adaValue 10_000_000) cfg "test mint oracle nft try to mint same value two times" (mustFail mintOracleNftShouldFail10)
     ]
 
 -- TODO move to utils section later
@@ -671,6 +672,25 @@ mintOracleNftShouldFail9 = do
   sp1 <- spend u1 (adaValue 2)
   let oref = getHeadRef sp1
   let tx = getMintOracleNftTx 2 u1 u2 u3 sp1
+  tx <- signTx u1 tx
+  tx <- signTx u2 tx
+  tx <- signTx u3 tx
+  submitTx u1 tx
+
+mintOracleNftShouldFail10 :: Run ()
+mintOracleNftShouldFail10 = do
+  users <- setupSimpleNUsers 3
+  let [u1, u2, u3] = users
+  sp1 <- spend u1 (adaValue 2)
+  let oref = getHeadRef sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
+  tx <- signTx u1 tx
+  tx <- signTx u2 tx
+  tx <- signTx u3 tx
+  submitTx u1 tx
+  sp1 <- spend u1 (adaValue 2)
+  let oref = getHeadRef sp1
+  let tx = getMintOracleNftTx 1 u1 u2 u3 sp1
   tx <- signTx u1 tx
   tx <- signTx u2 tx
   tx <- signTx u3 tx
