@@ -52,7 +52,7 @@ docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/l
 
 General:
 ```bash
-docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft <pkh1> <pkh2> <pkh3> <valh> <oref> <tn>"
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft <pkh1> <pkh2> <pkh3> <valh> <tn>"
 ```
 
 Options:
@@ -60,10 +60,9 @@ Options:
 - `pkh2 -> PubKeyHash of party which mush sign to mint this Nft`
 - `pkh3 -> PubKeyHash of party which mush sign to mint this Nft`
 - `valh -> ValidatorHash where Nft Must be sent to be minted`
-- `oref -> TxOutRef which must be consumed for Nft to be minted`
 - `tn -> TokenName for Nft to be minted`
 
 Example:
 ```bash
-docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft ff ff ff ff ff#0 ff"
+docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft ff ff ff ff ff"
 ```
