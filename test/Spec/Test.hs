@@ -549,7 +549,7 @@ getMintOracleNftTx oref n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     valh = validatorHash Helpers.TestValidator.validator
     mp   = OracleNft.policy oref getOracleNftTn pkh1 pkh2 pkh3 valh
     cs   = scriptCurrencySymbol mp
-    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+    rdm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData "ff" "ff" 1))
 
 getMintOracleNftTxInvalidValHash :: TxOutRef -> PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
 getMintOracleNftTxInvalidValHash oref pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
@@ -564,7 +564,7 @@ getMintOracleNftTxInvalidValHash oref pkh1 pkh2 pkh3 usp = addMintRedeemer mp rd
     valh = validatorHash Helpers.TestValidator.validator
     mp   = OracleNft.policy oref getOracleNftTn pkh1 pkh2 pkh3 valh
     cs   = scriptCurrencySymbol mp
-    rdm  = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+    rdm  = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData "ff" "ff" 1))
 
 mintOracleNft :: Run ()
 mintOracleNft = do
