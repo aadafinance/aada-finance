@@ -66,3 +66,14 @@ Example:
 ```bash
 docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft ff ff ff ff ff"
 ```
+#### Generate OracleNft example
+
+Inside project
+```bash
+cabal run generate-example-jsons
+```
+
+In docker:
+```bash
+docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/generate-example-jsons"
+```
