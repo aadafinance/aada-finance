@@ -168,6 +168,18 @@ executable mint-oracle-nft
                       , bytestring
                       , aeson
 
+executable generate-example-jsons
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              show-dat-rdm.hs
+  ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
+
+  build-depends:        aada-lend
+                      , bytestring
+                      , cardano-api
+                      , plutus-tx
+                      , aeson
+
 executable trace
   import:              base, project-config
   hs-source-dirs:      test

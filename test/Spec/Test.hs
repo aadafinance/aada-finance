@@ -687,7 +687,7 @@ getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     valh = validatorHash Helpers.TestValidator.validator
     mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 valh
     cs   = scriptCurrencySymbol mp
-    rdm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData "ff" "ff" 1))
+    rdm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData (OracleNft.AssetData "ff" "Loan" 1_000_000) (OracleNft.AssetData "ff" "Collateral" 1_000_000) (OracleNft.AssetData "ff" "Interest" 1_000_000) 5))
 
 getMintOracleNftTxInvalidValHash :: PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
 getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
@@ -702,7 +702,7 @@ getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     valh = validatorHash Helpers.TestValidator.validator
     mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 valh
     cs   = scriptCurrencySymbol mp
-    rdm  = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData "ff" "ff" 1))
+    rdm  = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData (OracleNft.AssetData "ff" "Loan" 1_000_000) (OracleNft.AssetData "ff" "Collateral" 1_000_000) (OracleNft.AssetData "ff" "Interest" 1_000_000) 5))
 
 mintOracleNft :: Run ()
 mintOracleNft = do
