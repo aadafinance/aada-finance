@@ -97,6 +97,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     getInterestAmnt :: Value -> Integer
     getInterestAmnt v = valueOf v (interestcs dat) (interesttn dat)
 
+    -- TODO What if interest is divided into different utxos?
     valueToInterestSc :: Value
     valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh info)
 
@@ -149,13 +150,17 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
                        validateInterestAmnt &&
                        validateDebtAndInterestAmnt &&
                        validateNftIsPassedOn &&
-                       validateBorrowerNftBurn
+                       validateBorrowerNftBurn &&
+                       (checkBorrowerDeadLine && checkMintTnName)
 
     range :: POSIXTimeRange
     range = txInfoValidRange info
 
     checkDeadline :: Bool
     checkDeadline = contains (from (mintdate rdm + repayinterval dat)) range
+
+    checkBorrowerDeadLine :: Bool
+    checkBorrowerDeadLine = contains (from (interestPayDate rdm)) range
 
     tokenNameIsCorrect :: TokenName -> Bool
     tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))
@@ -184,7 +189,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkLiquidateNft)
 
     validate :: Bool
-    validate = validateLender || validateBorrower
+    validate = validateLender ||
+               validateBorrower
 
 data Collateral
 instance Scripts.ValidatorTypes Collateral where
