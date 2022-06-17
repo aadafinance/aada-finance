@@ -141,3 +141,43 @@ docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/l
 ```
 cabal test
 ```
+
+## Contribution guide
+
+### Have a proposal?
+
+Raise an issue with a title `proposal - <proposal name>`!
+
+Use this template:
+```
+# <Proposal name>
+
+## What would you like to be different?
+
+## Why do you think this change would improve this project?
+```
+
+### Have a suggested change?
+
+1. Raise a proposal issue
+2. Implement changes
+3. Create PR
+
+### Found a bug?
+
+Raise an issue with a title `bug - <bug name>`!
+
+Use this template:
+```
+# <bug name>
+
+## Your setup
+
+## What is not working as expected?
+
+## What behaviour did you expect?
+
+## What do you think is causing unexpected behaviour?
+
+## How do you think this problem could be resolved?
+```
