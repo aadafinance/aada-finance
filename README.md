@@ -284,3 +284,11 @@ Use this template:
 
 ## How do you think this problem could be resolved?
 ```
+
+## Contact us
+
+[discord](https://discord.gg/rzVMbFWw)
+[telegram](https://t.me/aadacommunity)
+[twitter](https://twitter.com/AadaFinance)
+[repo manager](https://github.com/tomazvila)
+- email: `tomas@aada.finance`
