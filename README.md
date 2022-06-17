@@ -6,9 +6,9 @@ This repository hosts on-chain code part of aada-lend project.
 
 ### Project structure
 
-`app/` - Exectuable files
-`src/` - Smartcontracts. Files ending with Nft are minting policies.
-`test/` - Files for testing project.
+- `app/` - Exectuable files
+- `src/` - Smartcontracts. Files ending with Nft are minting policies.
+- `test/` - Files for testing project.
 
 ### System Actors
 
