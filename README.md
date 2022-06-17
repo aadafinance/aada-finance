@@ -1,5 +1,105 @@
 # aada-tokens-staking
 
+## About
+
+This repository hosts on-chain code part of aada-lend project.
+
+### Project structure
+
+`app/` - Exectuable files
+`src/` - Smartcontracts. Files ending with Nft are minting policies
+`test/` - Files for testing project.
+
+### System Actors
+
+• Borrower
+• Lender
+
+### Use cases
+
+#### Borrower can
+
+• Create loan request
+• Cancel loan request
+• Return loan
+
+#### Lender can
+
+• Lend
+• Liquidate borrower loan by taking collateral
+• Retrieve loan and loan interest
+
+### Requirements
+
+#### Aada lend smartcontract part
+
+• Up until loan is given Borrower should always be able to cancel his loan request.
+• When canceling loan request Borrower should always be able to get all of his collateral back.
+• Only Borrowers Nft owner can cancel loan request. Loan request can be canceled only if Borrowers nft is burnt.
+• Loan receiver is identified by data encoded with datum.
+• Loan request is created by locking collateral funds into  Request.hs  smartcontract together with datum.
+• Borrower must provide this information when creating request:
+
+data Datum = Datum
+    { borrowersNFT  :: !CurrencySymbol     -- collateral provider id
+    , borrowersPkh  :: !PaymentPubKeyHash  -- who shall get loan
+    , loantn        :: !TokenName          -- loan asset token name
+    , loancs        :: !CurrencySymbol     -- loan asset currency symbol
+    , loanamnt      :: !Integer            -- amount of loan
+    , interesttn    :: !TokenName          -- interest asset token name
+    , interestcs    :: !CurrencySymbol     -- interest currency symbol
+    , interestamnt  :: !Integer            -- amount of interest
+    , collateralcs  :: !CurrencySymbol     -- collateral currency symbol
+    , repayinterval :: !POSIXTime          -- repay interval
+    , liquidateNft  :: !CurrencySymbol     -- liquidation oracle id
+    , requestExp    :: !POSIXTime          -- loan request expiration
+    } deriving Show
+
+• Lender can get Vesting rights to borrowers collateral only when loan is given to borrower and collateral funds are
+transfered to  Collateral.hs  smartcontract.
+• Lender can't get Vesting rights to borrowers collateral if loan is not given to owner of PaymentPubKeyHash which
+is encoded in  Request.hs  smartcontract datum.
+• Lender can't get Vesting rights to borrowers collateral if 1 time NFT is not sent to  Collateral.hs  .
+• Lender can't get Vesting rights to borrowers collateral if collateral from  Request.hs   smartcontract is not
+transfered to  Collateral.hs  smartcontract.
+• Lender can't get Vesting rights to borrowers collateral if datum provided with  Request.hs  is different than
+datum provided to  Collateral.hs  smartcontract.
+• Lender can't get Vesting rights to borrowers collateral if 2 Lender NFTs are not minted and one of them is not
+locked into  Collateral.hs  smartcontract.
+• Lender can't retrieve collateral from  Collateral.hs  if  repayinterval  didn't pass and 1 timenft is not burnt or
+datum provided liquidate nft is not minted/burnt.
+• Lender can't retrieve collateral from  Collateral.hs  if 2 Lender Nfts are not burnt and one of them is not from
+Collateral.hs  smart contract.
+• Borrower can't retrieve his collateral if borrowers nft encoded in datum is not burnt.
+• Borrower can't retrieve his collateral if loan is not sent to  Interest.hs  smartcontract.
+• Borrower can't retrieve his collateral if enough interest is not sent to  Interest.hs  smartcontract.
+• Borrower can't retrieve his collateral if Lender nft is not sent to  Interest.hs  smartcontract.
+• Lender can't retrieve his interest from  Interest.hs  smartcontract if 2 Lender Nfts are not burnt and one of them
+is not from  Interest.hs  smart contract.
+• If Borrower returns laon sooner than  repayinterval  he only needs to pay  (current time - loan taken time) / repay
+interval  amount of interest
+
+#### Nfts minting requirements
+
+##### Borrower nft
+
+• It shouldn't be possible to mint more than one Nft at a time
+• It shouldn't be possible to have two Nfts with same CurrencySymbol
+• It shouldn't be possible to mint Borrower nft with other token name than  66 -> B
+
+##### Lender Nft
+
+• It shouldn't be possible to mint other than 2 Nfts at a time
+• It shouldn't be possible to mint Nft if 1 of them is not sent to  Collateral.hs  smartcontract
+• Only two Nfts can be burnt at a time
+• It shouldn't be possible to mint Lender nft with other token name than  76 -> L
+
+##### Time Nft
+
+• It shouldn't be possible to mint Time Nft with other token name than POSIXTime provided as a NFT parameter
+• It shouldn't be possible to mint Time Nft with bigger time than provided with POSIXTime and than the time which is
+currently present
+
 ## Installation
 
 ### For M1 mac users
