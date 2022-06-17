@@ -263,8 +263,11 @@ Use this template:
 ### Have a suggested change?
 
 1. Raise a proposal issue
-2. Implement changes
-3. Create PR
+2. Create tests to cover changes
+3. Implement changes
+4. Make sure nothing breaks
+5. Create PR
+6. Wait for approval
 
 ### Found a bug?
 
