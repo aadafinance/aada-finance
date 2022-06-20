@@ -170,7 +170,7 @@ executable mint-oracle-nft
 
 executable generate-example-jsons
   import:               base, project-config
-  hs-source-dirs:       app
+  hs-source-dirs:       app, test
   main-is:              show-dat-rdm.hs
   ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
 
@@ -179,7 +179,12 @@ executable generate-example-jsons
                       , cardano-api
                       , plutus-tx
                       , aeson
-
+                      , containers
+                      , plutus-ledger
+                      , plutus-ledger-constraints
+                      , plutus-contract
+                      , plutus-ledger-api
+                      
 executable trace
   import:              base, project-config
   hs-source-dirs:      test

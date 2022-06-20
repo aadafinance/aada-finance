@@ -1,64 +1,50 @@
 {
-        "constructor":0,
-        "fields":
-        [
-                {
-                        "bytes":"cc94d157ae79b8b26ba9cff32c043ee306046a65ff1ca7a07dfc3ebf"
-                },
-                {
-                        "bytes":"e50ea4cfe48676d61ff389ba222631f07891158b12b0abf4b75b74f8"
-                },
-                {
-                        "bytes":"434f4e594d4f4e59"
-                },
-                {
-                        "bytes":"fda1b6b487bee2e7f64ecf24d24b1224342484c0195ee1b7b943db50"
-                },
-                {
-                        "int":150
-                },
-                {
-                        "bytes":"4d4f4e59"
-                },
-                {
-                        "bytes":"fda1b6b487bee2e7f64ecf24d24b1224342484c0195ee1b7b943db50"
-                },
-                {
-                        "int":50
-                },
-                {
-                        "bytes":"fda1b6b487bee2e7f64ecf24d24b1224342484c0195ee1b7b943db50"
-                },
-                {
-                        "int":0
-                }
-        ]
-}
-
-borrowersNFT      :: !CurrencySymbol
-borrowersPkh      :: !PaymentPubKeyHash
-loantn            :: !TokenName
-loancs            :: !CurrencySymbol
-loanamnt          :: !Integer
-interesttn        :: !TokenName
-interestcs        :: !CurrencySymbol
-interestamnt      :: !Integer
-collateralcs      :: !CurrencySymbol
-repayinterval     :: !POSIXTime
-
-
-mintdate        :: !POSIXTime
-interestPayDate :: !POSIXTime
-
-{
-        "constructor":0,
-        "fields":
-        [
-                {
-                        "int":0
-                },
-                {
-                        "int":0
-                }
-        ]
+  "fields": [
+    {
+      "bytes": "ff"
+    },
+    {
+      "bytes": "ff"
+    },
+    {
+      "bytes": "434f4e594d4f4e59"
+    },
+    {
+      "bytes": "ffff"
+    },
+    {
+      "int": 150
+    },
+    {
+      "bytes": "4d4f4e59"
+    },
+    {
+      "bytes": "ff"
+    },
+    {
+      "int": 50
+    },
+    {
+      "bytes": "ffffff"
+    },
+    {
+      "int": 0
+    },
+    {
+      "bytes": "ff"
+    },
+    {
+      "bytes": "434f4e59"
+    },
+    {
+      "int": 100
+    },
+    {
+      "int": 5
+    },
+    {
+      "int": 150
+    }
+  ],
+  "constructor": 0
 }

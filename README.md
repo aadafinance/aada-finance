@@ -42,18 +42,22 @@ This repository hosts on-chain code part of aada-lend project.
 
 ```haskell
 data Datum = Datum
-    { borrowersNFT  :: !CurrencySymbol     -- collateral provider id
-    , borrowersPkh  :: !PaymentPubKeyHash  -- who shall get loan
-    , loantn        :: !TokenName          -- loan asset token name
-    , loancs        :: !CurrencySymbol     -- loan asset currency symbol
-    , loanamnt      :: !Integer            -- amount of loan
-    , interesttn    :: !TokenName          -- interest asset token name
-    , interestcs    :: !CurrencySymbol     -- interest currency symbol
-    , interestamnt  :: !Integer            -- amount of interest
-    , collateralcs  :: !CurrencySymbol     -- collateral currency symbol
-    , repayinterval :: !POSIXTime          -- repay interval
-    , liquidateNft  :: !CurrencySymbol     -- liquidation oracle id
-    , requestExp    :: !POSIXTime          -- loan request expiration
+    { borrowersNFT          :: !CurrencySymbol     -- collateral provider id
+    , borrowersPkh          :: !PaymentPubKeyHash  -- who shall get loan
+    , loantn                :: !TokenName          -- loan asset token name
+    , loancs                :: !CurrencySymbol     -- loan asset currency symbol
+    , loanamnt              :: !Integer            -- amount of loan
+    , interesttn            :: !TokenName          -- interest asset token name
+    , interestcs            :: !CurrencySymbol     -- interest currency symbol
+    , interestamnt          :: !Integer            -- amount of interest
+    , collateralcs          :: !CurrencySymbol     -- collateral currency symbol
+    , repayinterval         :: !POSIXTime          -- repay interval
+    , liquidateNft          :: !CurrencySymbol     -- liquidation oracle id
+    , requestExp            :: !POSIXTime          -- loan request expiration
+    , collateraltn          :: !TokenName          -- collateral token name
+    , collateralamnt        :: !Integer            -- amount of collateral
+    , collateralFactor      :: !Integer            -- Colalteral factor used for liquidation
+    , liquidationCommission :: !Integer            -- How much % borrower will pay for lender when liquidated (before time passes)
     } deriving Show
 ```
 
