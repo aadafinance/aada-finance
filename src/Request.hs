@@ -45,6 +45,10 @@ data RequestDatum = RequestDatum
     , collateralcs      :: !CurrencySymbol
     , repayinterval     :: !POSIXTime
     , liquidateNft      :: !CurrencySymbol
+    , collateraltn          :: !TokenName -- collateral token name
+    , collateralamnt        :: !Integer   -- amount of collateral
+    , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
+    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]

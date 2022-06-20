@@ -63,6 +63,10 @@ getTestDatum bNftCs liqNft pkh = RequestDatum
           , collateralcs      = "ffffff"
           , repayinterval     = 0
           , liquidateNft      = liqNft
+          , collateraltn          = "CONY" -- collateral token name
+          , collateralamnt        = 100        -- amount of collateral
+          , collateralFactor      = 5        -- Colalteral factor used for liquidation
+          , liquidationCommission = 150        -- How much % borrower will pay for lender when liquidated (before time passes)
         }
 
 getTestRedeemer :: POSIXTime -> Collateral.CollateralRedeemer
