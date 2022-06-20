@@ -57,30 +57,29 @@ data Datum = Datum
     } deriving Show
 ```
 
-
 - Lender can get Vesting rights to borrowers collateral only when loan is given to borrower and collateral funds are
-transfered to  Collateral.hs  smartcontract.
-- Lender can't get Vesting rights to borrowers collateral if loan is not given to owner of PaymentPubKeyHash which
-is encoded in  Request.hs  smartcontract datum.
-- Lender can't get Vesting rights to borrowers collateral if 1 time NFT is not sent to  Collateral.hs  .
-- Lender can't get Vesting rights to borrowers collateral if collateral from  Request.hs   smartcontract is not
-transfered to  Collateral.hs  smartcontract.
-Lender can't get Vesting rights to borrowers collateral if datum provided with  Request.hs  is different than
-datum provided to  Collateral.hs  smartcontract.
+transfered to `Collateral.hs` smartcontract.
+- Lender can't get Vesting rights to borrowers collateral if loan is not given to owner of **PaymentPubKeyHash** which
+is encoded in `Request.hs` smartcontract datum.
+- Lender can't get Vesting rights to borrowers collateral if 1 time NFT is not sent to `Collateral.hs`.
+- Lender can't get Vesting rights to borrowers collateral if collateral from `Request.hs` smartcontract is not
+transfered to `Collateral.hs` smartcontract.
+Lender can't get Vesting rights to borrowers collateral if datum provided with `Request.hs` is different than
+datum provided to `Collateral.hs` smartcontract.
 - Lender can't get Vesting rights to borrowers collateral if 2 Lender NFTs are not minted and one of them is not
-locked into  Collateral.hs  smartcontract.
-- Lender can't retrieve collateral from  Collateral.hs  if  repayinterval  didn't pass and 1 timenft is not burnt or
-datum provided liquidate nft is not minted/burnt.
-- Lender can't retrieve collateral from  Collateral.hs  if 2 Lender Nfts are not burnt and one of them is not from
-Collateral.hs  smart contract.
+locked into `Collateral.hs` smartcontract.
+- Lender can't retrieve collateral from `Collateral.hs` if **repayinterval** didn't pass and 1 timenft is not burnt or
+datum provided liquidate nft is not minted/burnt unless liqudation OracleNft is burnt.
+- Lender can't retrieve collateral from `Collateral.hs` if 2 Lender Nfts are not burnt and one of them is not from
+`Collateral.hs` smart contract.
 - Borrower can't retrieve his collateral if borrowers nft encoded in datum is not burnt.
-- Borrower can't retrieve his collateral if loan is not sent to  Interest.hs  smartcontract.
-- Borrower can't retrieve his collateral if enough interest is not sent to  Interest.hs  smartcontract.
-- Borrower can't retrieve his collateral if Lender nft is not sent to  Interest.hs  smartcontract.
-- Lender can't retrieve his interest from  Interest.hs  smartcontract if 2 Lender Nfts are not burnt and one of them
-is not from  Interest.hs  smart contract.
-- If Borrower returns laon sooner than  repayinterval  he only needs to pay  (current time - loan taken time) / repay
-interval  amount of interest
+- Borrower can't retrieve his collateral if loan is not sent to `Interest.hs` smartcontract.
+- Borrower can't retrieve his collateral if enough interest is not sent to `Interest.hs` smartcontract.
+- Borrower can't retrieve his collateral if Lender nft is not sent to `Interest.hs` smartcontract.
+- Lender can't retrieve his interest from `Interest.hs` smartcontract if 2 Lender Nfts are not burnt and one of them
+is not from `Interest.hs` smart contract.
+- If Borrower returns laon sooner than **repayinterval** he only needs to pay `(current time - loan taken time) / repay`
+interval amount of interest.
 
 #### Nfts minting requirements
 

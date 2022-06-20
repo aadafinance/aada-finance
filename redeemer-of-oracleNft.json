@@ -1,1 +1,1 @@
-{"fields":[{"fields":[{"bytes":"ff"},{"bytes":"4c6f616e"},{"int":1000000}],"constructor":0},{"fields":[{"bytes":"ff"},{"bytes":"436f6c6c61746572616c"},{"int":1000000}],"constructor":0},{"fields":[{"bytes":"ff"},{"bytes":"496e746572657374"},{"int":1000000}],"constructor":0},{"int":5}],"constructor":0}
+{"fields":[{"int":1},{"int":2},{"int":3},{"int":4},{"int":5},{"int":6}],"constructor":0}

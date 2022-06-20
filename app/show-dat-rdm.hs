@@ -18,7 +18,7 @@ import OracleNft
 
 main :: IO ()
 main = do
-  let exampleOracleRedeemer = OracleData (AssetData "ff" "Loan" 1_000_000) (AssetData "ff" "Collateral" 1_000_000) (AssetData "ff" "Interest" 1_000_000) 5
+  let exampleOracleRedeemer = OracleData 1 2 3 4 5 6
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
   putStrLn "Done"
 
