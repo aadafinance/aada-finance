@@ -12,6 +12,8 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use foldr" #-}
 
 module LenderNft
   ( lenderNft
@@ -28,7 +30,8 @@ import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
-import           Prelude                  (Semigroup (..))
+import qualified Plutus.V1.Ledger.Scripts as Plutus
+import           Prelude                  (Semigroup (..), Show)
 
 {-# INLINABLE flattenBuiltinByteString #-}
 flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString

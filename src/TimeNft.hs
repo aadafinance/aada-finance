@@ -17,6 +17,7 @@ module TimeNft
   ( timeNft
   , timeNftShortBs
   , policy
+  , intToByteString
   ) where
 
 import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
@@ -68,7 +69,7 @@ mkPolicy mintingdate ctx = validate
     validateMint (_, _, amnt) = amnt == 1
 
     validateBurn :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateBurn (_, _, amnt) = amnt == (-1) && checkDeadline
+    validateBurn (_, _, amnt) = amnt == (-1) && traceIfFalse "invalid dead line" checkDeadline
 
     validate :: Bool
     validate = validateMint (PlutusTx.Prelude.head mintedFlattened) ||

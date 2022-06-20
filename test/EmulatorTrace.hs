@@ -96,9 +96,33 @@ lenderCancelsLoan = do
                     _ <- activateContractWallet w2 ((lenderCancelLoan :: TestingStatus -> Contract (Last TestingStatus) Empty Text ()) ts2)
                     void $ waitNSlots 2
 
+lenderCancelsLoanLiquidateTrace :: EmulatorTrace ()
+lenderCancelsLoanLiquidateTrace = do
+    Extras.logError @String "Starting lender liquidates emulator trace"
+    let w1 = knownWallet 1
+    let w2 = knownWallet 2
+    let w3 = knownWallet 3
+    -- cw0 <- activateContractWallet w3 (createOracle :: Contract () Empty Text ())
+    void $ waitNSlots 2
+    cw1 <- activateContractWallet w1 (lock :: Contract (Last TestingStatus) Empty Text ())
+    void $ waitNSlots 2
+    Last m <- observableState cw1
+    case m of
+        Nothing -> Extras.logError @String "Testing status wasn't set"
+        Just ts -> do
+            cw2 <- activateContractWallet w2 ((lend :: TestingStatus -> Contract (Last TestingStatus) Empty Text ()) ts)
+            void $ waitNSlots 2
+            Last m2 <- observableState cw2
+            case m2 of
+                Nothing -> Extras.logError @String "Updated testing status wasn't set"
+                Just ts2 -> do 
+                    _ <- activateContractWallet w2 ((lenderCancelLoanLiquidate :: TestingStatus -> Contract (Last TestingStatus) Empty Text ()) ts2)
+                    void $ waitNSlots 2
+
 emCfg :: EmulatorConfig
 emCfg = EmulatorConfig (Left $ Map.fromList xs) def def
     where
-        xs = [(knownWallet 1, ada1), (knownWallet 2, ada2)]
+        xs = [(knownWallet 1, ada1), (knownWallet 2, ada2), (knownWallet 3, ada3)]
         ada1 = lovelaceValueOf 100_000_000 <> collateralValue <> interestValue
         ada2 = lovelaceValueOf 100_000_000 <> loanValue
+        ada3 = lovelaceValueOf 100_000_000

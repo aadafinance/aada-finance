@@ -8,11 +8,14 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use foldr" #-}
 
 module Interest
   ( interest
   , interestShortBs
   , validator
+  , typedValidator
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)

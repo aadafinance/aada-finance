@@ -33,7 +33,6 @@ import qualified PlutusTx
 import           Ledger               hiding (singleton)
 import qualified Plutus.V1.Ledger.Scripts as Plutus
 
-
 data RequestDatum = RequestDatum
     { borrowersNFT      :: !CurrencySymbol
     , borrowersPkh      :: !PaymentPubKeyHash
@@ -45,6 +44,7 @@ data RequestDatum = RequestDatum
     , interestamnt      :: !Integer
     , collateralcs      :: !CurrencySymbol
     , repayinterval     :: !POSIXTime
+    , liquidateNft      :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
@@ -161,3 +161,6 @@ request = PlutusScriptSerialised . requestShortBs
 
 requestShortBs :: ContractInfo -> SBS.ShortByteString
 requestShortBs = SBS.toShort . LBS.toStrict . scriptAsCbor
+
+requestAddress :: ContractInfo -> Ledger.Address
+requestAddress = Ledger.scriptAddress . requestValidator

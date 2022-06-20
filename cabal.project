@@ -239,3 +239,10 @@ source-repository-package
   type: git
   location: https://github.com/input-output-hk/Win32-network
   tag: 3825d3abf75f83f406c1f7161883c438dac7277d
+
+-- library for unit tests of Plutus scripts                                                               
+source-repository-package
+   type: git                                                                                              
+   location: https://github.com/mlabs-haskell/plutus-simple-model
+   tag: 7f8da4a16909fbf3a1a5943040c6ee20676d7cb6
+

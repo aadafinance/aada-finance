@@ -40,6 +40,7 @@ import qualified Interest
 import qualified TimeNft
 import qualified BorrowerNft
 import qualified LenderNft
+import           OracleNft
 import qualified Plutus.V1.Ledger.Ada as Ada
 
 data TestingStatus = TestingStatus
@@ -49,9 +50,9 @@ data TestingStatus = TestingStatus
     , lpkh  :: !PaymentPubKeyHash
     } deriving (Show, Generic, FromJSON, ToJSON, Prelude.Eq)
 
-getTestDatum :: CurrencySymbol -> PaymentPubKeyHash -> RequestDatum
-getTestDatum bNftCs pkh = RequestDatum {
-            borrowersNFT      = bNftCs
+getTestDatum :: CurrencySymbol -> CurrencySymbol -> PaymentPubKeyHash -> RequestDatum
+getTestDatum bNftCs liqNft pkh = RequestDatum
+          { borrowersNFT      = bNftCs
           , borrowersPkh      = pkh
           , loantn            = "CONYMONY"
           , loancs            = "ffff"
@@ -61,7 +62,14 @@ getTestDatum bNftCs pkh = RequestDatum {
           , interestamnt      = 50
           , collateralcs      = "ffffff"
           , repayinterval     = 0
+          , liquidateNft      = liqNft
         }
+
+getTestRedeemer :: POSIXTime -> Collateral.CollateralRedeemer
+getTestRedeemer t = Collateral.CollateralRedeemer
+  { Collateral.mintdate        = POSIXTime getTimeNftDl
+  , Collateral.interestPayDate = t
+  }
 
 getTimeNftDl :: Integer
 getTimeNftDl = 0
@@ -91,6 +99,8 @@ lock = do
     o    <- fromJust <$> Contract.txOutFromRef oref
     pkh  <- Contract.ownPaymentPubKeyHash
 
+    let liqNftCs = scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff"
+
     let borrowersNftPolicy = BorrowerNft.policy oref
     let lookups = Constraints.mintingPolicy borrowersNftPolicy <>
                   Constraints.unspentOutputs (Map.singleton oref o)
@@ -101,7 +111,7 @@ lock = do
         sc1val = Ada.lovelaceValueOf 2000000 <> collat
         bval   = Ada.lovelaceValueOf 2000000 <> val
 
-    let datum = getTestDatum cs pkh
+    let datum = getTestDatum cs liqNftCs pkh
         sc1vh = validatorHash $ requestValidator getSc1Params
         dat = Datum $ PlutusTx.toBuiltinData datum
         constraints = TxConstraints.mustSpendPubKeyOutput oref <>
@@ -111,7 +121,7 @@ lock = do
 
     ledgerTx <- submitTxConstraintsWith @Void lookups constraints
     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
-    logInfo @String $ printf "locked lovelace with datum %s" (show datum)
+    -- logInfo @String $ printf "locked lovelace with datum %s" (show datum)
     let lr = TestingStatus oref pkh oref pkh
     tell $ Last $ Just lr
     logInfo @String "Lock finihesd!!!"
@@ -134,6 +144,8 @@ lend ts = do
     let dl = getTimeNftDl
     let timeRdm = Redeemer $ Builtins.mkI dl
 
+    let liqNftCs = scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff"
+
     if Map.null utxos
         then logInfo @String $ "No utxo in script found"
         else do
@@ -152,7 +164,7 @@ lend ts = do
                        singleLNftVal <>
                        timeNftVal
 
-              datum = getTestDatum (scriptCurrencySymbol $ BorrowerNft.policy $ boref ts) (bpkh ts)
+              datum = getTestDatum (scriptCurrencySymbol $ BorrowerNft.policy $ boref ts) liqNftCs (bpkh ts)
               dat   = Datum $ PlutusTx.toBuiltinData datum
 
           let  tx     = TxConstraints.mustSpendScriptOutput (fst soref) rdm <>
@@ -163,7 +175,7 @@ lend ts = do
                         TxConstraints.mustPayToPubKey pkh (singleLNftVal <> minAda)
           ledgerTx <- submitTxConstraintsWith @Void lookups tx
           void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
-          
+
     let lr = TestingStatus (boref ts) (bpkh ts) oref pkh
     tell $ Last $ Just lr
     logInfo @String $ "Lend all good"
@@ -178,7 +190,10 @@ borrowerCancelLoan ts = do
   o    <- fromJust <$> Contract.txOutFromRef oref
   pkh  <- Contract.ownPaymentPubKeyHash
 
-  let rdm = Redeemer $ Builtins.mkI 0
+  now <- currentTime
+
+  let rdm = Redeemer $ PlutusTx.toBuiltinData (getTestRedeemer now)
+  let mintRdm = Redeemer $ Builtins.mkI 0
 
   let borrowersNftPolicy = BorrowerNft.policy (boref ts)
 
@@ -194,7 +209,7 @@ borrowerCancelLoan ts = do
                 Constraints.otherScript (requestValidator getSc1Params)
 
   let constraints = TxConstraints.mustSpendScriptOutput (fst soref) rdm <>
-                    Constraints.mustMintValueWithRedeemer rdm bnftval <>
+                    Constraints.mustMintValueWithRedeemer mintRdm bnftval <>
                     TxConstraints.mustPayToPubKey pkh valtob
 
   ledgerTx <- submitTxConstraintsWith @Void lookups constraints
@@ -208,9 +223,11 @@ lenderCancelLoan ts = do
   let soref = head $ Map.toList utxos
 
   pkh  <- Contract.ownPaymentPubKeyHash  -- Lender pkh
+  now <- currentTime
 
   let timeRdm = Redeemer $ Builtins.mkI getTimeNftDl
-      rdm     = Redeemer $ Builtins.mkI 0
+      rdm     = Redeemer $ PlutusTx.toBuiltinData (getTestRedeemer now)
+      mintRdm = Redeemer $ Builtins.mkI 0
 
   let sc2valh = validatorHash $ Collateral.validator getSc2Params
 
@@ -223,15 +240,13 @@ lenderCancelLoan ts = do
       collatVal     = Value.singleton "ffffff" "CONY" 100
       valToLender   = minAda <> collatVal
 
-  now <- currentTime
-
   let lookups = Constraints.mintingPolicy lendersMintingPolicy <>
                 Constraints.mintingPolicy timePolicy  <>
                 Constraints.otherScript (Collateral.validator getSc2Params) <>
                 Constraints.unspentOutputs (uncurry Map.singleton soref)
 
-  let constraints = TxConstraints.mustSpendScriptOutput (fst soref) timeRdm <>
-                    Constraints.mustMintValueWithRedeemer rdm lenderNftVal <>
+  let constraints = TxConstraints.mustSpendScriptOutput (fst soref) rdm <>
+                    Constraints.mustMintValueWithRedeemer mintRdm lenderNftVal <>
                     Constraints.mustMintValueWithRedeemer timeRdm timeNftVal <>
                     TxConstraints.mustPayToPubKey pkh valToLender <>
                     Constraints.mustValidateIn (from now)
@@ -240,14 +255,56 @@ lenderCancelLoan ts = do
   void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
   logInfo @String $ "Lender canceled all good"
 
+lenderCancelLoanLiquidate :: AsContractError e => TestingStatus -> Contract (Last TestingStatus) s e ()
+lenderCancelLoanLiquidate ts = do
+  let sc2Address = scriptHashAddress $ validatorHash $ Collateral.validator getSc2Params
+  utxos <- utxosAt sc2Address
+  let soref = head $ Map.toList utxos
+
+  pkh  <- Contract.ownPaymentPubKeyHash  -- Lender pkh
+  now <- currentTime
+
+  let timeRdm = Redeemer $ Builtins.mkI getTimeNftDl
+      rdm     = Redeemer $ PlutusTx.toBuiltinData (getTestRedeemer now)
+      mintRdm = Redeemer $ Builtins.mkI 0
+  let sc2valh = validatorHash $ Collateral.validator getSc2Params
+
+  let lendersMintingPolicy = LenderNft.policy sc2valh (loref ts)
+  let timePolicy = TimeNft.policy
+  let liquidatePolicy = OracleNft.policy
+
+  let minAda          = Ada.lovelaceValueOf 2000000
+      timeNftVal      = Value.singleton (scriptCurrencySymbol timePolicy) getTimeNftDlTn 1
+      collatVal       = Value.singleton "ffffff" "CONY" 100
+      lenderNftVal    = Value.singleton (scriptCurrencySymbol lendersMintingPolicy) "L" 1
+      liquidateNftVal = Value.singleton (scriptCurrencySymbol $ liquidatePolicy "ff" "ff" "ff" "ff" "ff") "ORACLE" 0
+      valToLender     = minAda <> collatVal <> timeNftVal <> lenderNftVal <> liquidateNftVal
+
+  logInfo @String $ printf "Value to lender: %s" (show valToLender)
+
+  let lookups = Constraints.otherScript (Collateral.validator getSc2Params) <>
+                Constraints.mintingPolicy (liquidatePolicy "ff" "ff" "ff" "ff" "ff") <>
+                Constraints.unspentOutputs (uncurry Map.singleton soref)
+
+  let constraints = TxConstraints.mustSpendScriptOutput (fst soref) rdm <>
+                    TxConstraints.mustMintValueWithRedeemer mintRdm liquidateNftVal <>
+                    TxConstraints.mustPayToPubKey pkh valToLender
+
+  ledgerTx <- submitTxConstraintsWith @Void lookups constraints
+  void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+  logInfo @String $ "Lender liquidate all good"
+
 returnLoan :: AsContractError e => TestingStatus -> Contract (Last TestingStatus) s e ()
 returnLoan ts = do
   let sc2Address = scriptHashAddress $ validatorHash $ Collateral.validator getSc2Params
   utxos <- utxosAt sc2Address
   let soref = head $ Map.toList utxos
 
+  now <- currentTime
+
   let timeRdm = Redeemer $ Builtins.mkI getTimeNftDl
-      rdm     = Redeemer $ Builtins.mkI 0
+      rdm     = Redeemer $ PlutusTx.toBuiltinData (getTestRedeemer now)
+      mintRdm = Redeemer $ Builtins.mkI 0
 
   let dat   = Datum $ Builtins.mkI 0
 
@@ -276,8 +333,8 @@ returnLoan ts = do
                 Constraints.otherScript (Collateral.validator getSc2Params) <>
                 Constraints.unspentOutputs (uncurry Map.singleton soref)
 
-  let constraints = TxConstraints.mustSpendScriptOutput (fst soref) timeRdm <>
-                    Constraints.mustMintValueWithRedeemer rdm borrowersNftVal <>
+  let constraints = TxConstraints.mustSpendScriptOutput (fst soref) rdm <>
+                    Constraints.mustMintValueWithRedeemer mintRdm borrowersNftVal <>
                     Constraints.mustMintValueWithRedeemer timeRdm timeNftVal <>
                     TxConstraints.mustPayToOtherScript sc3ValH dat valToSc3 <>
                     TxConstraints.mustPayToPubKey (bpkh ts) (minAda <> collatVal) <>
@@ -313,3 +370,47 @@ retrieve ts = do
   ledgerTx <- submitTxConstraintsWith @Void lookups constraints
   void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
   logInfo @String $ "Retrieve All good"
+
+-- createOracle :: AsContractError e => Contract w s e ()
+-- createOracle = do
+--     let oracleVh = scriptHashAddress $ validatorHash Oracle.oracleValidator
+--     let minval   = Ada.lovelaceValueOf 2000000
+
+--     -- lock cony
+--     oref  <- getUnspentOutput
+--     o     <- fromJust <$> Contract.txOutFromRef oref
+
+--     let dat = Datum $ PlutusTx.toBuiltinData getConyOracleDatum
+
+--     let lookups     = Constraints.unspentOutputs (Map.singleton oref o)
+--     let constraints = Constraints.mustPayToOtherScript (validatorHash Oracle.oracleValidator) dat minval
+
+--     ledgerTx <- submitTxConstraintsWith @Void lookups constraints
+--     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+--     logInfo @String $ printf "first oracle utxo locked. Cony: %s" (show getConyOracleDatum)
+
+--     -- lock mony
+--     oref  <- getUnspentOutput
+--     o     <- fromJust <$> Contract.txOutFromRef oref
+
+--     let dat = Datum $ PlutusTx.toBuiltinData getMonyOracleDatum
+
+--     let lookups     = Constraints.unspentOutputs (Map.singleton oref o)
+--     let constraints = Constraints.mustPayToOtherScript (validatorHash Oracle.oracleValidator) dat minval
+
+--     ledgerTx <- submitTxConstraintsWith @Void lookups constraints
+--     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+--     logInfo @String $ printf "second oracle utxo locked. Mony: %s" (show getMonyOracleDatum)
+
+--     -- lock conymony
+--     oref  <- getUnspentOutput
+--     o     <- fromJust <$> Contract.txOutFromRef oref
+
+--     let dat = Datum $ PlutusTx.toBuiltinData getConyMonyOracleDatum
+
+--     let lookups     = Constraints.unspentOutputs (Map.singleton oref o)
+--     let constraints = Constraints.mustPayToOtherScript (validatorHash Oracle.oracleValidator) dat minval
+
+--     ledgerTx <- submitTxConstraintsWith @Void lookups constraints
+--     void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
+--     logInfo @String $ printf "third oracle utxo locked. ConyMony: %s" (show getConyMonyOracleDatum)
