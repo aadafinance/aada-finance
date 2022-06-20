@@ -13,13 +13,17 @@ import Cardano.Api
       ScriptDataJsonSchema(ScriptDataJsonDetailedSchema) )
 import Cardano.Api.Shelley ( fromPlutusData )
 import qualified PlutusTx
+import Ledger
 
 import OracleNft
+import TestingOffChain
 
 main :: IO ()
 main = do
   let exampleOracleRedeemer = OracleData 1 2 3 4 5 6
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
+  let exampleDatum = getTestDatum "ff" "ff" (PaymentPubKeyHash "ff")
+  writeData "example.datum" exampleDatum
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()
