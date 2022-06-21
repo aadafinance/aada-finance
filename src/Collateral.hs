@@ -150,21 +150,21 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) mintFlattened
 
     validateBorrower :: Bool
-    validateBorrower = validateDebtAmnt &&
-                       validateInterestAmnt &&
-                       validateDebtAndInterestAmnt &&
-                       validateNftIsPassedOn &&
-                       validateBorrowerNftBurn &&
+    validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
+                       traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
+                       traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
+                       traceIfFalse "Lender nft is not passed on to interest sc" validateNftIsPassedOn &&
+                       traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
                        (checkBorrowerDeadLine && checkMintTnName)
 
     range :: POSIXTimeRange
     range = txInfoValidRange info
 
     checkDeadline :: Bool
-    checkDeadline = contains (from (mintdate rdm + repayinterval dat)) range
+    checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) range)
 
     checkBorrowerDeadLine :: Bool
-    checkBorrowerDeadLine = contains (from (interestPayDate rdm)) range
+    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (from (interestPayDate rdm)) range)
 
     tokenNameIsCorrect :: TokenName -> Bool
     tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))
@@ -173,7 +173,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     getTimeTokenName = (\(_, tn, _) -> tn) <$> find (\(cs, _, n) -> cs == timeNft && n == (-1)) mintFlattened
 
     checkMintTnName :: Bool
-    checkMintTnName = maybe False tokenNameIsCorrect getTimeTokenName
+    checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
 
     inputHasBurntLNft :: CurrencySymbol -> Bool
     inputHasBurntLNft cs = case ownValue of
@@ -181,10 +181,10 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
       Nothing -> False
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) mintFlattened
+    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) mintFlattened)
 
     checkForLiquidationNft :: Bool
-    checkForLiquidationNft = any (\(cs, _, _) -> cs == liquidateNft dat) mintFlattened
+    checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) mintFlattened)
 
     checkLiquidateNft :: Bool
     checkLiquidateNft = checkForLiquidationNft

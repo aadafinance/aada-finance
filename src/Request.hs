@@ -129,12 +129,12 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       Nothing   -> False
 
     validate :: Bool
-    validate = ownInputHash &&
-               validateMint &&
-               borrowerGetsWhatHeWants &&
-               validateTimeNftIsSentToCollateralSc &&
-               validateCollateral ||
-               validateBorrowerMint
+    validate = traceIfFalse "datum hash validation fail" ownInputHash &&
+               traceIfFalse "2 lender tokens wasn't minted and or 1 of them wasn't sent to collateral sc" validateMint &&
+               traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
+               traceIfFalse "time nft not sent to collateral sc" validateTimeNftIsSentToCollateralSc &&
+               traceIfFalse "collateral not sent to collateral sc" validateCollateral ||
+               (traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint)
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where

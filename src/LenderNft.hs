@@ -50,21 +50,21 @@ mkPolicy vh utxo _ ctx = validate
     info = scriptContextTxInfo ctx
 
     hasUTxO :: Bool
-    hasUTxO = any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info
+    hasUTxO = traceIfFalse "utxo specified in lender nft minting policy not found" (any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info)
 
     valueToCollateralSc :: Value
     valueToCollateralSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt vh info)
 
     nftIsSentToCollateralSc :: Bool
-    nftIsSentToCollateralSc = valueOf valueToCollateralSc (ownCurrencySymbol ctx) lender == 1
+    nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf valueToCollateralSc (ownCurrencySymbol ctx) lender == 1)
 
     validateMint :: (CurrencySymbol, TokenName, Integer) -> Bool
     validateMint (_, _, n) = hasUTxO &&
-                             n == 2 &&
+                             traceIfFalse "invalid lender nft minted amount" (n == 2) &&
                              nftIsSentToCollateralSc
 
     validateBurn :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateBurn (_, _, n) = n == (-2)
+    validateBurn (_, _, n) = traceIfFalse "invalid lender nft burnt amount" (n == (-2))
 
     ownNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     ownNftFilter (cs, tn, _) = cs == ownCurrencySymbol ctx && tn == lender
