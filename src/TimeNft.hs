@@ -69,7 +69,7 @@ mkPolicy mintingdate ctx = validate
     validateMint (_, _, amnt) = amnt == 1
 
     validateBurn :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateBurn (_, _, amnt) = amnt == (-1) && traceIfFalse "invalid dead line" checkDeadline
+    validateBurn (_, _, amnt) = amnt == (-1) && traceIfFalse "invalid timenft burn dead line" checkDeadline
 
     validate :: Bool
     validate = validateMint (PlutusTx.Prelude.head mintedFlattened) ||
