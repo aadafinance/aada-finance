@@ -48,7 +48,7 @@ mkPolicy utxo _ ctx = validate
     validateMint (_, _, n) = hasUTxO && (traceIfFalse "invalid mint amount" $ n == 1)
 
     validateBurn :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateBurn (_, _, n) = traceIfFalse "invalid burn amount" & n == (-1)
+    validateBurn (_, _, n) = traceIfFalse "invalid burn amount" (n == (-1))
 
     ownNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     ownNftFilter (cs, tn, _) = cs == ownCurrencySymbol ctx && tn == borrower
