@@ -46,14 +46,21 @@ data OracleData = OracleData {
 } deriving (Show, Generic, FromJSON, ToJSON)
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> OracleData -> ScriptContext -> Bool
+mkPolicy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> OracleData -> ScriptContext -> Bool
 mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
 
+    checkTargetAddress :: Address -> Bool
+    checkTargetAddress addr = case toValidatorHash addr of
+      Just hash -> hash == (ValidatorHash dest)
+      Nothing   -> case toPubKeyHash addr of 
+        Just pkh -> pkh == (PubKeyHash dest)
+        Nothing  -> False
+
     mintedValueSentToDest :: Bool
-    mintedValueSentToDest = any (\x -> (toValidatorHash . txOutAddress) x == Just dest &&
+    mintedValueSentToDest = any (\x -> (checkTargetAddress (txOutAddress x)) &&
                                         valueOf (txInfoMint info) (ownCurrencySymbol ctx) tn == 1 &&
                                         valueOf (txOutValue x) (ownCurrencySymbol ctx) tn == 1
                                         ) (txInfoOutputs info)
@@ -65,7 +72,7 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
                traceIfFalse "oracle nft wasn't signed by pkh3" (txSignedBy info pkh3) &&
                traceIfFalse "minted oracle nft not sent to validator hash specified in minting policy" mintedValueSentToDest || burn
 
-policy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> Scripts.MintingPolicy
+policy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Scripts.MintingPolicy
 policy tn pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $
     $$(PlutusTx.compile [|| wrap ||])
     `PlutusTx.applyCode`
@@ -81,19 +88,19 @@ policy tn pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $
     where
       wrap tn' pkh1' pkh2' pkh3' dest' = Scripts.wrapMintingPolicy $ mkPolicy tn' pkh1' pkh2' pkh3' dest' 
 
-plutusScript :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> Script
+plutusScript :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Script
 plutusScript tn pkh1 pkh2 pkh3 dest  = unMintingPolicyScript $ policy tn pkh1 pkh2 pkh3 dest
 
-validator :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> Validator
+validator :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Validator
 validator tn pkh1 pkh2 pkh3 dest = Validator $ plutusScript tn pkh1 pkh2 pkh3 dest
 
-scriptAsCbor :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> LB.ByteString
+scriptAsCbor :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> LB.ByteString
 scriptAsCbor tn pkh1 pkh2 pkh3 dest  = serialise $ validator tn pkh1 pkh2 pkh3 dest
 
-oracleNft :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> PlutusScript PlutusScriptV1
+oracleNft :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> PlutusScript PlutusScriptV1
 oracleNft tn pkh1 pkh2 pkh3 dest  = PlutusScriptSerialised $ SBS.toShort $ LB.toStrict $ scriptAsCbor tn pkh1 pkh2 pkh3 dest
 
-oracleNftShortBs :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> ValidatorHash -> SBS.ShortByteString
+oracleNftShortBs :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> SBS.ShortByteString
 oracleNftShortBs tn pkh1 pkh2 pkh3 dest = SBS.toShort $ LB.toStrict $ scriptAsCbor tn pkh1 pkh2 pkh3 dest
 
 PlutusTx.makeLift ''OracleData

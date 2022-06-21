@@ -682,6 +682,9 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
 getOracleNftVal :: CurrencySymbol -> Integer -> Value
 getOracleNftVal cs = Value.singleton cs getOracleNftTn
 
+builtinFromValidatorHash :: ValidatorHash -> BuiltinByteString
+builtinFromValidatorHash (ValidatorHash bbs) = bbs 
+
 getMintOracleNftTx :: Integer -> PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
 getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
   mconcat
@@ -693,7 +696,7 @@ getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     ]
   where
     valh = validatorHash Helpers.TestValidator.validator
-    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 valh
+    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
     cs   = scriptCurrencySymbol mp
     rdm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
 
@@ -708,7 +711,7 @@ getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     ]
   where
     valh = validatorHash Helpers.TestValidator.validator
-    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 valh
+    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
     cs   = scriptCurrencySymbol mp
     rdm  = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
 

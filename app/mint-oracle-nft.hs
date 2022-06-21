@@ -27,7 +27,7 @@ main = do
   let scriptnum = 0
   let scriptname = "oracle.nft"
   putStrLn $ "Writing output to: " ++ scriptname
-  writePlutusMintingScript scriptnum scriptname oracleNft oracleNftShortBs (strToPkh pkh1) (strToPkh pkh2) (strToPkh pkh3) (strToValidatorHash dest) (strToTn tn)
+  writePlutusMintingScript scriptnum scriptname oracleNft oracleNftShortBs (strToPkh pkh1) (strToPkh pkh2) (strToPkh pkh3) (strToBuiltinByteString dest) (strToTn tn)
 
 strToTn :: String -> Plutus.TokenName
 strToTn str = Plutus.TokenName $ Plutus.getLedgerBytes $ FS.fromString str
@@ -35,18 +35,18 @@ strToTn str = Plutus.TokenName $ Plutus.getLedgerBytes $ FS.fromString str
 strToPkh :: String -> Plutus.PubKeyHash
 strToPkh str = Plutus.PubKeyHash $ Plutus.getLedgerBytes $ FS.fromString str
 
-strToValidatorHash :: String -> Plutus.ValidatorHash
-strToValidatorHash str = Plutus.ValidatorHash $ Plutus.getLedgerBytes $ FS.fromString str
+strToBuiltinByteString :: String -> Plutus.BuiltinByteString
+strToBuiltinByteString str = Plutus.getLedgerBytes $ FS.fromString str
 
 writePlutusMintingScript
   :: Integer
   -> FilePath
-  -> (Plutus.TokenName -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.ValidatorHash -> PlutusScript PlutusScriptV1)
-  -> (Plutus.TokenName -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.ValidatorHash -> SBS.ShortByteString)
+  -> (Plutus.TokenName -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.BuiltinByteString -> PlutusScript PlutusScriptV1)
+  -> (Plutus.TokenName -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.PubKeyHash -> Plutus.BuiltinByteString -> SBS.ShortByteString)
   -> Plutus.PubKeyHash
   -> Plutus.PubKeyHash
   -> Plutus.PubKeyHash
-  -> Plutus.ValidatorHash
+  -> Plutus.BuiltinByteString
   -> Plutus.TokenName
   -> IO ()
 writePlutusMintingScript scriptnum filename scriptSerial scriptSBS pkh1 pkh2 pkh3 dest tn =
