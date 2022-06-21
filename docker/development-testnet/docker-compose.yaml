@@ -7,7 +7,7 @@ x-logging:
         max-size: "10m"
 services:
   aada-finance:
-    image: mantasand/aada-finance:stage-latest
+    image: mantasand/aada-finance:development-testnet-latest
     restart: always
     stdin_open: true
     tty: true
