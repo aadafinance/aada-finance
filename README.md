@@ -264,44 +264,19 @@ cabal test
 
 ### Have a proposal?
 
-Raise an issue with a title `proposal - <proposal name>`!
-
-Use this template:
-```
-# <Proposal name>
-
-## What would you like to be different?
-
-## Why do you think this change would improve this project?
-```
+Raise an issue with a feature request proposal!
 
 ### Have a suggested change?
 
 1. Raise a proposal issue
-2. Create tests to cover changes
+2. Create branch
 3. Implement changes
-4. Make sure nothing breaks
-5. Create PR
-6. Wait for approval
+4. Create tests to cover changes
+5. Create pull request
 
 ### Found a bug?
 
-Raise an issue with a title `bug - <bug name>`!
-
-Use this template:
-```
-# <bug name>
-
-## Your setup
-
-## What is not working as expected?
-
-## What behaviour did you expect?
-
-## What do you think is causing unexpected behaviour?
-
-## How do you think this problem could be resolved?
-```
+Raise an issue and describe what is not working how it is supposed to
 
 ## Contact us
 
