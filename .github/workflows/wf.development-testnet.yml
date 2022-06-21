@@ -38,10 +38,10 @@ jobs:
       - name: Deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ${{secrets.DEV_SERVER}}
-          username: ${{secrets.DEV_USER}}
-          key: ${{secrets.DEV_KEY}}
-          port: ${{ secrets.DEV_PORT }}
+          host: ${{secrets.STAG_SERVER}}
+          username: ${{secrets.STAG_USER}}
+          key: ${{secrets.STAG_KEY}}
+          port: ${{ secrets.STAG_PORT }}
           script: |
 
             cd /gz/aada-finance/
