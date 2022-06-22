@@ -49,6 +49,7 @@ data RequestDatum = RequestDatum
     , collateralamnt        :: !Integer   -- amount of collateral
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
