@@ -129,12 +129,19 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
       Nothing   -> False
 
+    range :: POSIXTimeRange
+    range = txInfoValidRange info
+
+    validateExpiration :: Bool
+    validateExpiration = after (requestExpiration dat) range
+
     validate :: Bool
     validate = traceIfFalse "datum hash validation fail" ownInputHash &&
                traceIfFalse "2 lender tokens wasn't minted and or 1 of them wasn't sent to collateral sc" validateMint &&
                traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
                traceIfFalse "time nft not sent to collateral sc" validateTimeNftIsSentToCollateralSc &&
-               traceIfFalse "collateral not sent to collateral sc" validateCollateral ||
+               traceIfFalse "collateral not sent to collateral sc" validateCollateral &&
+               traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration ||
                (traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint)
 
 data RequestDataTypes
