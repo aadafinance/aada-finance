@@ -59,6 +59,7 @@ data CollateralDatum = CollateralDatum
     , collateralamnt        :: !Integer   -- amount of collateral
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: !POSIXTime
     } deriving Show
 
 data CollateralRedeemer = CollateralRedeemer

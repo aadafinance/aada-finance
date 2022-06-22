@@ -58,6 +58,7 @@ data Datum = Datum
     , collateralamnt        :: !Integer            -- amount of collateral
     , collateralFactor      :: !Integer            -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer            -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: !POSIXTime          -- Time loan request is valid to
     } deriving Show
 ```
 
@@ -84,6 +85,7 @@ datum provided liquidate nft is not minted/burnt unless liqudation OracleNft is 
 is not from `Interest.hs` smart contract.
 - If Borrower returns laon sooner than **repayinterval** he only needs to pay `(current time - loan taken time) / repay`
 interval amount of interest.
+- Lender shouldn't be able to provide loan to borrower if loan request has expired.
 
 #### Nfts minting requirements
 

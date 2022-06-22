@@ -67,6 +67,7 @@ getTestDatum bNftCs liqNft pkh = RequestDatum
           , collateralamnt        = 100        -- amount of collateral
           , collateralFactor      = 5        -- Colalteral factor used for liquidation
           , liquidationCommission = 150        -- How much % borrower will pay for lender when liquidated (before time passes)
+          , requestExpiration     = 10000000 
         }
 
 getTestRedeemer :: POSIXTime -> Collateral.CollateralRedeemer
