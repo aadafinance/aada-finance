@@ -26,7 +26,7 @@ import qualified LenderNft
 import qualified OracleNft
 import Plutus.Test.Model
 import Ledger.Address (PaymentPubKeyHash(..), pubKeyHashAddress)
-import Ledger (validatorHash, scriptCurrencySymbol, CurrencySymbol, POSIXTime)
+import Ledger (validatorHash, scriptCurrencySymbol, CurrencySymbol, POSIXTime, interval)
 import           Ledger.Value                as Value
 import           PlutusTx
 import Data.Monoid (Monoid(mconcat))
@@ -373,7 +373,7 @@ returnFullLoan = do
               lenderCs              = scriptCurrencySymbol lenderMintingPolicy
           let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
           logInfo $  "current time: " ++ show mintTime
-          tx <- validateIn (from 6000) tx
+          tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
 
@@ -435,7 +435,7 @@ returnNotEnoughInterest = do
               lenderCs              = scriptCurrencySymbol lenderMintingPolicy
           let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
           logInfo $  "current time: " ++ show mintTime
-          tx <- validateIn (from 6000) tx
+          tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
 
@@ -495,7 +495,7 @@ returnPartialLoan = do
               lenderCs              = scriptCurrencySymbol lenderMintingPolicy
           let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
           logInfo $  "current time1: " ++ show mintTime
-          tx <- validateIn (from 6000) tx
+          tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
 
@@ -559,7 +559,7 @@ returnPartialLoanForgedMintDate = do
               lenderCs              = scriptCurrencySymbol lenderMintingPolicy
           let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
           logInfo $  "current time1: " ++ show mintTime
-          tx <- validateIn (from 6000) tx
+          tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
 
@@ -625,7 +625,7 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
           let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
           logInfo $ "repay interval: " ++ show repayint
           logInfo $ "loan provided and timenft minted time: " ++ show mintTime
-          tx <- validateIn (from 6000) tx
+          tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
 
@@ -846,7 +846,7 @@ provideLoanOnTime = do
               lenderCs              = scriptCurrencySymbol lenderMintingPolicy
           let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
           logInfo $  "current time: " ++ show mintTime
-          tx <- validateIn (from 6000) tx
+          tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
           pure True
@@ -879,7 +879,7 @@ provideLoanNotOnTime = do
               lenderCs              = scriptCurrencySymbol lenderMintingPolicy
           let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
           logInfo $  "current time: " ++ show mintTime
-          tx <- validateIn (from 6000) tx
+          tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
           pure True
