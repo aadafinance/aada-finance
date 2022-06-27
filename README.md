@@ -53,7 +53,6 @@ data Datum = Datum
     , collateralcs          :: !CurrencySymbol     -- collateral currency symbol
     , repayinterval         :: !POSIXTime          -- repay interval
     , liquidateNft          :: !CurrencySymbol     -- liquidation oracle id
-    , requestExp            :: !POSIXTime          -- loan request expiration
     , collateraltn          :: !TokenName          -- collateral token name
     , collateralamnt        :: !Integer            -- amount of collateral
     , collateralFactor      :: !Integer            -- Colalteral factor used for liquidation
