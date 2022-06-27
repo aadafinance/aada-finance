@@ -17,6 +17,7 @@ import Ledger
 
 import OracleNft
 import TestingOffChain
+import Collateral
 
 main :: IO ()
 main = do
@@ -24,6 +25,8 @@ main = do
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
   let exampleDatum = getTestDatum "ff" "ff" (PaymentPubKeyHash "ff")
   writeData "example.datum" exampleDatum
+  let exampleCollateralRedeemer = CollateralRedeemer 1 2
+  writeData "example-collateral-redeemer.json" exampleCollateralRedeemer
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()

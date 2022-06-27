@@ -60,12 +60,12 @@ data CollateralDatum = CollateralDatum
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
-    } deriving Show
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 data CollateralRedeemer = CollateralRedeemer
   { mintdate        :: !POSIXTime
   , interestPayDate :: !POSIXTime
-  }
+  } deriving (Show, Generic, ToJSON, FromJSON)
 
 data ContractInfo = ContractInfo
     { borrower     :: !TokenName
