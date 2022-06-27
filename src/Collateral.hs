@@ -165,7 +165,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) range)
 
     checkBorrowerDeadLine :: Bool
-    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (from (interestPayDate rdm)) range)
+    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains range (from (interestPayDate rdm)))
 
     tokenNameIsCorrect :: TokenName -> Bool
     tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))

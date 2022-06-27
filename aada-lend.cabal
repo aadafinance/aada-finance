@@ -252,4 +252,5 @@ test-suite aada-tests
                      , text
                      , plutus-simple-model
                      , mtl
+                     , plutip
 
