@@ -1,4 +1,4 @@
-cabal-version:      3.4
+cabal-version:      2.4
 name:               aada-lend
 version:            0.1.0.0
 
@@ -216,6 +216,12 @@ executable trace
                      , time
                      , openapi3
                      , aada-lend
+
+executable private
+  import:             base, project-config
+  hs-source-dirs:     test
+  main-is:            TestWithPrivateTestnet.hs
+  build-depends:      process
 
 test-suite aada-tests
   type:                exitcode-stdio-1.0
