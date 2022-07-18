@@ -45,7 +45,9 @@ tests :: BchConfig -> TestTree
 tests cfg =
   testGroup
     "Borrower cancels loan"
-    [ testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower cancels loan test" borrowerCancelsLoan
+    [ 
+      -- testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower cancels loan test" borrowerCancelsLoan
+      testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path" happyPath
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns full interest when loan return time has passed" returnFullLoan
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns less than it should then full time has passed" (mustFail returnNotEnoughInterest)
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns loan when half the time passed returning less than full interest" returnPartialLoan
@@ -243,8 +245,8 @@ getTxOutReturn interest borrower dl bmp ncs = addMintRedeemer bmp rdm $ addMintR
     bcs  = scriptCurrencySymbol bmp
     rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
 
-getTxInFromLend :: UserSpend -> UserSpend -> UserSpend -> Collateral.CollateralDatum -> CollateralRedeemer -> TxOutRef -> Tx
-getTxInFromLend usp1 usp2 usp3 dat rdm scriptTxOut =
+getTxInFromCollateral :: UserSpend -> UserSpend -> UserSpend -> Collateral.CollateralDatum -> CollateralRedeemer -> TxOutRef -> Tx
+getTxInFromCollateral usp1 usp2 usp3 dat rdm scriptTxOut =
   mconcat
   [ spendScript (Collateral.collateralTypedValidator getSc2Params) scriptTxOut rdm dat
   , userSpend usp1
@@ -398,7 +400,7 @@ returnFullLoan = do
           utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
           let [(lockRef, lockOut)] = utxos
 
-          let tx2 = getTxInFromLend sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+          let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 50 borrower mintTime bmp lenderCs
 
           wait 2000
@@ -460,7 +462,7 @@ returnNotEnoughInterest = do
           utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
           let [(lockRef, lockOut)] = utxos
 
-          let tx2 = getTxInFromLend sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+          let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 25 borrower mintTime bmp lenderCs
           tx2 <- validateIn (from 6000) tx2
           submitTx lender tx2
@@ -520,7 +522,7 @@ returnPartialLoan = do
           utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
           let [(lockRef, lockOut)] = utxos
 
-          let tx2 = getTxInFromLend sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+          let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 25 borrower mintTime bmp lenderCs
           tx2 <- validateIn (from 10000) tx2
           wait 2000
@@ -585,7 +587,7 @@ returnPartialLoanForgedMintDate = do
           utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
           let [(lockRef, lockOut)] = utxos
 
-          let tx2 = getTxInFromLend sp1 sp2 sp3 convertedDat (CollateralRedeemer 1 2) lockRef <>
+          let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer 1 2) lockRef <>
                     getTxOutReturn interestAmount borrower mintTime bmp lenderCs
           tx2 <- validateIn (from 6000) tx2
           wait 15000
@@ -652,7 +654,7 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
           utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
           let [(lockRef, lockOut)] = utxos
 
-          let tx2 = getTxInFromLend sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+          let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn interestAmount borrower mintTime bmp lenderCs
           tx2 <- validateIn (from 6000) tx2
           wait 15000
@@ -882,5 +884,40 @@ provideLoanNotOnTime = do
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
+          pure True
+      Nothing -> pure False
+
+happyPath :: Run Bool
+happyPath = do
+  users <- setupUsers
+  let borrower = head users
+      lender   = last users
+      valToPay = fakeValue collateralCoin 100 <> adaValue 2 <> adaValue 1
+  sp <- spend borrower valToPay
+  let oref = getHeadRef sp
+  let tx = createLockFundsTx 0 borrower oref sp valToPay 100000 <> getMintBorrowerNftTx borrower oref
+  submitTx borrower tx
+  utxos <- utxoAt $ requestAddress getSc1Params
+  let [(lockRef, lockOut)] = utxos
+  lockDat <- datumAt @RequestDatum lockRef
+  case lockDat of
+      Just dat -> do
+          mintTime <- currentTime
+          let convertedDat        = getCollatDatumFronRequestDat dat
+              valFromSc1          = fakeValue collateralCoin 100 <> adaValue 2
+              valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
+          sp <- spend lender valForLenderToSpend
+          let borrowerMintingPolicy = BorrowerNft.policy oref
+              borrowerCs            = scriptCurrencySymbol borrowerMintingPolicy
+              sc2valh               = validatorHash $ Collateral.validator getSc2Params
+              lenderMintingPolicy   = LenderNft.policy sc2valh (getHeadRef sp)
+              lenderCs              = scriptCurrencySymbol lenderMintingPolicy
+          let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
+          logInfo $  "current time: " ++ show mintTime
+          tx <- validateIn (interval 6000 99999) tx
+          wait 3000
+          submitTx lender tx
+          -- retrieve loan
+
           pure True
       Nothing -> pure False
