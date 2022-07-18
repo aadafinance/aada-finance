@@ -328,35 +328,6 @@ borrowerCancelsLoan = do
 
 -- bchUtxos        :: !(Map TxOutRef TxOut)
 
-mySpend :: PaymentPubKeyHash -> Value -> Run (Maybe UserSpend)
-mySpend ppkh expected = do
-  refs <- txOutRefAt $ pubKeyHashAddress ppkh Nothing
-  let bchutxos = gets bchUtxos
-  mUtxos <- fmap (\m -> mapM (\r -> (r,) <$> M.lookup r m) refs) bchutxos
-  case mUtxos of
-    Just utxos -> pure $ toRes $ foldl go (expected, []) utxos
-    Nothing    -> pure Nothing
-  where
-    go (curVal, resUtxos) u@(_, out)
-      | curVal `leq` mempty = (curVal, resUtxos)
-      | nextVal `lt` curVal = (nextVal, u : resUtxos)
-      | otherwise = (curVal, resUtxos)
-      where
-        outVal = txOutValue out
-        nextVal = snd $ split $ curVal <> Plutus.negate outVal
-
-    toRes (curVal, utxos)
-      | curVal `leq` mempty = Just $ UserSpend (foldMap (S.singleton . toInput) utxos) (getChange utxos)
-      | otherwise = Nothing
-
-    toInput (ref, _) = P.TxIn ref (Just P.ConsumePublicKeyAddress)
-
-    getChange utxos
-      | change /= mempty = Just $ TxOut (pubKeyHashAddress ppkh Nothing) change Nothing
-      | otherwise = Nothing
-      where
-        change = foldMap (txOutValue . snd) utxos <> Plutus.negate expected
-
 returnFullLoan :: Run Bool
 returnFullLoan = do
   users <- setupUsers
