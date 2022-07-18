@@ -45,9 +45,9 @@ tests :: BchConfig -> TestTree
 tests cfg =
   testGroup
     "Borrower cancels loan"
-    [ 
-      -- testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower cancels loan test" borrowerCancelsLoan
-      testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path" happyPath
+    [
+      testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower cancels loan test" borrowerCancelsLoan
+    , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path" happyPath
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns full interest when loan return time has passed" returnFullLoan
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns less than it should then full time has passed" (mustFail returnNotEnoughInterest)
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns loan when half the time passed returning less than full interest" returnPartialLoan
@@ -63,8 +63,8 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail7)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft send to wrong validator hash" (mustFail mintOracleNftShouldFail8)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft mint two values" (mustFail mintOracleNftShouldFail9)
-    , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request expired" (mustFail provideLoanNotOnTime)
-    , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request not-expired" provideLoanOnTime
+    , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request expired" (mustFail provideLoanNotOnTime)
+    , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request not-expired" provideLoanOnTime
     ]
 
 -- TODO move to utils section later
@@ -690,7 +690,7 @@ getOracleNftVal :: CurrencySymbol -> Integer -> Value
 getOracleNftVal cs = Value.singleton cs getOracleNftTn
 
 builtinFromValidatorHash :: ValidatorHash -> BuiltinByteString
-builtinFromValidatorHash (ValidatorHash bbs) = bbs 
+builtinFromValidatorHash (ValidatorHash bbs) = bbs
 
 getMintOracleNftTx :: Integer -> PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
 getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
@@ -887,6 +887,22 @@ provideLoanNotOnTime = do
           pure True
       Nothing -> pure False
 
+getTxInFromInterestSc :: UserSpend -> TxOutRef -> Tx
+getTxInFromInterestSc usp1 scriptTxOut =
+  mconcat
+  [ spendScript Interest.typedValidator scriptTxOut 0 0
+  , userSpend usp1
+  ]
+
+getTxOutFromInterestSc :: Integer -> PubKeyHash -> MintingPolicy -> CurrencySymbol -> Tx
+getTxOutFromInterestSc interest lender nmp ncs = addMintRedeemer nmp rdm $
+ mconcat
+  [ mintValue nmp (getLNftVal (-2) ncs)
+  , payToPubKey lender (fakeValue loanCoin 150 <> fakeValue interestCoin interest <> adaValue 4)
+  ]
+ where
+    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+
 happyPath :: Run Bool
 happyPath = do
   users <- setupUsers
@@ -897,7 +913,7 @@ happyPath = do
   let oref = getHeadRef sp
   let tx = createLockFundsTx 0 borrower oref sp valToPay 100000 <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
-  utxos <- utxoAt $ requestAddress getSc1Params
+  utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, lockOut)] = utxos
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
@@ -917,7 +933,47 @@ happyPath = do
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
           submitTx lender tx
-          -- retrieve loan
+
+          -- loan return phase
+          let bmp  = BorrowerNft.policy oref
+              bcs  = scriptCurrencySymbol bmp
+          let valForBorrowerToSpend = fakeValue loanCoin 150 <> fakeValue interestCoin 50 <> adaValue 2 <> getBNftVal 1 bcs
+          let valTmp1 = getBNftVal 1 bcs <>
+                        adaValue 1
+              valTmp2 = fakeValue loanCoin 150 <>
+                        adaValue 1
+              valTmp3 = fakeValue interestCoin 50 <>
+                        adaValue 1
+          v <- valueAt borrower
+          intPayDate <- currentTime
+          bus <- utxoAt borrower
+
+          sp1 <- spend borrower valTmp1
+          sp2 <- spend borrower valTmp2
+          sp3 <- spend borrower valTmp3
+
+          utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
+          let [(lockRef, lockOut)] = utxos
+
+          let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+                    getTxOutReturn 50 borrower mintTime bmp lenderCs
+
+          wait 2000
+          logInfo $  "int pay date time: " ++ show intPayDate
+          tx2 <- validateIn (from 10000) tx2
+          submitTx lender tx2
+
+          -- retrieve loan and interest phase
+          utxos <- utxoAt Interest.interestAddress
+          let lenderPay = adaValue 2 <> getLNftVal 1 lenderCs
+          sp <- spend lender lenderPay
+          let dat = Datum (PlutusTx.toBuiltinData (0 :: Integer))
+              rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+          let [(lockRef, lockOut)] = utxos
+              tx = getTxInFromInterestSc sp lockRef <>
+                   getTxOutFromInterestSc 50 lender lenderMintingPolicy lenderCs
+          
+          submitTx lender tx
 
           pure True
       Nothing -> pure False
