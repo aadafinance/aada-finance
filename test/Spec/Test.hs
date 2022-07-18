@@ -67,6 +67,15 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request not-expired" provideLoanOnTime
     ]
 
+testSize :: BchConfig -> TestTree
+testSize cfg =
+  testGroup
+    "testing size"
+    [
+      testLimits (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path"           id (happyPath >> logError "show stats")
+    , testLimits (adaValue 10_000_000)                                               cfg "test mint oracle nft" id (mintOracleNft >> logError "show stats")
+    ]
+
 -- TODO move to utils section later
 adaValue :: Integer -> Value
 adaValue = singleton adaSymbol adaToken
@@ -972,7 +981,7 @@ happyPath = do
           let [(lockRef, lockOut)] = utxos
               tx = getTxInFromInterestSc sp lockRef <>
                    getTxOutFromInterestSc 50 lender lenderMintingPolicy lenderCs
-          
+
           submitTx lender tx
 
           pure True

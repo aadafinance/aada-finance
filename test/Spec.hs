@@ -10,4 +10,5 @@ main = do
     testGroup
       "Test Suites"
       [ Spec.Test.tests cfg
+      , Spec.Test.testSize cfg
       ]
