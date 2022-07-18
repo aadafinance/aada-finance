@@ -45,7 +45,7 @@ mkPolicy utxo _ ctx = validate
     hasUTxO = traceIfFalse "No minting policy specified utxo found" $ any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info
 
     validateMint :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateMint (_, _, n) = hasUTxO && (traceIfFalse "invalid mint amount" $ n == 1)
+    validateMint (_, _, n) = hasUTxO && traceIfFalse "invalid mint amount" (n == 1)
 
     validateBurn :: (CurrencySymbol, TokenName, Integer) -> Bool
     validateBurn (_, _, n) = traceIfFalse "invalid burn amount" (n == (-1))
