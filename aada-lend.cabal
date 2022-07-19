@@ -65,6 +65,7 @@ library
                       , LenderNft
                       , Collateral
                       , Interest
+                      , Liquidation
                       , Request
                       , TestingOffChain
                       , OracleNft
