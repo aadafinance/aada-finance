@@ -65,6 +65,7 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft mint two values" (mustFail mintOracleNftShouldFail9)
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request expired" (mustFail provideLoanNotOnTime)
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request not-expired" provideLoanOnTime
+    , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "liquidate borrower" liquidateBorrower
     ]
 
 testSize :: BchConfig -> TestTree
@@ -73,7 +74,7 @@ testSize cfg =
     "testing size"
     [
       testLimits (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path"           id (happyPath >> logError "show stats")
-    , testLimits (adaValue 10_000_000)                                               cfg "test mint oracle nft" id (mintOracleNft >> logError "show stats")
+    , testLimits (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower liquidates"  id (liquidateBorrower >> logError "show stats")
     ]
 
 -- TODO move to utils section later
@@ -644,28 +645,6 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
           pure True
       Nothing -> pure False
 
--- lenderLiquidateLoan :: Run Bool
--- lenderLiquidateLoan = do
---   users <- setupUsers
---   let borrower = head users
---       lender   = tail users
---       valToPay = fakeValue collateralCoin 100 <> adaValue 3
---   sp <- spend u1 valToPay
---   let oref = getHeadRef sp
---   let tx = createLockFundsTx u1 oref sp valToPay <> getMintBorrowerNftTx u1 oref
---   submitTx u1 tx
---   utxos <- utxoAt $ requestAddress getSc1Params
---   let [(lockRef, lockOut)] = utxos
---   lockDat <- datumAt @RequestDatum lockRef
---   case lockDat of
---       Just dat -> do
---           let valFromSc1 = fakeValue collateralCoin 100 <> adaValue 2
---               valFromUsr = adaValue 1 <> getBNftVal 1 (scriptCurrencySymbol $ BorrowerNft.policy oref)
---           sp <- spend u1 valFromUsr
---           tx <- signTx u1 $ getCancelRequestTx u1 valFromSc1 dat lockRef <> getBurnBorrowerNftTx u1 oref sp
---           isRight <$> sendTx tx
---       Nothing -> pure False
-
 getOracleNftVal :: CurrencySymbol -> Integer -> Value
 getOracleNftVal cs = Value.singleton cs getOracleNftTn
 
@@ -953,6 +932,121 @@ happyPath = do
               tx = getTxInFromInterestSc sp lockRef <>
                    getTxOutFromInterestSc 50 lender lenderMintingPolicy lenderCs
 
+          submitTx lender tx
+
+          pure True
+      Nothing -> pure False
+
+getTxInFromCollateraLiq :: UserSpend -> UserSpend -> Collateral.CollateralDatum -> CollateralRedeemer -> TxOutRef -> Tx
+getTxInFromCollateraLiq lender1 lender2 dat rdm scriptTxOut =
+  mconcat
+  [ spendScript (Collateral.collateralTypedValidator getSc2Params) scriptTxOut rdm dat
+  , userSpend lender1
+  , userSpend lender2
+  ]
+
+getMintOracleNftTxLiq :: Integer -> PubKeyHash -> PubKeyHash -> PubKeyHash -> Tx
+getMintOracleNftTxLiq n pkh1 pkh2 pkh3 = -- addMintRedeemer mp rdm $
+  mconcat
+    [ mintValue mp (getOracleNftVal cs n)
+    , payToScript Helpers.TestValidator.typedValidator
+      0
+      (adaValue 2 <> getOracleNftVal cs n)
+    ]
+  where
+    valh = validatorHash Helpers.TestValidator.validator
+    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
+    cs   = scriptCurrencySymbol mp
+    rdm  = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
+-- addMintRedeemer MintingPolicy Redeemer Tx
+getTxOutLiquidate :: PubKeyHash -> POSIXTime -> MintingPolicy -> CurrencySymbol -> Tx
+getTxOutLiquidate lender dl lmp lcs =
+ mconcat
+  [ mintValue getTimeNftPolicy (getTNftVal dl (-1) getTimeNftCurrencySymbol)
+  , mintValue lmp (getLNftVal (-2) lcs)
+  , payToPubKey lender (fakeValue collateralCoin 100 <> adaValue 2)
+  ]
+ where
+    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+
+liquidateBorrower :: Run Bool
+liquidateBorrower = do
+  -- setup
+  logInfo "setup"
+  users1 <- setupSimpleNUsers 3
+  users2 <- setupUsers
+
+  let [oracle1, oracle2, oracle3] = users1
+      [borrower, lender] = users2
+
+  -- create loan request phase
+  logInfo "create loan request"
+  let valToPay = fakeValue collateralCoin 100 <> adaValue 2 <> adaValue 1
+  sp <- spend borrower valToPay
+  let oref = getHeadRef sp
+  let tx = createLockFundsTx 0 borrower oref sp valToPay 100000 <> getMintBorrowerNftTx borrower oref
+  submitTx borrower tx
+
+  -- provide loan phase
+  logInfo "provide loan phase"
+  utxos <- utxoAt $ requestAddress getSc1Params
+  let [(lockRef, lockOut)] = utxos
+  lockDat <- datumAt @RequestDatum lockRef
+  case lockDat of
+      Just dat -> do
+          mintTime <- currentTime
+          let convertedDat        = getCollatDatumFronRequestDat dat
+              valFromSc1          = fakeValue collateralCoin 100 <> adaValue 2
+              valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
+          sp <- spend lender valForLenderToSpend
+          let borrowerMintingPolicy = BorrowerNft.policy oref
+              borrowerCs            = scriptCurrencySymbol borrowerMintingPolicy
+              sc2valh               = validatorHash $ Collateral.validator getSc2Params
+              lenderMintingPolicy   = LenderNft.policy sc2valh (getHeadRef sp)
+              lenderCs              = scriptCurrencySymbol lenderMintingPolicy
+          let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
+          logInfo $  "current time: " ++ show mintTime
+          tx <- validateIn (interval 6000 99999) tx
+          wait 3000
+          submitTx lender tx
+
+          -- loan liquidate phase
+          logInfo "liquidate phase"
+          intPayDate <- currentTime
+          utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
+          let [(lockRef, lockOut)] = utxos
+
+          lenderSpend1 <- spend lender (adaValue 2)
+          lenderSpend2 <- spend lender (getLNftVal 1 lenderCs)
+
+          lval <- valueAt lender
+          cval <- valueAt $ Collateral.collateralAddress getSc2Params
+
+          let liquidate = getTxInFromCollateraLiq lenderSpend1 lenderSpend2 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+                          getMintOracleNftTxLiq 1 oracle1 oracle2 oracle3 <>
+                          getTxOutLiquidate lender mintTime lenderMintingPolicy lenderCs
+
+          let valh = validatorHash Helpers.TestValidator.validator 
+              omp  = OracleNft.policy getOracleNftTn oracle1 oracle2 oracle3 (builtinFromValidatorHash valh)
+              ordm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
+
+          let tx = addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp ordm liquidate)) -- 1.
+          -- let tx = addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer omp ordm (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) liquidate)) -- 2.
+          -- let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer omp ordm liquidate)) -- 3.
+          -- let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp ordm (addMintRedeemer getTimeNftPolicy mintTime liquidate)) -- 4.
+          -- let tx = addMintRedeemer omp ordm (addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) liquidate)) -- 5.
+          -- let tx = addMintRedeemer omp ordm (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer getTimeNftPolicy mintTime liquidate)) -- 6.
+
+          wait 2000
+
+          time <- currentTime
+          logInfo $ "current time: " ++ show time
+          -- logInfo $ "debug tx: " <> show tx
+
+          tx <- signTx oracle1 tx
+          tx <- signTx oracle2 tx
+          tx <- signTx oracle3 tx
+          tx <- validateIn (interval 9000 99999) tx
           submitTx lender tx
 
           pure True
