@@ -16,14 +16,15 @@ import qualified PlutusTx
 import Ledger
 
 import OracleNft
-import TestingOffChain
 import Collateral
+import Spec.Test
 
 main :: IO ()
 main = do
   let exampleOracleRedeemer = OracleData 1 2 3 4 5 6
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
-  let exampleDatum = getTestDatum "ff" "ff" (PaymentPubKeyHash "ff")
+  -- getTestDatum :: POSIXTime -> CurrencySymbol -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> RequestDatum
+  let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0
   writeData "example.datum" exampleDatum
   let exampleCollateralRedeemer = CollateralRedeemer 1 2
   writeData "example-collateral-redeemer.json" exampleCollateralRedeemer

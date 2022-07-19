@@ -55,10 +55,10 @@ data CollateralDatum = CollateralDatum
     , collateralcs      :: !CurrencySymbol
     , repayinterval     :: !POSIXTime
     , liquidateNft      :: !CurrencySymbol
-    , collateraltn          :: !TokenName -- collateral token name
-    , collateralamnt        :: !Integer   -- amount of collateral
-    , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
-    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    -- , collateraltn          :: !TokenName -- collateral token name
+    -- , collateralamnt        :: !Integer   -- amount of collateral
+    -- , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
+    -- , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
@@ -116,9 +116,6 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
       Just txo -> Just $ txOutValue txo
       Nothing  -> Nothing
 
-    validateDebtAmnt :: Bool
-    validateDebtAmnt = getLoanAmnt valueToInterestSc >= loanamnt dat
-
     interestPercentage :: Integer
     interestPercentage = case (mintdate rdm + repayinterval dat) < interestPayDate rdm of
       True  -> 100
@@ -126,12 +123,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
        where
          loanHeld = interestPayDate rdm - mintdate rdm
 
-    validateInterestAmnt :: Bool
-    validateInterestAmnt = getInterestAmnt valueToInterestSc >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
-
     validateDebtAndInterestAmnt :: Bool
-    validateDebtAndInterestAmnt =
-      not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getInterestAmnt valueToInterestSc + getLoanAmnt valueToInterestSc >= loanamnt dat + interestamnt dat)
+    validateDebtAndInterestAmnt = (getInterestAmnt valueToInterestSc + getLoanAmnt valueToInterestSc) >= (((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage) + loanamnt dat)
 
     lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     lenderNftFilter (cs, tn, n) = tn == lender && n == 1 && cs /= collateralcs dat
@@ -151,21 +144,17 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) mintFlattened
 
     validateBorrower :: Bool
-    validateBorrower = validateDebtAmnt &&
-                       validateInterestAmnt &&
-                       validateDebtAndInterestAmnt &&
+    validateBorrower = validateDebtAndInterestAmnt &&
                        validateNftIsPassedOn &&
                        validateBorrowerNftBurn &&
-                       (checkBorrowerDeadLine && checkMintTnName)
+                       checkDeadLine (interestPayDate rdm) &&
+                       checkMintTnName
 
     range :: POSIXTimeRange
     range = txInfoValidRange info
 
-    checkDeadline :: Bool
-    checkDeadline = contains (from (mintdate rdm + repayinterval dat)) range
-
-    checkBorrowerDeadLine :: Bool
-    checkBorrowerDeadLine = contains (from (interestPayDate rdm)) range
+    checkDeadLine :: POSIXTime -> Bool
+    checkDeadLine f = contains (from f) range
 
     tokenNameIsCorrect :: TokenName -> Bool
     tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))
@@ -187,11 +176,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = any (\(cs, _, _) -> cs == liquidateNft dat) mintFlattened
 
-    checkLiquidateNft :: Bool
-    checkLiquidateNft = checkForLiquidationNft
-
     validateLender :: Bool
-    validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkLiquidateNft)
+    validateLender = checkLNftsAreBurnt && (checkDeadLine (mintdate rdm + repayinterval dat) && checkMintTnName || checkForLiquidationNft)
 
     validate :: Bool
     validate = validateLender ||

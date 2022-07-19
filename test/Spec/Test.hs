@@ -5,6 +5,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TupleSections #-}
+
 module Spec.Test where
 
 import Data.Either
@@ -137,10 +138,10 @@ getTestDatum returnt bNftCs liqNft pkh expiration = RequestDatum
           , collateralcs      = fakeCoinCs collateralCoin
           , repayinterval     = returnt
           , liquidateNft      = liqNft
-          , collateraltn          = "collateral-coin-CONY" -- collateral token name
-          , collateralamnt        = 100                    -- amount of collateral
-          , collateralFactor      = 5                      -- Colalteral factor used for liquidation
-          , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
+          -- , collateraltn          = "collateral-coin-CONY" -- collateral token name
+          -- , collateralamnt        = 100                    -- amount of collateral
+          -- , collateralFactor      = 5                      -- Colalteral factor used for liquidation
+          -- , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
           , requestExpiration     = expiration
         }
 
@@ -157,10 +158,10 @@ getCollatDatumFronRequestDat rqDat@RequestDatum{..} = Collateral.CollateralDatum
           , Collateral.collateralcs      = collateralcs
           , Collateral.repayinterval     = repayinterval
           , Collateral.liquidateNft      = liquidateNft
-          , Collateral.collateraltn          = "collateral-coin-CONY" -- collateral token name
-          , Collateral.collateralamnt        = 100                    -- amount of collateral
-          , Collateral.collateralFactor      = 5                      -- Colalteral factor used for liquidation
-          , Collateral.liquidationCommission = 150
+          -- , Collateral.collateraltn          = "collateral-coin-CONY" -- collateral token name
+          -- , Collateral.collateralamnt        = 100                    -- amount of collateral
+          -- , Collateral.collateralFactor      = 5                      -- Colalteral factor used for liquidation
+          -- , Collateral.liquidationCommission = 150
           , Collateral.requestExpiration     = requestExpiration
 
         }
