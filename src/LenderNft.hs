@@ -1,36 +1,35 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use foldr" #-}
 
 module LenderNft
   ( lenderNft
-  , lenderNftShortBs
-  , policy
   ) where
 
-import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy     as LB
 import qualified Data.ByteString.Short    as SBS
-import           Ledger                   hiding (singleton)
-import qualified Ledger.Typed.Scripts     as Scripts
-import           Ledger.Value             as Value
 import qualified PlutusTx
+import           PlutusTx (unsafeFromBuiltinData)
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
+import           Plutus.V2.Ledger.Contexts
 import qualified Plutus.V1.Ledger.Scripts as Plutus
+import           Plutus.V1.Ledger.Scripts
+import           Plutus.V1.Ledger.Value
 import           Prelude                  (Semigroup (..), Show)
 
 {-# INLINABLE flattenBuiltinByteString #-}
@@ -43,8 +42,8 @@ lender :: TokenName
 lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [76]]}  -- L
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: ValidatorHash -> TxOutRef -> Integer -> ScriptContext -> Bool
-mkPolicy vh utxo _ ctx = validate
+mkPolicy :: ValidatorHash -> TxOutRef -> BuiltinData -> BuiltinData -> ()
+mkPolicy vh utxo _ (unsafeFromBuiltinData -> ctx :: ScriptContext) = check validate
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -75,25 +74,10 @@ mkPolicy vh utxo _ ctx = validate
     validate :: Bool
     validate = validateMint (head mintedFlattened) || validateBurn (head mintedFlattened)
 
-policy :: ValidatorHash -> TxOutRef -> Scripts.MintingPolicy
-policy vh utxo = mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| \vh' utxo' -> Scripts.wrapMintingPolicy $ mkPolicy vh' utxo'||])
+lenderNft :: ValidatorHash -> TxOutRef -> Script
+lenderNft vh utxo = fromCompiledCode $
+    $$(PlutusTx.compile [|| mkPolicy ||])
     `PlutusTx.applyCode`
     PlutusTx.liftCode vh
     `PlutusTx.applyCode`
     PlutusTx.liftCode utxo
-
-plutusScript :: ValidatorHash -> TxOutRef -> Script
-plutusScript vh utxo = unMintingPolicyScript $ policy vh utxo
-
-validator :: ValidatorHash -> TxOutRef -> Validator
-validator vh utxo = Validator $ plutusScript vh utxo
-
-scriptAsCbor :: ValidatorHash -> TxOutRef -> LB.ByteString
-scriptAsCbor vh utxo = serialise $ validator vh utxo
-
-lenderNft :: ValidatorHash -> TxOutRef -> PlutusScript PlutusScriptV1
-lenderNft vh utxo = PlutusScriptSerialised $ SBS.toShort $ LB.toStrict $ scriptAsCbor vh utxo
-
-lenderNftShortBs :: ValidatorHash -> TxOutRef -> SBS.ShortByteString
-lenderNftShortBs vh utxo = SBS.toShort $ LB.toStrict $ scriptAsCbor vh utxo

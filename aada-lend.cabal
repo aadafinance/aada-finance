@@ -66,15 +66,14 @@ library
                       , Collateral
                       , Interest
                       , Request
-                      , TestingOffChain
                       , OracleNft
-                      , Helpers.TestValidator
+                      , PlutarchHashing
 
   build-depends:        bytestring
-                      , cardano-api
                       , flat
+                      , cryptonite
+                      , memory
                       , plutus-core
-                      , plutus-ledger
                       , plutus-ledger-api
                       , plutus-tx
                       , plutus-tx-plugin
@@ -87,9 +86,6 @@ library
                       , cardano-ledger-core
                       , cardano-ledger-shelley
                       , cardano-crypto-class
-                      , cardano-wallet-core
-                      , plutus-ledger-constraints
-                      , plutus-contract
 
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
@@ -99,9 +95,7 @@ executable compile-validators
   main-is:              compile-validators.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:      cardano-ledger-alonzo
                       , aada-lend 
                       , plutus-tx
                       , plutus-ledger-api
@@ -114,9 +108,7 @@ executable mint-borrower-nft
   main-is:              mint-borrower-nft.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:        cardano-ledger-alonzo
                       , aada-lend 
                       , plutus-tx
                       , plutus-ledger-api
@@ -129,9 +121,7 @@ executable mint-lender-nft
   main-is:              mint-lender-nft.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:        cardano-ledger-alonzo
                       , aada-lend 
                       , plutus-tx
                       , plutus-ledger-api
@@ -144,9 +134,7 @@ executable mint-time-nft
   main-is:              mint-time-nft.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:        cardano-ledger-alonzo
                       , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
@@ -159,9 +147,7 @@ executable mint-oracle-nft
   main-is:              mint-oracle-nft.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:        cardano-ledger-alonzo
                       , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
@@ -176,47 +162,11 @@ executable generate-example-jsons
 
   build-depends:        aada-lend
                       , bytestring
-                      , cardano-api
                       , plutus-tx
                       , aeson
                       , containers
-                      , plutus-ledger
-                      , plutus-ledger-constraints
-                      , plutus-contract
                       , plutus-ledger-api
                       
-executable trace
-  import:              base, project-config
-  hs-source-dirs:      test
-  main-is:             EmulatorTrace.hs
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       aeson
-                     , bytestring
-                     , cardano-api
-                     , cardano-crypto-class
-                     , cardano-ledger-core
-                     , cardano-ledger-shelley
-                     , cardano-wallet-core
-                     , containers
-                     , data-default
-                     , freer-extras
-                     , playground-common
-                     , plutus-contract
-                     , plutus-ledger
-                     , plutus-ledger-api
-                     , plutus-ledger-constraints
-                     , plutus-pab
-                     , plutus-tx-plugin
-                     , plutus-tx
-                     , plutus-use-cases
-                     , prettyprinter
-                     , serialise
-                     , text
-                     , lens
-                     , time
-                     , openapi3
-                     , aada-lend
-
 test-suite aada-tests
   type:                exitcode-stdio-1.0
   main-is:             Spec.hs
@@ -227,10 +177,7 @@ test-suite aada-tests
   build-depends:       base ^>=4.14.1.0
                      , containers
                      , data-default
-                     , freer-extras
                      , lens
-                     , plutus-contract
-                     , plutus-ledger
                      , aada-lend
                      , plutus-tx
                      , QuickCheck
@@ -239,7 +186,6 @@ test-suite aada-tests
                      , tasty-quickcheck
                      , text
                      , cardano-ledger-shelley
-                     , cardano-api
                      , serialise
                      , data-default
                      , bytestring
@@ -247,8 +193,6 @@ test-suite aada-tests
                      , plutus-tx
                      , plutus-tx-plugin
                      , aeson
-                     , plutus-ledger
-                     , plutus-ledger-constraints
                      , text
                      , plutus-simple-model
                      , mtl

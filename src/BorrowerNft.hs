@@ -1,29 +1,31 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module BorrowerNft where
 
-import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy     as LB
 import qualified Data.ByteString.Short    as SBS
-import           Ledger                   hiding (singleton)
-import qualified Ledger.Typed.Scripts     as Scripts
-import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
+import Plutus.V2.Ledger.Api
+import Plutus.V2.Ledger.Contexts
+import Plutus.V1.Ledger.Value
+import PlutusTx (unsafeFromBuiltinData)
+import qualified Plutus.V1.Ledger.Scripts as Scripts
 
 {-# INLINABLE flattenBuiltinByteString #-}
 flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
@@ -35,8 +37,8 @@ borrower :: TokenName
 borrower = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [66]]}  -- B
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: TxOutRef -> Integer -> ScriptContext -> Bool
-mkPolicy utxo _ ctx = validate
+mkPolicy :: TxOutRef -> BuiltinData -> BuiltinData -> ()
+mkPolicy utxo _ (unsafeFromBuiltinData -> ctx :: ScriptContext) = check validate
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -60,23 +62,8 @@ mkPolicy utxo _ ctx = validate
     validate = validateMint (head mintedFlattened) ||
                validateBurn (head mintedFlattened)
 
-policy :: TxOutRef -> Scripts.MintingPolicy
-policy utxo = mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy . mkPolicy ||])
+borrowerNft :: TxOutRef -> Script
+borrowerNft utxo = fromCompiledCode $
+    $$(PlutusTx.compile [|| mkPolicy ||])
     `PlutusTx.applyCode`
     PlutusTx.liftCode utxo
-
-plutusScript :: TxOutRef -> Script
-plutusScript = unMintingPolicyScript . policy
-
-validator :: TxOutRef ->  Validator
-validator = Validator . plutusScript
-
-scriptAsCbor :: TxOutRef ->  LB.ByteString
-scriptAsCbor = serialise . validator
-
-borrowerNft :: TxOutRef ->  PlutusScript PlutusScriptV1
-borrowerNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict . scriptAsCbor
-
-borrowerNftShortBs :: TxOutRef ->  SBS.ShortByteString
-borrowerNftShortBs = SBS.toShort . LB.toStrict . scriptAsCbor

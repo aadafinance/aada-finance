@@ -315,3 +315,11 @@ Use this template:
 [repo manager](https://github.com/tomazvila)
 
 - email: `tomas@aada.finance`
+
+# Nix shell
+
+`nix develop -f shell.nix`
+
+OR
+
+`nix-shell`
