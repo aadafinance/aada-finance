@@ -17,6 +17,7 @@ import               Interest
 import               Collateral
 import               Request
 import               TimeNft
+import               Liquidation
 
 getCollateralScParams :: Collateral.ContractInfo
 getCollateralScParams = Collateral.ContractInfo {
@@ -40,6 +41,7 @@ main = do
   writePlutusScript scriptnum "interest.plutus" Interest.interest interestShortBs
   writePlutusScript scriptnum "collateral.plutus" (Collateral.collateral getCollateralScParams) (collateralShortBs getCollateralScParams)
   writePlutusScript scriptnum "request.plutus" (Request.request getRequestScParams) (requestShortBs getRequestScParams)
+  writePlutusScript scriptnum "liquidation.plutus" Liquidation.liquidation liquidationShortBs
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusScript scriptnum filename scriptSerial scriptSBS =
