@@ -55,10 +55,10 @@ data CollateralDatum = CollateralDatum
     , collateralcs      :: !CurrencySymbol
     , repayinterval     :: !POSIXTime
     , liquidateNft      :: !CurrencySymbol
-    -- , collateraltn          :: !TokenName -- collateral token name
-    -- , collateralamnt        :: !Integer   -- amount of collateral
-    -- , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
-    -- , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    , collateraltn          :: !TokenName -- collateral token name
+    , collateralamnt        :: !Integer   -- amount of collateral
+    , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
+    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
@@ -106,15 +106,11 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     valueToInterestSc :: Value
     valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh info)
 
-    ownInput :: Maybe TxOut
-    ownInput = case findOwnInput ctx of
-      Just txin -> Just $ txInInfoResolved txin
-      Nothing   -> Nothing
-
     ownValue :: Maybe Value
-    ownValue = case ownInput of
-      Just txo -> Just $ txOutValue txo
-      Nothing  -> Nothing
+    ownValue = do
+      i <- findOwnInput ctx
+      resolved <- Just $ txInInfoResolved i
+      pure $ txOutValue resolved
 
     interestPercentage :: Integer
     interestPercentage = case (mintdate rdm + repayinterval dat) < interestPayDate rdm of
