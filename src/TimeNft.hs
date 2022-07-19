@@ -1,35 +1,37 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module TimeNft
   ( timeNft
-  , timeNftShortBs
-  , policy
   , intToByteString
   ) where
 
-import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy     as LB
 import qualified Data.ByteString.Short    as SBS
-import           Ledger                   hiding (singleton)
-import qualified Ledger.Typed.Scripts     as Scripts
-import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import           PlutusTx.Builtins.Internal as B
+import qualified Plutus.V1.Ledger.Scripts as Plutus
+import           Plutus.V2.Ledger.Contexts
+import           Plutus.V1.Ledger.Scripts
+import           Plutus.V1.Ledger.Value
+import           Plutus.V2.Ledger.Api
+import           Plutus.V1.Ledger.Address
+import           Plutus.V1.Ledger.Interval
 
 {-# INLINEABLE intToByteString #-}
 intToByteString :: Integer -> BuiltinByteString
@@ -44,8 +46,8 @@ intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
          asciZero = 48
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: POSIXTime -> ScriptContext -> Bool
-mkPolicy mintingdate ctx = validate
+mkPolicy :: BuiltinData -> BuiltinData -> ()
+mkPolicy (unsafeFromBuiltinData -> mintingdate :: POSIXTime) (unsafeFromBuiltinData -> ctx :: ScriptContext) = check validate
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -75,20 +77,5 @@ mkPolicy mintingdate ctx = validate
     validate = validateMint (PlutusTx.Prelude.head mintedFlattened) ||
                validateBurn (PlutusTx.Prelude.head mintedFlattened)
 
-policy :: Scripts.MintingPolicy
-policy = mkMintingPolicyScript $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy mkPolicy ||])
-
-plutusScript :: Script
-plutusScript = unMintingPolicyScript policy
-
-validator :: Validator
-validator = Validator plutusScript
-
-scriptAsCbor :: LB.ByteString
-scriptAsCbor = serialise validator
-
-timeNft :: PlutusScript PlutusScriptV1
-timeNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict $ scriptAsCbor
-
-timeNftShortBs :: SBS.ShortByteString
-timeNftShortBs = SBS.toShort . LB.toStrict $ scriptAsCbor
+timeNft :: Script
+timeNft = fromCompiledCode $$(PlutusTx.compile [|| mkPolicy ||])

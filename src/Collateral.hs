@@ -1,51 +1,47 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Collateral
   ( collateral
-  , collateralShortBs
   , ContractInfo(..)
-  , collateralTypedValidator
   , CollateralRedeemer(..)
   , CollateralDatum(..)
-  , validator
-  , collateralAddress
   ) where
-
-import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
 
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Short as SBS
 
-import           Plutus.V1.Ledger.Contexts
+import           Plutus.V2.Ledger.Contexts
 import           Plutus.V1.Ledger.Scripts
 import           Plutus.V1.Ledger.Value
+import           Plutus.V1.Ledger.Interval
+import           Plutus.V2.Ledger.Api
 import qualified PlutusTx
+import           PlutusTx (unsafeFromBuiltinData)
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Prelude              (Semigroup (..), Show (..))
 import qualified PlutusTx.Builtins.Internal as B
 
-import           Ledger.Typed.Scripts as Scripts
-import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import PlutusTx.Builtins (equalsByteString, divideInteger, addInteger, multiplyInteger)
 
 data CollateralDatum = CollateralDatum
     { borrowersNFT      :: !CurrencySymbol
-    , borrowersPkh      :: !PaymentPubKeyHash
+    , borrowersPkh      :: !PubKeyHash
     , loantn            :: !TokenName
     , loancs            :: !CurrencySymbol
     , loanamnt          :: !Integer
@@ -60,19 +56,19 @@ data CollateralDatum = CollateralDatum
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    } deriving (Show, Generic)
 
 data CollateralRedeemer = CollateralRedeemer
   { mintdate        :: !POSIXTime
   , interestPayDate :: !POSIXTime
-  } deriving (Show, Generic, ToJSON, FromJSON)
+  } deriving (Show, Generic)
 
 data ContractInfo = ContractInfo
     { borrower     :: !TokenName
     , lender       :: !TokenName
     , interestscvh :: !ValidatorHash
     , timeNft      :: !CurrencySymbol
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    } deriving (Show, Generic)
 
 {-# INLINEABLE intToByteString #-}
 intToByteString :: Integer -> BuiltinByteString
@@ -87,8 +83,13 @@ intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
          asciZero = 48
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> CollateralDatum -> CollateralRedeemer -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
+mkValidator :: ContractInfo -> BuiltinData -> BuiltinData -> BuiltinData -> ()
+mkValidator
+  contractInfo@ContractInfo{..}
+  (unsafeFromBuiltinData -> dat :: CollateralDatum)
+  (unsafeFromBuiltinData -> rdm :: CollateralRedeemer)
+  (unsafeFromBuiltinData -> ctx :: ScriptContext)
+  = check validate
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -197,34 +198,11 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validate = validateLender ||
                validateBorrower
 
-data Collateral
-instance Scripts.ValidatorTypes Collateral where
-    type instance DatumType Collateral = CollateralDatum
-    type instance RedeemerType Collateral = CollateralRedeemer
-
-collateralTypedValidator :: ContractInfo -> Scripts.TypedValidator Collateral
-collateralTypedValidator contractInfo = Scripts.mkTypedValidator @Collateral
+collateral :: ContractInfo -> Script
+collateral contractInfo = fromCompiledCode $
     ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
-    $$(PlutusTx.compile [|| wrap ||])
-  where
-    wrap = Scripts.wrapValidator @CollateralDatum @CollateralRedeemer
-
-validator :: ContractInfo -> Validator
-validator = Scripts.validatorScript . collateralTypedValidator
 
 PlutusTx.makeIsDataIndexed ''CollateralDatum [('CollateralDatum, 0)]
 PlutusTx.makeIsDataIndexed ''ContractInfo [('ContractInfo, 1)]
 PlutusTx.makeIsDataIndexed ''CollateralRedeemer [('CollateralRedeemer, 0)]
 PlutusTx.makeLift ''ContractInfo
-
-scriptAsCbor :: ContractInfo -> LBS.ByteString
-scriptAsCbor = serialise . validator
-
-collateral :: ContractInfo -> PlutusScript PlutusScriptV1
-collateral = PlutusScriptSerialised . collateralShortBs
-
-collateralShortBs :: ContractInfo -> SBS.ShortByteString
-collateralShortBs = SBS.toShort . LBS.toStrict . scriptAsCbor
-
-collateralAddress :: ContractInfo -> Ledger.Address
-collateralAddress = Ledger.scriptAddress . validator
