@@ -142,7 +142,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
                traceIfFalse "time nft not sent to collateral sc" validateTimeNftIsSentToCollateralSc &&
                traceIfFalse "collateral not sent to collateral sc" validateCollateral &&
                traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration ||
-               (traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint)
+               traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
