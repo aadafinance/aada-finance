@@ -1,10 +1,10 @@
 {
     "fields": [
       {
-        "int": 1
+        "int": 1  # When time NFT was minted
       },
       {
-        "int": 2
+        "int": 2   # When intereset is paid
       }
     ],
     "constructor": 0
