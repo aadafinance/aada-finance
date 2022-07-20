@@ -1,0 +1,130 @@
+                                                                          
+                  ┌────────┐                                              
+                  │        │         Λ                                    
+                  │        │        ╱ ╲           .─────.                 
+                  │        │       ╱   ╲        ,'       `.               
+                  │        │      ╱     ╲      ;           :              
+                  │        │     ╱       ╲     │  Wallet   │              
+                  │Transact│    ╱         ╲    │           │              
+                  │  ion   │   ▕ Validator ▏   :           ;              
+                  │        │    ╲         ╱     ╲         ╱               
+                  │        │     ╲       ╱       `.     ,'                
+                  │        │      ╲     ╱          `───'                  
+                  │        │       ╲   ╱                                  
+                  │        │        ╲ ╱                                   
+                  │        │         V                                    
+                  └────────┘                                              
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                 ┌────────┐                    Λ          
+                                 │        │                   ╱ ╲         
+      .───────.                  │  Loan  │                  ╱   ╲        
+     ╱         ╲                 │ Reques │                 ╱     ╲       
+    ( Borrower  )───Collateral──▶│  t TX  │──Collateral───▶Request.h      
+     `.       ,'                 │        │                 ╲     ╱       
+       `─────'                   │        │                  ╲   ╱        
+                                 └────────┘                   ╲ ╱         
+                                                               V          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                      Inputs from Request.hs                              
+                                                                          
+                                                                 Λ        
+                                                                ╱ ╲       
+                                                               ╱   ╲      
+   .───────.                                                  ╱     ╲     
+  ╱         ╲                                                ╱       ╲    
+ (  Lender   )─────────┐                           ┌───────▶Collateral.   
+  `.       ,'          │         ┌────────┐        │         ╲  hs   ╱    
+    `─────'           Loan       │        │   Collateral      ╲     ╱     
+                       │         │        │        │           ╲   ╱      
+         Λ             │         │Provide │        │            ╲ ╱       
+        ╱ ╲            ├────────▶│Loan TX │────────┤             V        
+       ╱   ╲      Collateral     │        │      Loan         .───────.   
+      ╱     ╲          │         │        │        │         ╱         ╲  
+     Request.h─────────┘         │        │        └───────▶( Borrower  ) 
+      ╲     ╱                    └────────┘                  `.       ,'  
+       ╲   ╱                                                   `─────'    
+        ╲ ╱                                                               
+         V                                                                
+                                                                          
+                                                                          
+          Λ                                                               
+         ╱ ╲                    ┌────────┐                                
+        ╱   ╲                   │        │                      .─────.   
+       ╱     ╲                  │ Cancel │                    ,'       `. 
+      ╱       ╲                 │  Loan  │                   ; Borrower  :
+     ▕Request.hs───Collateral──▶request TX───Collateral─────▶:           ;
+      ╲       ╱                 │        │                    ╲         ╱ 
+       ╲     ╱                  │        │                     `.     ,'  
+        ╲   ╱                   │        │                       `───'    
+         ╲ ╱                    └────────┘                                
+          V                                                               
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                       Inputs from Collateral.hs                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+   .───────.                                                .───────.     
+  ╱         ╲       Loan +      ┌────────┐                 ╱         ╲    
+ ( Borrower  )─────Interest     │        │       ┌───────▶( Borrower  )   
+  `.       ,'         │         │        │  Collateral     `.       ,'    
+    `─────'           │         │  Repay │       │           `─────'      
+       Λ              ├────────▶│  loan  │───────┤                        
+      ╱ ╲             │         │        │       │                        
+     ╱   ╲       Collateral     │        │       │            Λ           
+    ╱     ╲           │         └────────┘       │           ╱ ╲          
+   ╱       ╲          │                        Loan +       ╱   ╲         
+  ▕Collateral─────────┘                       Interest     ╱     ╲        
+   ╲  .hs  ╱                                     └───────▶Interest.       
+    ╲     ╱                                                ╲ hs  ╱        
+     ╲   ╱                                                  ╲   ╱         
+      ╲ ╱                                                    ╲ ╱          
+       V                                                      V           
+                                                                          
+                                                                          
+         Λ                                                                
+        ╱ ╲                     ┌────────┐                                
+       ╱   ╲                    │        │                                
+      ╱     ╲                   │        │                  .───────.     
+     ╱       ╲                  Liquidate                  ╱         ╲    
+    ▕Collateral───Collateral───▶│  loan  │──Collateral───▶(  Lender   )   
+     ╲  .hs  ╱                  │        │                 `.       ,'    
+      ╲     ╱                   │        │                   `─────'      
+       ╲   ╱                    │        │                                
+        ╲ ╱                     └────────┘                                
+         V                                                                
+                                                                          
+                                                                          
+                                                                          
+                        Inputs from Interest.hs                           
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+                                                                          
+            Λ                  ┌────────┐                                 
+           ╱ ╲                 │        │                                 
+          ╱   ╲                │        │                                 
+         ╱     ╲               │Withdraw                  .───────.       
+        ╱       ╲    Loan +    │Interest│    Loan +      ╱         ╲      
+       ▕Interest.▏──Interest──▶│        │───Interest───▶(  Lender   )     
+        ╲  hs   ╱              │        │                `.       ,'      
+         ╲     ╱               │        │                  `─────'        
+          ╲   ╱                │        │                                 
+           ╲ ╱                 └────────┘                                 
+            V                                                             
