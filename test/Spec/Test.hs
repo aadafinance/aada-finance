@@ -67,6 +67,7 @@ tests cfg =
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request expired" (mustFail provideLoanNotOnTime)
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "test loan return expiration date. Loan request not-expired" provideLoanOnTime
     , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "liquidate borrower" liquidateBorrower
+    , testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Without BNft" withoutBNft
     ]
 
 testSize :: BchConfig -> TestTree
@@ -75,6 +76,7 @@ testSize cfg =
     "testing size"
     [
       testLimits (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path"           id (happyPath >> logError "show stats")
+    , testLimits (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Without BNft"         id (withoutBNft >> logError "show stats")
     , testLimits (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower liquidates"  id (liquidateBorrower >> logError "show stats")
     ]
 
@@ -646,6 +648,12 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
           pure True
       Nothing -> pure False
 
+emptyRedeemer :: Redeemer
+emptyRedeemer = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+
+oracleRedeemer :: Redeemer
+oracleRedeemer = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
+
 getOracleNftVal :: CurrencySymbol -> Integer -> Value
 getOracleNftVal cs = Value.singleton cs getOracleNftTn
 
@@ -653,7 +661,7 @@ builtinFromValidatorHash :: ValidatorHash -> BuiltinByteString
 builtinFromValidatorHash (ValidatorHash bbs) = bbs
 
 getMintOracleNftTx :: Integer -> PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
-getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
+getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp oracleRedeemer $
   mconcat
     [ mintValue mp (getOracleNftVal cs n)
     , payToScript Helpers.TestValidator.typedValidator
@@ -665,10 +673,9 @@ getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     valh = validatorHash Helpers.TestValidator.validator
     mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
     cs   = scriptCurrencySymbol mp
-    rdm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
 
 getMintOracleNftTxInvalidValHash :: PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
-getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
+getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp oracleRedeemer $
   mconcat
     [ mintValue mp (getOracleNftVal cs 1)
     , payToScript Helpers.TestValidator.failValidator
@@ -680,7 +687,6 @@ getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     valh = validatorHash Helpers.TestValidator.validator
     mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
     cs   = scriptCurrencySymbol mp
-    rdm  = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
 
 mintOracleNft :: Run ()
 mintOracleNft = do
@@ -958,17 +964,14 @@ getMintOracleNftTxLiq n pkh1 pkh2 pkh3 = -- addMintRedeemer mp rdm $
     valh = validatorHash Helpers.TestValidator.validator
     mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
     cs   = scriptCurrencySymbol mp
-    rdm  = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
+
 -- addMintRedeemer MintingPolicy Redeemer Tx
 getTxOutLiquidate :: PubKeyHash -> POSIXTime -> MintingPolicy -> CurrencySymbol -> Tx
 getTxOutLiquidate lender dl lmp lcs =
  mconcat
-  [ mintValue getTimeNftPolicy (getTNftVal dl (-1) getTimeNftCurrencySymbol)
-  , mintValue lmp (getLNftVal (-2) lcs)
-  , payToPubKey lender (fakeValue collateralCoin 100 <> adaValue 2)
+  [ mintValue lmp (getLNftVal (-2) lcs)
+  , payToPubKey lender (fakeValue collateralCoin 100 <> adaValue 2 <> getTNftVal dl 1 getTimeNftCurrencySymbol)
   ]
- where
-    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
 
 liquidateBorrower :: Run Bool
 liquidateBorrower = do
@@ -986,6 +989,8 @@ liquidateBorrower = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let tx = createLockFundsTx 0 borrower oref sp valToPay 100000 <> getMintBorrowerNftTx borrower oref
+  
+  logInfo $ "tx1: " <> show tx
   submitTx borrower tx
 
   -- provide loan phase
@@ -1027,11 +1032,10 @@ liquidateBorrower = do
                           getMintOracleNftTxLiq 1 oracle1 oracle2 oracle3 <>
                           getTxOutLiquidate lender mintTime lenderMintingPolicy lenderCs
 
-          let valh = validatorHash Helpers.TestValidator.validator 
+          let valh = validatorHash Helpers.TestValidator.validator
               omp  = OracleNft.policy getOracleNftTn oracle1 oracle2 oracle3 (builtinFromValidatorHash valh)
-              ordm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
 
-          let tx = addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp ordm liquidate)) -- 1.
+          let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp oracleRedeemer liquidate) -- 1.
           -- let tx = addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer omp ordm (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) liquidate)) -- 2.
           -- let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer omp ordm liquidate)) -- 3.
           -- let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp ordm (addMintRedeemer getTimeNftPolicy mintTime liquidate)) -- 4.
@@ -1048,7 +1052,98 @@ liquidateBorrower = do
           tx <- signTx oracle2 tx
           tx <- signTx oracle3 tx
           tx <- validateIn (interval 9000 99999) tx
+
+          logInfo $ "tx2: " <> show tx
           submitTx lender tx
 
           pure True
       Nothing -> pure False
+
+
+getMintBorrowerNftTx' :: PubKeyHash -> TxOutRef -> Tx
+getMintBorrowerNftTx' pkh oref = addMintRedeemer mp rdm $
+  mconcat
+    [ mintValue mp (getBNftVal 1 cs)
+    , payToPubKey pkh (adaValue 1 <> getBNftVal 1 cs)
+    ]
+  where
+    mp  = BorrowerNft.policy oref
+    cs  = scriptCurrencySymbol mp
+    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+
+withoutBNft :: Run Bool
+withoutBNft = do
+  users <- setupUsers
+  let borrower = head users
+      lender   = last users
+      valToPay = fakeValue collateralCoin 100 <> adaValue 2
+  sp <- spend borrower valToPay
+  let oref = getHeadRef sp
+  let tx = createLockFundsTx 0 borrower oref sp valToPay 100000 -- <> getMintBorrowerNftTx' borrower oref
+  submitTx borrower tx
+  logInfo $ "tx burrower nft: " <> show tx
+  pure True
+  -- utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
+  -- let [(lockRef, lockOut)] = utxos
+  -- lockDat <- datumAt @RequestDatum lockRef
+  -- case lockDat of
+  --     Just dat -> do
+  --         mintTime <- currentTime
+  --         let convertedDat        = getCollatDatumFronRequestDat dat
+  --             valFromSc1          = fakeValue collateralCoin 100 <> adaValue 2
+  --             valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
+  --         sp <- spend lender valForLenderToSpend
+  --         let borrowerMintingPolicy = BorrowerNft.policy oref
+  --             borrowerCs            = scriptCurrencySymbol borrowerMintingPolicy
+  --             sc2valh               = validatorHash $ Collateral.validator getSc2Params
+  --             lenderMintingPolicy   = LenderNft.policy sc2valh (getHeadRef sp)
+  --             lenderCs              = scriptCurrencySymbol lenderMintingPolicy
+  --         let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat lenderMintingPolicy
+  --         logInfo $  "current time: " ++ show mintTime
+  --         tx <- validateIn (interval 6000 99999) tx
+  --         wait 3000
+  --         submitTx lender tx
+
+  --         -- loan return phase
+  --         let bmp  = BorrowerNft.policy oref
+  --             bcs  = scriptCurrencySymbol bmp
+  --         let valForBorrowerToSpend = fakeValue loanCoin 150 <> fakeValue interestCoin 50 <> adaValue 2 <> getBNftVal 1 bcs
+  --         let valTmp1 = getBNftVal 1 bcs <>
+  --                       adaValue 1
+  --             valTmp2 = fakeValue loanCoin 150 <>
+  --                       adaValue 1
+  --             valTmp3 = fakeValue interestCoin 50 <>
+  --                       adaValue 1
+  --         v <- valueAt borrower
+  --         intPayDate <- currentTime
+  --         bus <- utxoAt borrower
+
+  --         sp1 <- spend borrower valTmp1
+  --         sp2 <- spend borrower valTmp2
+  --         sp3 <- spend borrower valTmp3
+
+  --         utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
+  --         let [(lockRef, lockOut)] = utxos
+
+  --         let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+  --                   getTxOutReturn 50 borrower mintTime bmp lenderCs
+
+  --         wait 2000
+  --         logInfo $  "int pay date time: " ++ show intPayDate
+  --         tx2 <- validateIn (from 10000) tx2
+  --         submitTx lender tx2
+
+  --         -- retrieve loan and interest phase
+  --         utxos <- utxoAt Interest.interestAddress
+  --         let lenderPay = adaValue 2 <> getLNftVal 1 lenderCs
+  --         sp <- spend lender lenderPay
+  --         let dat = Datum (PlutusTx.toBuiltinData (0 :: Integer))
+  --             rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
+  --         let [(lockRef, lockOut)] = utxos
+  --             tx = getTxInFromInterestSc sp lockRef <>
+  --                  getTxOutFromInterestSc 50 lender lenderMintingPolicy lenderCs
+
+  --         submitTx lender tx
+
+  --         pure True
+  --     Nothing -> pure False

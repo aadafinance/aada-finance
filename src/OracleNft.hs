@@ -54,13 +54,13 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
 
     checkTargetAddress :: Address -> Bool
     checkTargetAddress addr = case toValidatorHash addr of
-      Just hash -> hash == (ValidatorHash dest)
+      Just hash -> hash == ValidatorHash dest
       Nothing   -> case toPubKeyHash addr of 
-        Just pkh -> pkh == (PubKeyHash dest)
+        Just pkh -> pkh == PubKeyHash dest
         Nothing  -> False
 
     mintedValueSentToDest :: Bool
-    mintedValueSentToDest = any (\x -> (checkTargetAddress (txOutAddress x)) &&
+    mintedValueSentToDest = any (\x -> checkTargetAddress (txOutAddress x) &&
                                         valueOf (txInfoMint info) (ownCurrencySymbol ctx) tn == 1 &&
                                         valueOf (txOutValue x) (ownCurrencySymbol ctx) tn == 1
                                         ) (txInfoOutputs info)

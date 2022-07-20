@@ -21,8 +21,7 @@ import Spec.Test
 
 main :: IO ()
 main = do
-  let exampleOracleRedeemer = OracleData 1 2 3 4 5 6
-  writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
+  writeData "redeemer-of-oracleNft.json" oracleRedeemer
   -- getTestDatum :: POSIXTime -> CurrencySymbol -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> RequestDatum
   let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0
   writeData "example.datum" exampleDatum
