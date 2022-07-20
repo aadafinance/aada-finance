@@ -34,7 +34,7 @@ import           Plutus.V1.Ledger.Scripts
 import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
-import           Prelude              (Semigroup (..), Show (..))
+import           Prelude              (Semigroup (..), Show (..), Traversable (sequenceA))
 import qualified PlutusTx.Builtins.Internal as B
 
 import           Ledger.Typed.Scripts as Scripts
@@ -106,15 +106,11 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     valueToInterestSc :: Value
     valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh info)
 
-    ownInput :: Maybe TxOut
-    ownInput = case findOwnInput ctx of
-      Just txin -> Just $ txInInfoResolved txin
-      Nothing   -> Nothing
-
     ownValue :: Maybe Value
-    ownValue = case ownInput of
-      Just txo -> Just $ txOutValue txo
-      Nothing  -> Nothing
+    ownValue = do
+      i <- findOwnInput ctx
+      txo <- Just $ txInInfoResolved i
+      pure $ txOutValue txo
 
     validateDebtAmnt :: Bool
     validateDebtAmnt = getLoanAmnt valueToInterestSc >= loanamnt dat
@@ -156,7 +152,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
                        traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
                        traceIfFalse "Lender nft is not passed on to interest sc" validateNftIsPassedOn &&
                        traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
-                       (checkBorrowerDeadLine && checkMintTnName)
+                       traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
+                       traceIfFalse "invalid time nft token name" checkMintTnName
 
     range :: POSIXTimeRange
     range = txInfoValidRange info
@@ -171,7 +168,9 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))
 
     getTimeTokenName :: Maybe TokenName
-    getTimeTokenName = (\(_, tn, _) -> tn) <$> find (\(cs, _, n) -> cs == timeNft && n == (-1)) mintFlattened
+    getTimeTokenName = case ownValue of
+      Just v -> (\(_, tn, _) -> tn) <$> find (\(cs, _, n) -> cs == timeNft && n == 1) (flattenValue v)
+      Nothing -> Nothing
 
     checkMintTnName :: Bool
     checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
@@ -187,11 +186,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) mintFlattened)
 
-    checkLiquidateNft :: Bool
-    checkLiquidateNft = checkForLiquidationNft
-
     validateLender :: Bool
-    validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkLiquidateNft)
+    validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkForLiquidationNft)
 
     validate :: Bool
     validate = validateLender ||

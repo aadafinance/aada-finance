@@ -962,9 +962,8 @@ getMintOracleNftTxLiq n pkh1 pkh2 pkh3 = -- addMintRedeemer mp rdm $
 getTxOutLiquidate :: PubKeyHash -> POSIXTime -> MintingPolicy -> CurrencySymbol -> Tx
 getTxOutLiquidate lender dl lmp lcs =
  mconcat
-  [ mintValue getTimeNftPolicy (getTNftVal dl (-1) getTimeNftCurrencySymbol)
-  , mintValue lmp (getLNftVal (-2) lcs)
-  , payToPubKey lender (fakeValue collateralCoin 100 <> adaValue 2)
+  [ mintValue lmp (getLNftVal (-2) lcs)
+  , payToPubKey lender (fakeValue collateralCoin 100 <> adaValue 2 <> getTNftVal dl 1 getTimeNftCurrencySymbol)
   ]
  where
     rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
@@ -1026,16 +1025,11 @@ liquidateBorrower = do
                           getMintOracleNftTxLiq 1 oracle1 oracle2 oracle3 <>
                           getTxOutLiquidate lender mintTime lenderMintingPolicy lenderCs
 
-          let valh = validatorHash Helpers.TestValidator.validator 
+          let valh = validatorHash Helpers.TestValidator.validator
               omp  = OracleNft.policy getOracleNftTn oracle1 oracle2 oracle3 (builtinFromValidatorHash valh)
               ordm = Redeemer (PlutusTx.toBuiltinData (OracleNft.OracleData 1 2 3 4 5 6))
 
-          let tx = addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp ordm liquidate)) -- 1.
-          -- let tx = addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer omp ordm (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) liquidate)) -- 2.
-          -- let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer omp ordm liquidate)) -- 3.
-          -- let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp ordm (addMintRedeemer getTimeNftPolicy mintTime liquidate)) -- 4.
-          -- let tx = addMintRedeemer omp ordm (addMintRedeemer getTimeNftPolicy mintTime (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) liquidate)) -- 5.
-          -- let tx = addMintRedeemer omp ordm (addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer getTimeNftPolicy mintTime liquidate)) -- 6.
+          let tx = addMintRedeemer lenderMintingPolicy (Redeemer (PlutusTx.toBuiltinData (0 :: Integer))) (addMintRedeemer omp ordm liquidate) -- 1.
 
           wait 2000
 
