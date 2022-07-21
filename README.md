@@ -14,6 +14,7 @@ This repository hosts on-chain code part of aada-lend project.
 
 - Borrower
 - Lender
+- Oracle
 
 ### Use cases
 
@@ -22,6 +23,7 @@ This repository hosts on-chain code part of aada-lend project.
 - Create loan request
 - Cancel loan request
 - Return loan
+- Retrieve rest of liquidated collateral
 
 #### Lender can
 
@@ -33,7 +35,7 @@ This repository hosts on-chain code part of aada-lend project.
 
 #### Aada lend smartcontract part
 
-- Up until loan is given Borrower should always be able to cancel his loan request.
+- Up until loan is given to Borrower Borrower should always be able to cancel his loan request.
 - When canceling loan request Borrower should always be able to get all of his collateral back.
 - Only Borrowers Nft owner can cancel loan request. Loan request can be canceled only if Borrowers nft is burnt.
 - Loan receiver is identified by data encoded with datum.
@@ -106,6 +108,48 @@ interval amount of interest.
 - It shouldn't be possible to mint Time Nft with other token name than POSIXTime provided as a NFT parameter
 - It shouldn't be possible to mint Time Nft with bigger time than provided with POSIXTime and than the time which is
 currently present
+
+### Validations
+
+#### Create loan request
+
+There is no way to enforce validation on-chain for request creation.
+
+#### Cancel loan request
+
+- One token is burnt AND
+- Token name is B (for borrower) AND
+- Currency symbol is same as in locked datum
+
+#### Return loan
+
+- Value of loan currency symbol and loan token name locked in datum sent to `Interest.hs` is same or more than loan value locked in datum AND
+- Amount of interest currency symbol and interest token name locked in datum sent to `Interest.hs` is same or more than interest to be paid value locked in datum value percentage of repay time passed AND
+- In case both interest currency symbol and token name with loan are the same interest amount to be paid together with loan to be repaid must be more or equal or more than interest and loan to be paid values locked in datum AND
+- Lender NFT locked in `Collateral.hs` must be passed on to `Interest.hs` AND
+- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt AND
+- Interest pay date provided to `Collateral.hs` as a redeemer must be within transaction validity range AND
+- Mint date value provided to `Collateral.hs` as a redeemer must be the same as TimeNFT token name
+
+#### Retrieve rest of liquidated collateral
+
+- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt 
+
+#### Provide loan
+
+- Hash of datum sent to `Collateral.hs` is same as of datum locked in `Request.hs` AND
+- 2 Lender tokens are minted and one of them is sent to `Collateral.hs` AND
+- Datum provided amound of loan value is sent to borrower `pkh` locked in datum AND
+- TimeNFT is sent to `Collateral.hs` AND
+- Check if request is not expired by checking if tx is valid with expiration value locked in datum
+
+#### Liquidate borrower
+
+- LiquidationNFT locked in datum is burnt
+
+#### Retrieve loan and interest
+
+- Two lender NFTs are burnt and one of them is from `Interest.hs`
 
 ## Installation
 
