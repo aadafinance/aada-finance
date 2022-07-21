@@ -54,13 +54,13 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
 
     checkTargetAddress :: Address -> Bool
     checkTargetAddress addr = case toValidatorHash addr of
-      Just hash -> hash == (ValidatorHash dest)
-      Nothing   -> case toPubKeyHash addr of 
-        Just pkh -> pkh == (PubKeyHash dest)
+      Just hash -> hash == ValidatorHash dest
+      Nothing   -> case toPubKeyHash addr of
+        Just pkh -> pkh == PubKeyHash dest
         Nothing  -> False
 
     mintedValueSentToDest :: Bool
-    mintedValueSentToDest = any (\x -> (checkTargetAddress (txOutAddress x)) &&
+    mintedValueSentToDest = any (\x -> checkTargetAddress (txOutAddress x) &&
                                         valueOf (txInfoMint info) (ownCurrencySymbol ctx) tn == 1 &&
                                         valueOf (txOutValue x) (ownCurrencySymbol ctx) tn == 1
                                         ) (txInfoOutputs info)
@@ -86,7 +86,7 @@ policy tn pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $
     `PlutusTx.applyCode`
     PlutusTx.liftCode dest
     where
-      wrap tn' pkh1' pkh2' pkh3' dest' = Scripts.wrapMintingPolicy $ mkPolicy tn' pkh1' pkh2' pkh3' dest' 
+      wrap tn' pkh1' pkh2' pkh3' dest' = Scripts.wrapMintingPolicy $ mkPolicy tn' pkh1' pkh2' pkh3' dest'
 
 plutusScript :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Script
 plutusScript tn pkh1 pkh2 pkh3 dest  = unMintingPolicyScript $ policy tn pkh1 pkh2 pkh3 dest
