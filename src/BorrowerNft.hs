@@ -44,21 +44,16 @@ mkPolicy utxo _ ctx = validate
     hasUTxO :: Bool
     hasUTxO = traceIfFalse "No minting policy specified utxo found" $ any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info
 
-    validateMint :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateMint (_, _, n) = hasUTxO && traceIfFalse "invalid mint amount" (n == 1)
+    validateMint :: Integer -> Bool
+    validateMint amount = hasUTxO && traceIfFalse "invalid mint amount" (amount == 1)
 
-    validateBurn :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateBurn (_, _, n) = traceIfFalse "invalid burn amount" (n == (-1))
-
-    ownNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
-    ownNftFilter (cs, tn, _) = cs == ownCurrencySymbol ctx && tn == borrower
-
-    mintedFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintedFlattened = filter ownNftFilter $ flattenValue $ txInfoMint info
+    validateBurn :: Integer -> Bool
+    validateBurn amount = traceIfFalse "invalid burn amount" (amount == (-1))
 
     validate :: Bool
-    validate = validateMint (head mintedFlattened) ||
-               validateBurn (head mintedFlattened)
+    validate =
+        let amount = valueOf (txInfoMint info) (ownCurrencySymbol ctx) borrower
+        in validateMint amount || validateBurn amount
 
 policy :: TxOutRef -> Scripts.MintingPolicy
 policy utxo = mkMintingPolicyScript $
