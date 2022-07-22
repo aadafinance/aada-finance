@@ -185,38 +185,6 @@ executable generate-example-jsons
                       , plutus-ledger-constraints
                       , plutus-contract
                       , plutus-ledger-api
-                      
-executable trace
-  import:              base, project-config
-  hs-source-dirs:      test
-  main-is:             EmulatorTrace.hs
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       aeson
-                     , bytestring
-                     , cardano-api
-                     , cardano-crypto-class
-                     , cardano-ledger-core
-                     , cardano-ledger-shelley
-                     , cardano-wallet-core
-                     , containers
-                     , data-default
-                     , freer-extras
-                     , playground-common
-                     , plutus-contract
-                     , plutus-ledger
-                     , plutus-ledger-api
-                     , plutus-ledger-constraints
-                     , plutus-pab
-                     , plutus-tx-plugin
-                     , plutus-tx
-                     , plutus-use-cases
-                     , prettyprinter
-                     , serialise
-                     , text
-                     , lens
-                     , time
-                     , openapi3
-                     , aada-lend
 
 test-suite aada-tests
   type:                exitcode-stdio-1.0
@@ -253,4 +221,5 @@ test-suite aada-tests
                      , text
                      , plutus-simple-model
                      , mtl
+                     , plutip
 
