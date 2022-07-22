@@ -25,14 +25,9 @@ import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 
-{-# INLINABLE flattenBuiltinByteString #-}
-flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
-flattenBuiltinByteString [] = emptyByteString
-flattenBuiltinByteString (x:xs) = appendByteString x $ flattenBuiltinByteString xs
-
 {-# INLINABLE borrower #-}
 borrower :: TokenName
-borrower = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [66]]}  -- B
+borrower = TokenName { unTokenName = consByteString 66 emptyByteString }  -- B
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: TxOutRef -> Integer -> ScriptContext -> Bool
