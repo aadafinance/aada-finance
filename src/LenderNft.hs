@@ -33,14 +33,9 @@ import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import qualified Plutus.V1.Ledger.Scripts as Plutus
 import           Prelude                  (Semigroup (..), Show)
 
-{-# INLINABLE flattenBuiltinByteString #-}
-flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
-flattenBuiltinByteString [] = emptyByteString
-flattenBuiltinByteString (x:xs) = appendByteString x $ flattenBuiltinByteString xs
-
 {-# INLINABLE lender #-}
 lender :: TokenName
-lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [76]]}  -- L
+lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: ValidatorHash -> TxOutRef -> Integer -> ScriptContext -> Bool
