@@ -34,7 +34,7 @@ import           Plutus.V1.Ledger.Scripts
 import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
-import           Prelude              (Semigroup (..), Show (..), Traversable (sequenceA))
+import           Prelude              (Semigroup (..), Show (..))
 import qualified PlutusTx.Builtins.Internal as B
 
 import           Ledger.Typed.Scripts as Scripts
@@ -126,8 +126,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateInterestAmnt = getInterestAmnt valueToInterestSc >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
 
     validateDebtAndInterestAmnt :: Bool
-    validateDebtAndInterestAmnt =
-      not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getInterestAmnt valueToInterestSc + getLoanAmnt valueToInterestSc >= loanamnt dat + interestamnt dat)
+    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt valueToInterestSc >= loanamnt dat + interestamnt dat)
 
     lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     lenderNftFilter (cs, tn, n) = tn == lender && n == 1 && cs /= collateralcs dat
