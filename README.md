@@ -14,6 +14,7 @@ This repository hosts on-chain code part of aada-lend project.
 
 - Borrower
 - Lender
+- Oracle
 
 ### Use cases
 
@@ -22,6 +23,7 @@ This repository hosts on-chain code part of aada-lend project.
 - Create loan request
 - Cancel loan request
 - Return loan
+- Retrieve rest of liquidated collateral
 
 #### Lender can
 
@@ -33,7 +35,7 @@ This repository hosts on-chain code part of aada-lend project.
 
 #### Aada lend smartcontract part
 
-- Up until loan is given Borrower should always be able to cancel his loan request.
+- Up until loan is given to Borrower Borrower should always be able to cancel his loan request.
 - When canceling loan request Borrower should always be able to get all of his collateral back.
 - Only Borrowers Nft owner can cancel loan request. Loan request can be canceled only if Borrowers nft is burnt.
 - Loan receiver is identified by data encoded with datum.
@@ -42,45 +44,49 @@ This repository hosts on-chain code part of aada-lend project.
 
 ```haskell
 data Datum = Datum
-    { borrowersNFT  :: !CurrencySymbol     -- collateral provider id
-    , borrowersPkh  :: !PaymentPubKeyHash  -- who shall get loan
-    , loantn        :: !TokenName          -- loan asset token name
-    , loancs        :: !CurrencySymbol     -- loan asset currency symbol
-    , loanamnt      :: !Integer            -- amount of loan
-    , interesttn    :: !TokenName          -- interest asset token name
-    , interestcs    :: !CurrencySymbol     -- interest currency symbol
-    , interestamnt  :: !Integer            -- amount of interest
-    , collateralcs  :: !CurrencySymbol     -- collateral currency symbol
-    , repayinterval :: !POSIXTime          -- repay interval
-    , liquidateNft  :: !CurrencySymbol     -- liquidation oracle id
-    , requestExp    :: !POSIXTime          -- loan request expiration
+    { borrowersNFT          :: !CurrencySymbol     -- collateral provider id
+    , borrowersPkh          :: !PaymentPubKeyHash  -- who shall get loan
+    , loantn                :: !TokenName          -- loan asset token name
+    , loancs                :: !CurrencySymbol     -- loan asset currency symbol
+    , loanamnt              :: !Integer            -- amount of loan
+    , interesttn            :: !TokenName          -- interest asset token name
+    , interestcs            :: !CurrencySymbol     -- interest currency symbol
+    , interestamnt          :: !Integer            -- amount of interest
+    , collateralcs          :: !CurrencySymbol     -- collateral currency symbol
+    , repayinterval         :: !POSIXTime          -- repay interval
+    , liquidateNft          :: !CurrencySymbol     -- liquidation oracle id
+    , collateraltn          :: !TokenName          -- collateral token name
+    , collateralamnt        :: !Integer            -- amount of collateral
+    , collateralFactor      :: !Integer            -- Colalteral factor used for liquidation
+    , liquidationCommission :: !Integer            -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: !POSIXTime          -- Time loan request is valid to
     } deriving Show
 ```
 
-
 - Lender can get Vesting rights to borrowers collateral only when loan is given to borrower and collateral funds are
-transfered to  Collateral.hs  smartcontract.
-- Lender can't get Vesting rights to borrowers collateral if loan is not given to owner of PaymentPubKeyHash which
-is encoded in  Request.hs  smartcontract datum.
-- Lender can't get Vesting rights to borrowers collateral if 1 time NFT is not sent to  Collateral.hs  .
-- Lender can't get Vesting rights to borrowers collateral if collateral from  Request.hs   smartcontract is not
-transfered to  Collateral.hs  smartcontract.
-Lender can't get Vesting rights to borrowers collateral if datum provided with  Request.hs  is different than
-datum provided to  Collateral.hs  smartcontract.
+transfered to `Collateral.hs` smartcontract.
+- Lender can't get Vesting rights to borrowers collateral if loan is not given to owner of **PaymentPubKeyHash** which
+is encoded in `Request.hs` smartcontract datum.
+- Lender can't get Vesting rights to borrowers collateral if 1 time NFT is not sent to `Collateral.hs`.
+- Lender can't get Vesting rights to borrowers collateral if collateral from `Request.hs` smartcontract is not
+transfered to `Collateral.hs` smartcontract.
+Lender can't get Vesting rights to borrowers collateral if datum provided with `Request.hs` is different than
+datum provided to `Collateral.hs` smartcontract.
 - Lender can't get Vesting rights to borrowers collateral if 2 Lender NFTs are not minted and one of them is not
-locked into  Collateral.hs  smartcontract.
-- Lender can't retrieve collateral from  Collateral.hs  if  repayinterval  didn't pass and 1 timenft is not burnt or
-datum provided liquidate nft is not minted/burnt.
-- Lender can't retrieve collateral from  Collateral.hs  if 2 Lender Nfts are not burnt and one of them is not from
-Collateral.hs  smart contract.
+locked into `Collateral.hs` smartcontract.
+- Lender can't retrieve collateral from `Collateral.hs` if **repayinterval** didn't pass and 1 timenft is not burnt or
+datum provided liquidate nft is not minted/burnt unless liqudation OracleNft is burnt.
+- Lender can't retrieve collateral from `Collateral.hs` if 2 Lender Nfts are not burnt and one of them is not from
+`Collateral.hs` smart contract.
 - Borrower can't retrieve his collateral if borrowers nft encoded in datum is not burnt.
-- Borrower can't retrieve his collateral if loan is not sent to  Interest.hs  smartcontract.
-- Borrower can't retrieve his collateral if enough interest is not sent to  Interest.hs  smartcontract.
-- Borrower can't retrieve his collateral if Lender nft is not sent to  Interest.hs  smartcontract.
-- Lender can't retrieve his interest from  Interest.hs  smartcontract if 2 Lender Nfts are not burnt and one of them
-is not from  Interest.hs  smart contract.
-- If Borrower returns laon sooner than  repayinterval  he only needs to pay  (current time - loan taken time) / repay
-interval  amount of interest
+- Borrower can't retrieve his collateral if loan is not sent to `Interest.hs` smartcontract.
+- Borrower can't retrieve his collateral if enough interest is not sent to `Interest.hs` smartcontract.
+- Borrower can't retrieve his collateral if Lender nft is not sent to `Interest.hs` smartcontract.
+- Lender can't retrieve his interest from `Interest.hs` smartcontract if 2 Lender Nfts are not burnt and one of them
+is not from `Interest.hs` smart contract.
+- If Borrower returns laon sooner than **repayinterval** he only needs to pay `(current time - loan taken time) / repay`
+interval amount of interest.
+- Lender shouldn't be able to provide loan to borrower if loan request has expired.
 
 #### Nfts minting requirements
 
@@ -102,6 +108,48 @@ interval  amount of interest
 - It shouldn't be possible to mint Time Nft with other token name than POSIXTime provided as a NFT parameter
 - It shouldn't be possible to mint Time Nft with bigger time than provided with POSIXTime and than the time which is
 currently present
+
+### Validations
+
+#### Create loan request
+
+There is no way to enforce validation on-chain for request creation.
+
+#### Cancel loan request
+
+- One token is burnt AND
+- Token name is B (for borrower) AND
+- Currency symbol is same as in locked datum
+
+#### Return loan
+
+- Value of loan currency symbol and loan token name locked in datum sent to `Interest.hs` is same or more than loan value locked in datum AND
+- Amount of interest currency symbol and interest token name locked in datum sent to `Interest.hs` is same or more than interest to be paid value locked in datum value percentage of repay time passed AND
+- In case both interest currency symbol and token name with loan are the same interest amount to be paid together with loan to be repaid must be more or equal or more than interest and loan to be paid values locked in datum AND
+- Lender NFT locked in `Collateral.hs` must be passed on to `Interest.hs` AND
+- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt AND
+- Interest pay date provided to `Collateral.hs` as a redeemer must be within transaction validity range AND
+- Mint date value provided to `Collateral.hs` as a redeemer must be the same as TimeNFT token name
+
+#### Retrieve rest of liquidated collateral
+
+- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt 
+
+#### Provide loan
+
+- Hash of datum sent to `Collateral.hs` is same as of datum locked in `Request.hs` AND
+- 2 Lender tokens are minted and one of them is sent to `Collateral.hs` AND
+- Datum provided amound of loan value is sent to borrower `pkh` locked in datum AND
+- TimeNFT is sent to `Collateral.hs` AND
+- Check if request is not expired by checking if tx is valid with expiration value locked in datum
+
+#### Liquidate borrower
+
+- LiquidationNFT locked in datum is burnt
+
+#### Retrieve loan and interest
+
+- Two lender NFTs are burnt and one of them is from `Interest.hs`
 
 ## Installation
 
@@ -238,6 +286,18 @@ Example:
 ```bash
 docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft ff ff ff ff ff"
 ```
+### Generate OracleNft example
+
+Inside project
+```bash
+cabal run generate-example-jsons
+```
+
+In docker:
+```bash
+docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/generate-example-jsons"
+```
+
 
 ### Run tests
 

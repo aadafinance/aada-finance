@@ -1,0 +1,16 @@
+version: '3.4'
+x-logging:
+      &default-logging
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+services:
+  aada-finance:
+    image: mantasand/aada-finance:master-latest
+    restart: always
+    stdin_open: true
+    tty: true
+    volumes:
+      - /gz/aada-app:/app/
+    logging: *default-logging
