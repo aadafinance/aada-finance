@@ -69,6 +69,7 @@ library
                       , Request
                       , OracleNft
                       , Helpers.TestValidator
+                      , Spec.Test
 
   build-depends:        bytestring
                       , cardano-api
@@ -90,6 +91,9 @@ library
                       , cardano-wallet-core
                       , plutus-ledger-constraints
                       , plutus-contract
+                      , tasty
+                      , mtl
+                      , plutus-simple-model
 
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
@@ -190,6 +194,7 @@ executable generate-example-jsons
                       , tasty-hunit
                       , plutus-simple-model
                       , mtl
+                      , plutus-tx-plugin
 
 test-suite aada-tests
   type:                exitcode-stdio-1.0
