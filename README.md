@@ -1,4 +1,4 @@
-# aada-tokens-staking
+# AADA Lend
 
 ## About
 
@@ -25,6 +25,7 @@ This repository hosts on-chain code part of aada-lend project.
 - Return loan
 - Retrieve rest of liquidated collateral
 
+
 #### Lender can
 
 - Lend
@@ -34,6 +35,7 @@ This repository hosts on-chain code part of aada-lend project.
 ### Requirements
 
 #### Aada lend smartcontract part
+
 
 - Up until loan is given to Borrower Borrower should always be able to cancel his loan request.
 - When canceling loan request Borrower should always be able to get all of his collateral back.
@@ -55,6 +57,7 @@ data Datum = Datum
     , collateralcs          :: !CurrencySymbol     -- collateral currency symbol
     , repayinterval         :: !POSIXTime          -- repay interval
     , liquidateNft          :: !CurrencySymbol     -- liquidation oracle id
+    , requestExp            :: !POSIXTime          -- loan request expiration
     , collateraltn          :: !TokenName          -- collateral token name
     , collateralamnt        :: !Integer            -- amount of collateral
     , collateralFactor      :: !Integer            -- Colalteral factor used for liquidation
@@ -150,6 +153,27 @@ There is no way to enforce validation on-chain for request creation.
 #### Retrieve loan and interest
 
 - Two lender NFTs are burnt and one of them is from `Interest.hs`
+
+#### Nfts minting requirements
+
+##### Borrower nft
+
+- It shouldn't be possible to mint more than one Nft at a time
+- It shouldn't be possible to have two Nfts with same CurrencySymbol
+- It shouldn't be possible to mint Borrower nft with other token name than  66 -> B
+
+##### Lender Nft
+
+- It shouldn't be possible to mint other than 2 Nfts at a time
+- It shouldn't be possible to mint Nft if 1 of them is not sent to  Collateral.hs  smartcontract
+- Only two Nfts can be burnt at a time
+- It shouldn't be possible to mint Lender nft with other token name than  76 -> L
+
+##### Time Nft
+
+- It shouldn't be possible to mint Time Nft with other token name than POSIXTime provided as a NFT parameter
+- It shouldn't be possible to mint Time Nft with bigger time than provided with POSIXTime and than the time which is
+currently present
 
 ## Installation
 
@@ -320,6 +344,9 @@ Use this template:
 ## Why do you think this change would improve this project?
 ```
 
+Raise an issue with a feature request proposal!
+
+
 ### Have a suggested change?
 
 1. Raise a proposal issue
@@ -348,6 +375,15 @@ Use this template:
 ## How do you think this problem could be resolved?
 ```
 
+2. Create branch
+3. Implement changes
+4. Create tests to cover changes
+5. Create pull request
+
+### Found a bug?
+
+Raise an issue and describe what is not working how it is supposed to
+
 ## Contact us
 
 [discord](https://discord.gg/rzVMbFWw)
@@ -358,4 +394,7 @@ Use this template:
 
 [repo manager](https://github.com/tomazvila)
 
+
 - email: `tomas@aada.finance`
+
+
