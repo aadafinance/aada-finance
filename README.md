@@ -14,6 +14,7 @@ This repository hosts on-chain code part of aada-lend project.
 
 - Borrower
 - Lender
+- Oracle
 
 ### Use cases
 
@@ -22,6 +23,8 @@ This repository hosts on-chain code part of aada-lend project.
 - Create loan request
 - Cancel loan request
 - Return loan
+- Retrieve rest of liquidated collateral
+
 
 #### Lender can
 
@@ -33,7 +36,8 @@ This repository hosts on-chain code part of aada-lend project.
 
 #### Aada lend smartcontract part
 
-- Up until loan is given Borrower should always be able to cancel his loan request.
+
+- Up until loan is given to Borrower Borrower should always be able to cancel his loan request.
 - When canceling loan request Borrower should always be able to get all of his collateral back.
 - Only Borrowers Nft owner can cancel loan request. Loan request can be canceled only if Borrowers nft is burnt.
 - Loan receiver is identified by data encoded with datum.
@@ -58,6 +62,7 @@ data Datum = Datum
     , collateralamnt        :: !Integer            -- amount of collateral
     , collateralFactor      :: !Integer            -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer            -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: !POSIXTime          -- Time loan request is valid to
     } deriving Show
 ```
 
@@ -84,6 +89,70 @@ datum provided liquidate nft is not minted/burnt unless liqudation OracleNft is 
 is not from `Interest.hs` smart contract.
 - If Borrower returns laon sooner than **repayinterval** he only needs to pay `(current time - loan taken time) / repay`
 interval amount of interest.
+- Lender shouldn't be able to provide loan to borrower if loan request has expired.
+
+#### Nfts minting requirements
+
+##### Borrower nft
+
+- It shouldn't be possible to mint more than one Nft at a time
+- It shouldn't be possible to have two Nfts with same CurrencySymbol
+- It shouldn't be possible to mint Borrower nft with other token name than  66 -> B
+
+##### Lender Nft
+
+- It shouldn't be possible to mint other than 2 Nfts at a time
+- It shouldn't be possible to mint Nft if 1 of them is not sent to  Collateral.hs  smartcontract
+- Only two Nfts can be burnt at a time
+- It shouldn't be possible to mint Lender nft with other token name than  76 -> L
+
+##### Time Nft
+
+- It shouldn't be possible to mint Time Nft with other token name than POSIXTime provided as a NFT parameter
+- It shouldn't be possible to mint Time Nft with bigger time than provided with POSIXTime and than the time which is
+currently present
+
+### Validations
+
+#### Create loan request
+
+There is no way to enforce validation on-chain for request creation.
+
+#### Cancel loan request
+
+- One token is burnt AND
+- Token name is B (for borrower) AND
+- Currency symbol is same as in locked datum
+
+#### Return loan
+
+- Value of loan currency symbol and loan token name locked in datum sent to `Interest.hs` is same or more than loan value locked in datum AND
+- Amount of interest currency symbol and interest token name locked in datum sent to `Interest.hs` is same or more than interest to be paid value locked in datum value percentage of repay time passed AND
+- In case both interest currency symbol and token name with loan are the same interest amount to be paid together with loan to be repaid must be more or equal or more than interest and loan to be paid values locked in datum AND
+- Lender NFT locked in `Collateral.hs` must be passed on to `Interest.hs` AND
+- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt AND
+- Interest pay date provided to `Collateral.hs` as a redeemer must be within transaction validity range AND
+- Mint date value provided to `Collateral.hs` as a redeemer must be the same as TimeNFT token name
+
+#### Retrieve rest of liquidated collateral
+
+- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt 
+
+#### Provide loan
+
+- Hash of datum sent to `Collateral.hs` is same as of datum locked in `Request.hs` AND
+- 2 Lender tokens are minted and one of them is sent to `Collateral.hs` AND
+- Datum provided amound of loan value is sent to borrower `pkh` locked in datum AND
+- TimeNFT is sent to `Collateral.hs` AND
+- Check if request is not expired by checking if tx is valid with expiration value locked in datum
+
+#### Liquidate borrower
+
+- LiquidationNFT locked in datum is burnt
+
+#### Retrieve loan and interest
+
+- Two lender NFTs are burnt and one of them is from `Interest.hs`
 
 #### Nfts minting requirements
 
@@ -264,11 +333,48 @@ cabal test
 
 ### Have a proposal?
 
+Raise an issue with a title `proposal - <proposal name>`!
+
+Use this template:
+```
+# <Proposal name>
+
+## What would you like to be different?
+
+## Why do you think this change would improve this project?
+```
+
 Raise an issue with a feature request proposal!
+
 
 ### Have a suggested change?
 
 1. Raise a proposal issue
+2. Create tests to cover changes
+3. Implement changes
+4. Make sure nothing breaks
+5. Create PR
+6. Wait for approval
+
+### Found a bug?
+
+Raise an issue with a title `bug - <bug name>`!
+
+Use this template:
+```
+# <bug name>
+
+## Your setup
+
+## What is not working as expected?
+
+## What behaviour did you expect?
+
+## What do you think is causing unexpected behaviour?
+
+## How do you think this problem could be resolved?
+```
+
 2. Create branch
 3. Implement changes
 4. Create tests to cover changes
@@ -288,4 +394,7 @@ Raise an issue and describe what is not working how it is supposed to
 
 [repo manager](https://github.com/tomazvila)
 
+
 - email: `tomas@aada.finance`
+
+

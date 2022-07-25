@@ -8,11 +8,15 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use foldr" #-}
 
 module Interest
   ( interest
   , interestShortBs
   , validator
+  , typedValidator
+  , interestAddress
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
@@ -27,8 +31,8 @@ import           Plutus.V1.Ledger.Scripts
 import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
-
 import           Ledger.Typed.Scripts as Scripts
+import qualified Ledger as L
 
 {-# INLINABLE flattenBuiltinByteString #-}
 flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
@@ -89,3 +93,6 @@ interestShortBs = SBS.toShort . LBS.toStrict $ serialise script
 
 interest :: PlutusScript PlutusScriptV1
 interest = PlutusScriptSerialised interestShortBs
+
+interestAddress :: L.Address
+interestAddress = L.scriptHashAddress $ validatorHash typedValidator

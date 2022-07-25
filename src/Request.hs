@@ -33,7 +33,6 @@ import qualified PlutusTx
 import           Ledger               hiding (singleton)
 import qualified Plutus.V1.Ledger.Scripts as Plutus
 
-
 data RequestDatum = RequestDatum
     { borrowersNFT      :: !CurrencySymbol
     , borrowersPkh      :: !PaymentPubKeyHash
@@ -45,6 +44,12 @@ data RequestDatum = RequestDatum
     , interestamnt      :: !Integer
     , collateralcs      :: !CurrencySymbol
     , repayinterval     :: !POSIXTime
+    , liquidateNft      :: !CurrencySymbol
+    , collateraltn          :: !TokenName -- collateral token name
+    , collateralamnt        :: !Integer   -- amount of collateral
+    , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
+    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
@@ -124,13 +129,20 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
       Nothing   -> False
 
+    range :: POSIXTimeRange
+    range = txInfoValidRange info
+
+    validateExpiration :: Bool
+    validateExpiration = after (requestExpiration dat) range
+
     validate :: Bool
-    validate = ownInputHash &&
-               validateMint &&
-               borrowerGetsWhatHeWants &&
-               validateTimeNftIsSentToCollateralSc &&
-               validateCollateral ||
-               validateBorrowerMint
+    validate = traceIfFalse "datum hash validation fail" ownInputHash &&
+               traceIfFalse "2 lender tokens wasn't minted and or 1 of them wasn't sent to collateral sc" validateMint &&
+               traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
+               traceIfFalse "time nft not sent to collateral sc" validateTimeNftIsSentToCollateralSc &&
+               traceIfFalse "collateral not sent to collateral sc" validateCollateral &&
+               traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration ||
+               traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
@@ -161,3 +173,6 @@ request = PlutusScriptSerialised . requestShortBs
 
 requestShortBs :: ContractInfo -> SBS.ShortByteString
 requestShortBs = SBS.toShort . LBS.toStrict . scriptAsCbor
+
+requestAddress :: ContractInfo -> Ledger.Address
+requestAddress = Ledger.scriptAddress . requestValidator

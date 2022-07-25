@@ -16,7 +16,11 @@ module Collateral
   ( collateral
   , collateralShortBs
   , ContractInfo(..)
+  , collateralTypedValidator
+  , CollateralRedeemer(..)
+  , CollateralDatum(..)
   , validator
+  , collateralAddress
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
@@ -26,18 +30,18 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Short as SBS
 
 import           Plutus.V1.Ledger.Contexts
-import qualified Plutus.V1.Ledger.Scripts as Plutus
 import           Plutus.V1.Ledger.Scripts
 import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Prelude              (Semigroup (..), Show (..))
-import           PlutusTx.Builtins.Internal as B
+import qualified PlutusTx.Builtins.Internal as B
 
 import           Ledger.Typed.Scripts as Scripts
 import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
+import PlutusTx.Builtins (equalsByteString, divideInteger, addInteger, multiplyInteger)
 
 data CollateralDatum = CollateralDatum
     { borrowersNFT      :: !CurrencySymbol
@@ -50,7 +54,18 @@ data CollateralDatum = CollateralDatum
     , interestamnt      :: !Integer
     , collateralcs      :: !CurrencySymbol
     , repayinterval     :: !POSIXTime
-    } deriving Show
+    , liquidateNft      :: !CurrencySymbol
+    , collateraltn          :: !TokenName -- collateral token name
+    , collateralamnt        :: !Integer   -- amount of collateral
+    , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
+    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: !POSIXTime
+    } deriving (Show, Generic, ToJSON, FromJSON)
+
+data CollateralRedeemer = CollateralRedeemer
+  { mintdate        :: !POSIXTime
+  , interestPayDate :: !POSIXTime
+  } deriving (Show, Generic, ToJSON, FromJSON)
 
 data ContractInfo = ContractInfo
     { borrower     :: !TokenName
@@ -72,8 +87,8 @@ intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
          asciZero = 48
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> CollateralDatum -> POSIXTime -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} dat mintdate ctx = traceIfFalse "Collateral failed" validate
+mkValidator :: ContractInfo -> CollateralDatum -> CollateralRedeemer -> ScriptContext -> Bool
+mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -87,29 +102,31 @@ mkValidator contractInfo@ContractInfo{..} dat mintdate ctx = traceIfFalse "Colla
     getInterestAmnt :: Value -> Integer
     getInterestAmnt v = valueOf v (interestcs dat) (interesttn dat)
 
-    valueToInterestCs :: Value
-    valueToInterestCs = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh info)
-
-    ownInput :: Maybe TxOut
-    ownInput = case findOwnInput ctx of
-      Just txin -> Just $ txInInfoResolved txin
-      Nothing   -> Nothing
+    -- TODO What if interest is divided into different utxos?
+    valueToInterestSc :: Value
+    valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh info)
 
     ownValue :: Maybe Value
-    ownValue = case ownInput of
-      Just txo -> Just $ txOutValue txo
-      Nothing  -> Nothing
+    ownValue = do
+      i <- findOwnInput ctx
+      txo <- Just $ txInInfoResolved i
+      pure $ txOutValue txo
 
     validateDebtAmnt :: Bool
-    validateDebtAmnt = getLoanAmnt valueToInterestCs >= loanamnt dat
+    validateDebtAmnt = getLoanAmnt valueToInterestSc >= loanamnt dat
+
+    interestPercentage :: Integer
+    interestPercentage = case (mintdate rdm + repayinterval dat) < interestPayDate rdm of
+      True  -> 100
+      False -> (getPOSIXTime (repayinterval dat) `multiplyInteger` 100) `divideInteger` getPOSIXTime loanHeld
+       where
+         loanHeld = interestPayDate rdm - mintdate rdm
 
     validateInterestAmnt :: Bool
-    validateInterestAmnt = getInterestAmnt valueToInterestCs >= interestamnt dat
+    validateInterestAmnt = getInterestAmnt valueToInterestSc >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
 
     validateDebtAndInterestAmnt :: Bool
-    validateDebtAndInterestAmnt =
-     not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) ||
-     (getInterestAmnt valueToInterestCs + getLoanAmnt valueToInterestCs >= loanamnt dat + interestamnt dat)
+    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt valueToInterestSc >= loanamnt dat + interestamnt dat)
 
     lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     lenderNftFilter (cs, tn, n) = tn == lender && n == 1 && cs /= collateralcs dat
@@ -122,33 +139,40 @@ mkValidator contractInfo@ContractInfo{..} dat mintdate ctx = traceIfFalse "Colla
 
     validateNftIsPassedOn :: Bool
     validateNftIsPassedOn = case ownValue of
-      Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues valueToInterestCs)
+      Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues valueToInterestSc)
       Nothing -> False
 
     validateBorrowerNftBurn :: Bool
-    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) mintFlattened    
+    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) mintFlattened
 
     validateBorrower :: Bool
-    validateBorrower = validateDebtAmnt &&
-                       validateInterestAmnt &&
-                       validateDebtAndInterestAmnt &&
-                       validateNftIsPassedOn &&
-                       validateBorrowerNftBurn
+    validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
+                       traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
+                       traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
+                       traceIfFalse "Lender nft is not passed on to interest sc" validateNftIsPassedOn &&
+                       traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
+                       traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
+                       traceIfFalse "invalid time nft token name" checkMintTnName
 
     range :: POSIXTimeRange
     range = txInfoValidRange info
 
     checkDeadline :: Bool
-    checkDeadline = contains (from (mintdate + repayinterval dat)) range
+    checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) range)
+
+    checkBorrowerDeadLine :: Bool
+    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains range (from (interestPayDate rdm)))
 
     tokenNameIsCorrect :: TokenName -> Bool
-    tokenNameIsCorrect tn = fromBuiltin $ equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime mintdate)
+    tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))
 
     getTimeTokenName :: Maybe TokenName
-    getTimeTokenName = (\(_, tn, _) -> tn) <$> find (\(cs, _, n) -> cs == timeNft && n == (-1)) mintFlattened
+    getTimeTokenName = case ownValue of
+      Just v -> (\(_, tn, _) -> tn) <$> find (\(cs, _, n) -> cs == timeNft && n == 1) (flattenValue v)
+      Nothing -> Nothing
 
     checkMintTnName :: Bool
-    checkMintTnName = maybe False tokenNameIsCorrect getTimeTokenName
+    checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
 
     inputHasBurntLNft :: CurrencySymbol -> Bool
     inputHasBurntLNft cs = case ownValue of
@@ -156,37 +180,37 @@ mkValidator contractInfo@ContractInfo{..} dat mintdate ctx = traceIfFalse "Colla
       Nothing -> False
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) mintFlattened
+    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) mintFlattened)
+
+    checkForLiquidationNft :: Bool
+    checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) mintFlattened)
 
     validateLender :: Bool
-    validateLender = checkDeadline &&
-                     checkMintTnName &&
-                     checkLNftsAreBurnt
+    validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkForLiquidationNft)
 
     validate :: Bool
-    validate = validateLender || validateBorrower
+    validate = validateLender ||
+               validateBorrower
 
 data Collateral
 instance Scripts.ValidatorTypes Collateral where
     type instance DatumType Collateral = CollateralDatum
-    type instance RedeemerType Collateral = POSIXTime
+    type instance RedeemerType Collateral = CollateralRedeemer
 
-typedValidator :: ContractInfo -> Scripts.TypedValidator Collateral
-typedValidator contractInfo = Scripts.mkTypedValidator @Collateral
+collateralTypedValidator :: ContractInfo -> Scripts.TypedValidator Collateral
+collateralTypedValidator contractInfo = Scripts.mkTypedValidator @Collateral
     ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @CollateralDatum @POSIXTime
+    wrap = Scripts.wrapValidator @CollateralDatum @CollateralRedeemer
 
 validator :: ContractInfo -> Validator
-validator = Scripts.validatorScript . typedValidator
+validator = Scripts.validatorScript . collateralTypedValidator
 
 PlutusTx.makeIsDataIndexed ''CollateralDatum [('CollateralDatum, 0)]
 PlutusTx.makeIsDataIndexed ''ContractInfo [('ContractInfo, 1)]
+PlutusTx.makeIsDataIndexed ''CollateralRedeemer [('CollateralRedeemer, 0)]
 PlutusTx.makeLift ''ContractInfo
-
-script :: ContractInfo -> Plutus.Script
-script = Plutus.unValidatorScript . validator
 
 scriptAsCbor :: ContractInfo -> LBS.ByteString
 scriptAsCbor = serialise . validator
@@ -196,3 +220,6 @@ collateral = PlutusScriptSerialised . collateralShortBs
 
 collateralShortBs :: ContractInfo -> SBS.ShortByteString
 collateralShortBs = SBS.toShort . LBS.toStrict . scriptAsCbor
+
+collateralAddress :: ContractInfo -> Ledger.Address
+collateralAddress = Ledger.scriptAddress . validator

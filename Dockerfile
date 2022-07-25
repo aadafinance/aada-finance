@@ -50,7 +50,6 @@ WORKDIR /app
 COPY . .
 
 RUN cabal install --install-method=copy --installdir=/app
-
 FROM debian:stable-slim as runner
 
 # Install dependencies *You don't need all of them
@@ -76,6 +75,8 @@ COPY --from=build /app/compile-validators /usr/local/bin/
 COPY --from=build /app/mint-borrower-nft /usr/local/bin/
 COPY --from=build /app/mint-lender-nft /usr/local/bin/
 COPY --from=build /app/mint-time-nft /usr/local/bin/
+COPY --from=build /app/generate-example-jsons /usr/local/bin/
+COPY --from=build /app/mint-oracle-nft /usr/local/bin/
 WORKDIR /app
 
 #CMD ["/usr/local/bin/compile-validators"]

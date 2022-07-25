@@ -25,14 +25,9 @@ import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 
-{-# INLINABLE flattenBuiltinByteString #-}
-flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
-flattenBuiltinByteString [] = emptyByteString
-flattenBuiltinByteString (x:xs) = appendByteString x $ flattenBuiltinByteString xs
-
 {-# INLINABLE borrower #-}
 borrower :: TokenName
-borrower = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [66]]}  -- B
+borrower = TokenName { unTokenName = consByteString 66 emptyByteString }  -- B
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: TxOutRef -> Integer -> ScriptContext -> Bool
@@ -42,22 +37,18 @@ mkPolicy utxo _ ctx = validate
     info = scriptContextTxInfo ctx
 
     hasUTxO :: Bool
-    hasUTxO = any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info
+    hasUTxO = traceIfFalse "No minting policy specified utxo found" $ any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info
 
-    validateMint :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateMint (_, _, n) = hasUTxO && n == 1
+    validateMint :: Integer -> Bool
+    validateMint amount = hasUTxO && traceIfFalse "invalid mint amount" (amount == 1)
 
-    validateBurn :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validateBurn (_, _, n) = n == (-1)
-
-    ownNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
-    ownNftFilter (cs, tn, _) = cs == ownCurrencySymbol ctx && tn == borrower
-
-    mintedFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintedFlattened = filter ownNftFilter $ flattenValue $ txInfoMint info
+    validateBurn :: Integer -> Bool
+    validateBurn amount = traceIfFalse "invalid burn amount" (amount == (-1))
 
     validate :: Bool
-    validate = validateMint (head mintedFlattened) || validateBurn (head mintedFlattened)
+    validate =
+        let amount = valueOf (txInfoMint info) (ownCurrencySymbol ctx) borrower
+        in validateMint amount || validateBurn amount
 
 policy :: TxOutRef -> Scripts.MintingPolicy
 policy utxo = mkMintingPolicyScript $

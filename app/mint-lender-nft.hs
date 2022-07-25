@@ -34,7 +34,7 @@ main :: IO ()
 main = do
   args <- getArgs
   let nargs = length args
-  let utxo = if nargs > 0 then head args else "ff#0"
+  let utxo = if nargs > 0 then head args else "ff"
   let scriptnum = 0
   let scriptname = utxo ++ ".lendernft"
   putStrLn $ "Writing output to: " ++ scriptname
