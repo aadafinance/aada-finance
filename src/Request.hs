@@ -127,11 +127,8 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
       Nothing   -> False
 
-    range :: POSIXTimeRange
-    range = txInfoValidRange (U.info ctx)
-
     validateExpiration :: Bool
-    validateExpiration = after (requestExpiration dat) range
+    validateExpiration = after (requestExpiration dat) (U.range ctx)
 
     validate :: Bool
     validate = traceIfFalse "datum hash validation fail" ownInputHash &&

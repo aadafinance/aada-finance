@@ -38,11 +38,8 @@ mkPolicy mintingdate ctx = validate
     tokenNameIsCorrect :: TokenName -> Bool
     tokenNameIsCorrect tn = fromBuiltin $ equalsByteString (unTokenName tn) (U.intToByteString $ getPOSIXTime mintingdate)
 
-    range :: POSIXTimeRange
-    range = txInfoValidRange (U.info ctx)
-
     checkDeadline :: Bool
-    checkDeadline = contains (from mintingdate) range
+    checkDeadline = contains (from mintingdate) (U.range ctx)
 
     timeNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     timeNftFilter (cs, tn, _) = cs == ownCurrencySymbol ctx && tokenNameIsCorrect tn

@@ -140,14 +140,11 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
                        traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
                        traceIfFalse "invalid time nft token name" checkMintTnName
 
-    range :: POSIXTimeRange
-    range = txInfoValidRange (U.info ctx)
-
     checkDeadline :: Bool
-    checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) range)
+    checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) (U.range ctx))
 
     checkBorrowerDeadLine :: Bool
-    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains range (from (interestPayDate rdm)))
+    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (U.range ctx) (from (interestPayDate rdm)))
 
     tokenNameIsCorrect :: TokenName -> Bool
     tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (U.intToByteString $ getPOSIXTime (mintdate rdm))

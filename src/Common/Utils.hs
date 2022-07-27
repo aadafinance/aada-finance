@@ -23,3 +23,7 @@ intToByteString x = if x `B.divideInteger` 10 == 0 then digitToByteString x
 
          asciZero :: Integer
          asciZero = 48
+
+{-# INLINEABLE range #-}
+range :: ScriptContext -> POSIXTimeRange
+range ctx = txInfoValidRange (info ctx)
