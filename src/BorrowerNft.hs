@@ -34,11 +34,8 @@ borrower = TokenName { unTokenName = consByteString 66 emptyByteString }  -- B
 mkPolicy :: TxOutRef -> Integer -> ScriptContext -> Bool
 mkPolicy utxo _ ctx = validate
   where
-    hasUTxO :: Bool
-    hasUTxO = traceIfFalse "No minting policy specified utxo found" $ any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs (U.info ctx)
-
     validateMint :: Integer -> Bool
-    validateMint amount = hasUTxO && traceIfFalse "invalid mint amount" (amount == 1)
+    validateMint amount = U.hasUTxO utxo ctx && traceIfFalse "invalid mint amount" (amount == 1)
 
     validateBurn :: Integer -> Bool
     validateBurn amount = traceIfFalse "invalid burn amount" (amount == (-1))
