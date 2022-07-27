@@ -48,13 +48,8 @@ lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x em
 mkValidator :: Integer -> Integer -> ScriptContext -> Bool
 mkValidator _ _ ctx = validate
   where
-    ownInput :: Maybe TxOut
-    ownInput = case findOwnInput ctx of
-      Just txin -> Just $ txInInfoResolved txin
-      Nothing   -> Nothing
-
     hasBurntNft :: CurrencySymbol -> Bool
-    hasBurntNft cs = case ownInput of
+    hasBurntNft cs = case U.ownInput ctx of
       Just txo -> valueOf (txOutValue txo) cs lender == 1
       Nothing  -> False
 
