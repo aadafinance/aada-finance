@@ -17,7 +17,6 @@ module TimeNft
   ( timeNft
   , timeNftShortBs
   , policy
-  , intToByteString
   ) where
 
 import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
@@ -32,24 +31,12 @@ import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import           PlutusTx.Builtins.Internal as B
 import qualified Common.Utils             as U
 
-{-# INLINEABLE intToByteString #-}
-intToByteString :: Integer -> BuiltinByteString
-intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
-  else
-    B.appendByteString (intToByteString (x `divideInteger` 10)) (digitToByteString (x `B.modInteger` 10))
-       where
-         digitToByteString :: Integer -> BuiltinByteString
-         digitToByteString d = B.consByteString (d `addInteger` asciZero) B.emptyByteString
-
-         asciZero :: Integer
-         asciZero = 48
-
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: POSIXTime -> ScriptContext -> Bool
 mkPolicy mintingdate ctx = validate
   where
     tokenNameIsCorrect :: TokenName -> Bool
-    tokenNameIsCorrect tn = fromBuiltin $ equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime mintingdate)
+    tokenNameIsCorrect tn = fromBuiltin $ equalsByteString (unTokenName tn) (U.intToByteString $ getPOSIXTime mintingdate)
 
     range :: POSIXTimeRange
     range = txInfoValidRange (U.info ctx)

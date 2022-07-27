@@ -75,18 +75,6 @@ data ContractInfo = ContractInfo
     , timeNft      :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-{-# INLINEABLE intToByteString #-}
-intToByteString :: Integer -> BuiltinByteString
-intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
-  else
-    B.appendByteString (intToByteString (x `divideInteger` 10)) (digitToByteString (x `B.modInteger` 10))
-       where
-         digitToByteString :: Integer -> BuiltinByteString
-         digitToByteString d = B.consByteString (d `addInteger` asciZero) B.emptyByteString
-
-         asciZero :: Integer
-         asciZero = 48
-
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> CollateralDatum -> CollateralRedeemer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
@@ -162,7 +150,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains range (from (interestPayDate rdm)))
 
     tokenNameIsCorrect :: TokenName -> Bool
-    tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))
+    tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (U.intToByteString $ getPOSIXTime (mintdate rdm))
 
     getTimeTokenName :: Maybe TokenName
     getTimeTokenName = case ownValue of
