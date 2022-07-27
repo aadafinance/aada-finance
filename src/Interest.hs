@@ -33,38 +33,23 @@ import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Ledger.Typed.Scripts as Scripts
 import qualified Ledger as L
-
-{-# INLINABLE flattenBuiltinByteString #-}
-flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
-flattenBuiltinByteString [] = emptyByteString
-flattenBuiltinByteString (x:xs) = appendByteString x $ flattenBuiltinByteString xs
+import qualified Common.Utils             as U
 
 {-# INLINABLE lender #-}
 lender :: TokenName
-lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [76]]}  -- L
+lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: Integer -> Integer -> ScriptContext -> Bool
 mkValidator _ _ ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint info
-
-    ownInput :: Maybe TxOut
-    ownInput = case findOwnInput ctx of
-      Just txin -> Just $ txInInfoResolved txin
-      Nothing   -> Nothing
-
     hasBurntNft :: CurrencySymbol -> Bool
-    hasBurntNft cs = case ownInput of
+    hasBurntNft cs = case U.ownInput ctx of
       Just txo -> valueOf (txOutValue txo) cs lender == 1
       Nothing  -> False
 
     validate :: Bool
-    validate = case mintFlattened of
+    validate = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (amt == (-2)) &&
                          hasBurntNft cs &&
                          (tn == lender)

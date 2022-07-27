@@ -33,6 +33,7 @@ import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Ledger.Typed.Scripts as Scripts
 import qualified Ledger as L
+import qualified Common.Utils             as U
 
 {-# INLINABLE borrower #-}
 borrower :: TokenName
@@ -40,16 +41,7 @@ borrower = TokenName { unTokenName = consByteString 66 emptyByteString }  -- B
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: CurrencySymbol -> Integer -> ScriptContext -> Bool
-mkValidator dat _ ctx = validate
-  where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint info
-
-    validate :: Bool
-    validate = case mintFlattened of
+mkValidator dat _ ctx = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (amt == (-1)) &&
                          (tn == borrower) &&
                          (cs == dat)

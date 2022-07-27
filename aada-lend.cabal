@@ -70,6 +70,7 @@ library
                       , OracleNft
                       , Helpers.TestValidator
                       , Spec.Test
+                      , Common.Utils
 
   build-depends:        bytestring
                       , cardano-api

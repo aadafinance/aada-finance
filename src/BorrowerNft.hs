@@ -24,6 +24,7 @@ import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
+import qualified Common.Utils             as U
 
 {-# INLINABLE borrower #-}
 borrower :: TokenName
@@ -33,21 +34,15 @@ borrower = TokenName { unTokenName = consByteString 66 emptyByteString }  -- B
 mkPolicy :: TxOutRef -> Integer -> ScriptContext -> Bool
 mkPolicy utxo _ ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
-    hasUTxO :: Bool
-    hasUTxO = traceIfFalse "No minting policy specified utxo found" $ any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info
-
     validateMint :: Integer -> Bool
-    validateMint amount = hasUTxO && traceIfFalse "invalid mint amount" (amount == 1)
+    validateMint amount = U.hasUTxO utxo ctx && traceIfFalse "invalid mint amount" (amount == 1)
 
     validateBurn :: Integer -> Bool
     validateBurn amount = traceIfFalse "invalid burn amount" (amount == (-1))
 
     validate :: Bool
     validate =
-        let amount = valueOf (txInfoMint info) (ownCurrencySymbol ctx) borrower
+        let amount = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) borrower
         in validateMint amount || validateBurn amount
 
 policy :: TxOutRef -> Scripts.MintingPolicy

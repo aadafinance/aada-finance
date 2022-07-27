@@ -42,6 +42,7 @@ import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import PlutusTx.Builtins (equalsByteString, divideInteger, addInteger, multiplyInteger)
+import qualified Common.Utils             as U
 
 data CollateralDatum = CollateralDatum
     { borrowersNFT      :: !CurrencySymbol
@@ -74,46 +75,18 @@ data ContractInfo = ContractInfo
     , timeNft      :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-{-# INLINEABLE intToByteString #-}
-intToByteString :: Integer -> BuiltinByteString
-intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
-  else
-    B.appendByteString (intToByteString (x `divideInteger` 10)) (digitToByteString (x `B.modInteger` 10))
-       where
-         digitToByteString :: Integer -> BuiltinByteString
-         digitToByteString d = B.consByteString (d `addInteger` asciZero) B.emptyByteString
-
-         asciZero :: Integer
-         asciZero = 48
-
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> CollateralDatum -> CollateralRedeemer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint info
-
     getLoanAmnt :: Value -> Integer
     getLoanAmnt v = valueOf v (loancs dat) (loantn dat)
 
     getInterestAmnt :: Value -> Integer
     getInterestAmnt v = valueOf v (interestcs dat) (interesttn dat)
 
-    -- TODO What if interest is divided into different utxos?
-    valueToInterestSc :: Value
-    valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh info)
-
-    ownValue :: Maybe Value
-    ownValue = do
-      i <- findOwnInput ctx
-      txo <- Just $ txInInfoResolved i
-      pure $ txOutValue txo
-
     validateDebtAmnt :: Bool
-    validateDebtAmnt = getLoanAmnt valueToInterestSc >= loanamnt dat
+    validateDebtAmnt = getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat
 
     interestPercentage :: Integer
     interestPercentage = case (mintdate rdm + repayinterval dat) < interestPayDate rdm of
@@ -123,10 +96,10 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
          loanHeld = interestPayDate rdm - mintdate rdm
 
     validateInterestAmnt :: Bool
-    validateInterestAmnt = getInterestAmnt valueToInterestSc >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
+    validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
 
     validateDebtAndInterestAmnt :: Bool
-    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt valueToInterestSc >= loanamnt dat + interestamnt dat)
+    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
 
     lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     lenderNftFilter (cs, tn, n) = tn == lender && n == 1 && cs /= collateralcs dat
@@ -138,12 +111,12 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     containsFlattenedValue xs (cs, tn, _) = foldr (\(cs', tn', _) acc -> (cs' == cs && tn' == tn) || acc) False xs
 
     validateNftIsPassedOn :: Bool
-    validateNftIsPassedOn = case ownValue of
-      Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues valueToInterestSc)
+    validateNftIsPassedOn = case U.ownValue ctx of
+      Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues (U.valueToSc interestscvh ctx))
       Nothing -> False
 
     validateBorrowerNftBurn :: Bool
-    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) mintFlattened
+    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
 
     validateBorrower :: Bool
     validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
@@ -154,20 +127,17 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
                        traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
                        traceIfFalse "invalid time nft token name" checkMintTnName
 
-    range :: POSIXTimeRange
-    range = txInfoValidRange info
-
     checkDeadline :: Bool
-    checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) range)
+    checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) (U.range ctx))
 
     checkBorrowerDeadLine :: Bool
-    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains range (from (interestPayDate rdm)))
+    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (U.range ctx) (from (interestPayDate rdm)))
 
     tokenNameIsCorrect :: TokenName -> Bool
-    tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime (mintdate rdm))
+    tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (U.intToByteString $ getPOSIXTime (mintdate rdm))
 
     getTimeTokenName :: Maybe TokenName
-    getTimeTokenName = case ownValue of
+    getTimeTokenName = case U.ownValue ctx of
       Just v -> (\(_, tn, _) -> tn) <$> find (\(cs, _, n) -> cs == timeNft && n == 1) (flattenValue v)
       Nothing -> Nothing
 
@@ -175,15 +145,15 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
 
     inputHasBurntLNft :: CurrencySymbol -> Bool
-    inputHasBurntLNft cs = case ownValue of
+    inputHasBurntLNft cs = case U.ownValue ctx of
       Just v  -> valueOf v cs lender == 1
       Nothing -> False
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) mintFlattened)
+    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) (U.mintFlattened ctx))
 
     checkForLiquidationNft :: Bool
-    checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) mintFlattened)
+    checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))
 
     validateLender :: Bool
     validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkForLiquidationNft)

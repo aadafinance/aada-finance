@@ -32,6 +32,7 @@ import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import qualified Plutus.V1.Ledger.Scripts as Plutus
 import           Prelude                  (Semigroup (..), Show)
+import qualified Common.Utils             as U
 
 {-# INLINABLE lender #-}
 lender :: TokenName
@@ -41,20 +42,11 @@ lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
 mkPolicy :: ValidatorHash -> TxOutRef -> Integer -> ScriptContext -> Bool
 mkPolicy vh utxo _ ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
-    hasUTxO :: Bool
-    hasUTxO = traceIfFalse "utxo specified in lender nft minting policy not found" (any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs info)
-
-    valueToCollateralSc :: Value
-    valueToCollateralSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt vh info)
-
     nftIsSentToCollateralSc :: Bool
-    nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf valueToCollateralSc (ownCurrencySymbol ctx) lender == 1)
+    nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf (U.valueToSc vh ctx) (ownCurrencySymbol ctx) lender == 1)
 
     validateMint :: Integer -> Bool
-    validateMint amount = hasUTxO &&
+    validateMint amount = U.hasUTxO utxo ctx &&
                           traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
                           nftIsSentToCollateralSc
 
@@ -63,7 +55,7 @@ mkPolicy vh utxo _ ctx = validate
 
     validate :: Bool
     validate =
-        let amount = valueOf (txInfoMint info) (ownCurrencySymbol ctx) lender
+        let amount = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) lender
         in validateMint amount || validateBurn amount
 
 policy :: ValidatorHash -> TxOutRef -> Scripts.MintingPolicy
