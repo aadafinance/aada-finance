@@ -32,3 +32,15 @@ range ctx = txInfoValidRange (info ctx)
 {-# INLINEABLE mintFlattened #-}
 mintFlattened :: ScriptContext -> [(CurrencySymbol, TokenName, Integer)]
 mintFlattened ctx = flattenValue $ txInfoMint (info ctx)
+
+{-# INLINEABLE ownInput #-}
+ownInput :: ScriptContext -> Maybe TxOut
+ownInput ctx = do
+    i <- findOwnInput ctx
+    Just $ txInInfoResolved i
+
+{-# INLINEABLE ownValue #-}
+ownValue :: ScriptContext -> Maybe Value
+ownValue ctx = do
+    txo <- ownInput ctx
+    pure $ txOutValue txo

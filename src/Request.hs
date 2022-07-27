@@ -67,16 +67,6 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> RequestDatum -> Integer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
   where
-    ownInput :: Maybe TxOut
-    ownInput = case findOwnInput ctx of
-      Just txin -> Just $ txInInfoResolved txin
-      Nothing   -> Nothing
-
-    ownValue :: Maybe Value
-    ownValue = case ownInput of
-      Just txo -> Just $ txOutValue txo
-      Nothing  -> Nothing
-
     valueToCollateralSc :: Value
     valueToCollateralSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt collateralcsvh (U.info ctx))
 
@@ -84,7 +74,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     containsAmount (cs, tn, n) = valueOf valueToCollateralSc cs tn >= n
 
     validateCollateral :: Bool
-    validateCollateral = case ownValue of
+    validateCollateral = case U.ownValue ctx of
       Just v  -> foldr (\x acc -> containsAmount x && acc) True (flattenValue v)
       Nothing -> False
 
@@ -123,7 +113,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     validateOutputHash h = h `elem` getCollateralScHashes
 
     ownInputHash :: Bool
-    ownInputHash = case ownInput of
+    ownInputHash = case U.ownInput ctx of
       Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
       Nothing   -> False
 

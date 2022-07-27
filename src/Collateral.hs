@@ -89,12 +89,6 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     valueToInterestSc :: Value
     valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh (U.info ctx))
 
-    ownValue :: Maybe Value
-    ownValue = do
-      i <- findOwnInput ctx
-      txo <- Just $ txInInfoResolved i
-      pure $ txOutValue txo
-
     validateDebtAmnt :: Bool
     validateDebtAmnt = getLoanAmnt valueToInterestSc >= loanamnt dat
 
@@ -121,7 +115,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     containsFlattenedValue xs (cs, tn, _) = foldr (\(cs', tn', _) acc -> (cs' == cs && tn' == tn) || acc) False xs
 
     validateNftIsPassedOn :: Bool
-    validateNftIsPassedOn = case ownValue of
+    validateNftIsPassedOn = case U.ownValue ctx of
       Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues valueToInterestSc)
       Nothing -> False
 
@@ -147,7 +141,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     tokenNameIsCorrect tn = equalsByteString (unTokenName tn) (U.intToByteString $ getPOSIXTime (mintdate rdm))
 
     getTimeTokenName :: Maybe TokenName
-    getTimeTokenName = case ownValue of
+    getTimeTokenName = case U.ownValue ctx of
       Just v -> (\(_, tn, _) -> tn) <$> find (\(cs, _, n) -> cs == timeNft && n == 1) (flattenValue v)
       Nothing -> Nothing
 
@@ -155,7 +149,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
 
     inputHasBurntLNft :: CurrencySymbol -> Bool
-    inputHasBurntLNft cs = case ownValue of
+    inputHasBurntLNft cs = case U.ownValue ctx of
       Just v  -> valueOf v cs lender == 1
       Nothing -> False
 
