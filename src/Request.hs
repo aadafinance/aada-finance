@@ -32,6 +32,7 @@ import           PlutusTx.Prelude hiding (Semigroup (..))
 import qualified PlutusTx
 import           Ledger               hiding (singleton)
 import qualified Plutus.V1.Ledger.Scripts as Plutus
+import qualified Common.Utils             as U
 
 data RequestDatum = RequestDatum
     { borrowersNFT      :: !CurrencySymbol
@@ -66,9 +67,6 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> RequestDatum -> Integer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
     ownInput :: Maybe TxOut
     ownInput = case findOwnInput ctx of
       Just txin -> Just $ txInInfoResolved txin
@@ -80,7 +78,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       Nothing  -> Nothing
 
     valueToCollateralSc :: Value
-    valueToCollateralSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt collateralcsvh info)
+    valueToCollateralSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt collateralcsvh (U.info ctx))
 
     containsAmount :: (CurrencySymbol, TokenName, Integer) -> Bool
     containsAmount (cs, tn, n) = valueOf valueToCollateralSc cs tn >= n
@@ -91,7 +89,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       Nothing -> False
 
     valueToBorrower :: Value
-    valueToBorrower = valuePaidTo info (unPaymentPubKeyHash $ borrowersPkh dat)
+    valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
 
     borrowerGetsWhatHeWants :: Bool
     borrowerGetsWhatHeWants = valueOf valueToBorrower (loancs dat) (loantn dat) >= loanamnt dat
@@ -103,7 +101,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     filterOutTimeNft (cs, _, _) = cs /= timeNft
 
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = filter filterOutTimeNft $ flattenValue $ txInfoMint info
+    mintFlattened = filter filterOutTimeNft $ flattenValue $ txInfoMint (U.info ctx)
 
     validateMint :: Bool
     validateMint = case mintFlattened of
@@ -119,7 +117,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       _               -> False
 
     getCollateralScHashes :: [DatumHash]
-    getCollateralScHashes = map fst (scriptOutputsAt collateralcsvh info)
+    getCollateralScHashes = map fst (scriptOutputsAt collateralcsvh (U.info ctx))
 
     validateOutputHash :: DatumHash -> Bool
     validateOutputHash h = h `elem` getCollateralScHashes
@@ -130,7 +128,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       Nothing   -> False
 
     range :: POSIXTimeRange
-    range = txInfoValidRange info
+    range = txInfoValidRange (U.info ctx)
 
     validateExpiration :: Bool
     validateExpiration = after (requestExpiration dat) range

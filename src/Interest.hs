@@ -33,6 +33,7 @@ import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Ledger.Typed.Scripts as Scripts
 import qualified Ledger as L
+import qualified Common.Utils             as U
 
 {-# INLINABLE flattenBuiltinByteString #-}
 flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
@@ -47,11 +48,8 @@ lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x em
 mkValidator :: Integer -> Integer -> ScriptContext -> Bool
 mkValidator _ _ ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint info
+    mintFlattened = flattenValue $ txInfoMint (U.info ctx)
 
     ownInput :: Maybe TxOut
     ownInput = case findOwnInput ctx of

@@ -42,6 +42,7 @@ import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import PlutusTx.Builtins (equalsByteString, divideInteger, addInteger, multiplyInteger)
+import qualified Common.Utils             as U
 
 data CollateralDatum = CollateralDatum
     { borrowersNFT      :: !CurrencySymbol
@@ -90,11 +91,8 @@ intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
 mkValidator :: ContractInfo -> CollateralDatum -> CollateralRedeemer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint info
+    mintFlattened = flattenValue $ txInfoMint (U.info ctx)
 
     getLoanAmnt :: Value -> Integer
     getLoanAmnt v = valueOf v (loancs dat) (loantn dat)
@@ -104,7 +102,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
 
     -- TODO What if interest is divided into different utxos?
     valueToInterestSc :: Value
-    valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh info)
+    valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh (U.info ctx))
 
     ownValue :: Maybe Value
     ownValue = do
@@ -155,7 +153,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
                        traceIfFalse "invalid time nft token name" checkMintTnName
 
     range :: POSIXTimeRange
-    range = txInfoValidRange info
+    range = txInfoValidRange (U.info ctx)
 
     checkDeadline :: Bool
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) range)

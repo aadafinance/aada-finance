@@ -30,6 +30,7 @@ import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import           PlutusTx.Builtins.Internal as B
+import qualified Common.Utils             as U
 
 {-# INLINEABLE intToByteString #-}
 intToByteString :: Integer -> BuiltinByteString
@@ -47,14 +48,11 @@ intToByteString x = if x `divideInteger` 10 == 0 then digitToByteString x
 mkPolicy :: POSIXTime -> ScriptContext -> Bool
 mkPolicy mintingdate ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
     tokenNameIsCorrect :: TokenName -> Bool
     tokenNameIsCorrect tn = fromBuiltin $ equalsByteString (unTokenName tn) (intToByteString $ getPOSIXTime mintingdate)
 
     range :: POSIXTimeRange
-    range = txInfoValidRange info
+    range = txInfoValidRange (U.info ctx)
 
     checkDeadline :: Bool
     checkDeadline = contains (from mintingdate) range
@@ -63,7 +61,7 @@ mkPolicy mintingdate ctx = validate
     timeNftFilter (cs, tn, _) = cs == ownCurrencySymbol ctx && tokenNameIsCorrect tn
 
     mintedFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintedFlattened = filter timeNftFilter $ flattenValue $ txInfoMint info
+    mintedFlattened = filter timeNftFilter $ flattenValue $ txInfoMint (U.info ctx)
 
     validateMint :: (CurrencySymbol, TokenName, Integer) -> Bool
     validateMint (_, _, amnt) = amnt == 1

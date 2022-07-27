@@ -35,6 +35,7 @@ import qualified Plutus.V1.Ledger.Scripts as Plutus
 import           Prelude                  (Semigroup (..), Show)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
+import qualified Common.Utils             as U
 
 data OracleData = OracleData {
     collateralRatio :: Integer
@@ -49,9 +50,6 @@ data OracleData = OracleData {
 mkPolicy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> OracleData -> ScriptContext -> Bool
 mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
   where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
     checkTargetAddress :: Address -> Bool
     checkTargetAddress addr = case toValidatorHash addr of
       Just hash -> hash == ValidatorHash dest
@@ -61,15 +59,15 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
 
     mintedValueSentToDest :: Bool
     mintedValueSentToDest = any (\x -> checkTargetAddress (txOutAddress x) &&
-                                        valueOf (txInfoMint info) (ownCurrencySymbol ctx) tn == 1 &&
+                                        valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn == 1 &&
                                         valueOf (txOutValue x) (ownCurrencySymbol ctx) tn == 1
-                                        ) (txInfoOutputs info)
+                                        ) (txInfoOutputs (U.info ctx))
     burn :: Bool
-    burn = valueOf (txInfoMint info) (ownCurrencySymbol ctx) tn < 0
+    burn = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn < 0
 
-    validate = traceIfFalse "oracle nft wasn't signed by pkh1" (txSignedBy info pkh1) &&
-               traceIfFalse "oracle nft wasn't signed by pkh2" (txSignedBy info pkh2) &&
-               traceIfFalse "oracle nft wasn't signed by pkh3" (txSignedBy info pkh3) &&
+    validate = traceIfFalse "oracle nft wasn't signed by pkh1" (txSignedBy (U.info ctx) pkh1) &&
+               traceIfFalse "oracle nft wasn't signed by pkh2" (txSignedBy (U.info ctx) pkh2) &&
+               traceIfFalse "oracle nft wasn't signed by pkh3" (txSignedBy (U.info ctx) pkh3) &&
                traceIfFalse "minted oracle nft not sent to validator hash specified in minting policy" mintedValueSentToDest || burn
 
 policy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Scripts.MintingPolicy
