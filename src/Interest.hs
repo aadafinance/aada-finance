@@ -35,14 +35,9 @@ import           Ledger.Typed.Scripts as Scripts
 import qualified Ledger as L
 import qualified Common.Utils             as U
 
-{-# INLINABLE flattenBuiltinByteString #-}
-flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
-flattenBuiltinByteString [] = emptyByteString
-flattenBuiltinByteString (x:xs) = appendByteString x $ flattenBuiltinByteString xs
-
 {-# INLINABLE lender #-}
 lender :: TokenName
-lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [76]]}  -- L
+lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: Integer -> Integer -> ScriptContext -> Bool
