@@ -48,9 +48,6 @@ lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x em
 mkValidator :: Integer -> Integer -> ScriptContext -> Bool
 mkValidator _ _ ctx = validate
   where
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint (U.info ctx)
-
     ownInput :: Maybe TxOut
     ownInput = case findOwnInput ctx of
       Just txin -> Just $ txInInfoResolved txin
@@ -62,7 +59,7 @@ mkValidator _ _ ctx = validate
       Nothing  -> False
 
     validate :: Bool
-    validate = case mintFlattened of
+    validate = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (amt == (-2)) &&
                          hasBurntNft cs &&
                          (tn == lender)

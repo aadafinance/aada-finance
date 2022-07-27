@@ -3,6 +3,7 @@ module Common.Utils where
 import Ledger
 import PlutusTx.Prelude
 import qualified PlutusTx.Builtins.Internal as B
+import Plutus.V1.Ledger.Value
 
 {-# INLINABLE info #-}
 info :: ScriptContext -> TxInfo
@@ -27,3 +28,7 @@ intToByteString x = if x `B.divideInteger` 10 == 0 then digitToByteString x
 {-# INLINEABLE range #-}
 range :: ScriptContext -> POSIXTimeRange
 range ctx = txInfoValidRange (info ctx)
+
+{-# INLINEABLE mintFlattened #-}
+mintFlattened :: ScriptContext -> [(CurrencySymbol, TokenName, Integer)]
+mintFlattened ctx = flattenValue $ txInfoMint (info ctx)

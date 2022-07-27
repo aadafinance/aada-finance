@@ -79,9 +79,6 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> CollateralDatum -> CollateralRedeemer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
   where
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint (U.info ctx)
-
     getLoanAmnt :: Value -> Integer
     getLoanAmnt v = valueOf v (loancs dat) (loantn dat)
 
@@ -129,7 +126,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
       Nothing -> False
 
     validateBorrowerNftBurn :: Bool
-    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) mintFlattened
+    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
 
     validateBorrower :: Bool
     validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
@@ -163,10 +160,10 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
       Nothing -> False
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) mintFlattened)
+    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) (U.mintFlattened ctx))
 
     checkForLiquidationNft :: Bool
-    checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) mintFlattened)
+    checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))
 
     validateLender :: Bool
     validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkForLiquidationNft)

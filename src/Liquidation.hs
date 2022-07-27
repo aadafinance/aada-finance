@@ -41,13 +41,7 @@ borrower = TokenName { unTokenName = consByteString 66 emptyByteString }  -- B
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: CurrencySymbol -> Integer -> ScriptContext -> Bool
-mkValidator dat _ ctx = validate
-  where
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint (U.info ctx)
-
-    validate :: Bool
-    validate = case mintFlattened of
+mkValidator dat _ ctx = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (amt == (-1)) &&
                          (tn == borrower) &&
                          (cs == dat)
