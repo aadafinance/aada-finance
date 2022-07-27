@@ -19,7 +19,6 @@ module OracleNft
   ( oracleNft
   , oracleNftShortBs
   , policy
-  , OracleData(..)
   ) where
 
 import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
@@ -37,17 +36,8 @@ import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import qualified Common.Utils             as U
 
-data OracleData = OracleData {
-    collateralRatio :: Integer
-  , loanValueInAda  :: Integer
-  , collateralVal   :: Integer
-  , interestVal     :: Integer
-  , receivVal       :: Integer
-  , sendVal         :: Integer
-} deriving (Show, Generic, FromJSON, ToJSON)
-
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> OracleData -> ScriptContext -> Bool
+mkPolicy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> BuiltinData -> ScriptContext -> Bool
 mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
   where
     checkTargetAddress :: Address -> Bool
@@ -100,6 +90,3 @@ oracleNft tn pkh1 pkh2 pkh3 dest  = PlutusScriptSerialised $ SBS.toShort $ LB.to
 
 oracleNftShortBs :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> SBS.ShortByteString
 oracleNftShortBs tn pkh1 pkh2 pkh3 dest = SBS.toShort $ LB.toStrict $ scriptAsCbor tn pkh1 pkh2 pkh3 dest
-
-PlutusTx.makeLift ''OracleData
-PlutusTx.makeIsDataIndexed ''OracleData [('OracleData, 0)]

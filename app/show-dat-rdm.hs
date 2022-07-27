@@ -21,7 +21,7 @@ import Spec.Test
 
 main :: IO ()
 main = do
-  let exampleOracleRedeemer = OracleData 1 2 3 4 5 6
+  let exampleOracleRedeemer = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
   let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0
   writeData "example.datum" exampleDatum
