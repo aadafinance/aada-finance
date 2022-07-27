@@ -44,3 +44,7 @@ ownValue :: ScriptContext -> Maybe Value
 ownValue ctx = do
     txo <- ownInput ctx
     pure $ txOutValue txo
+
+{-# INLINEABLE valueToSc #-}
+valueToSc :: ValidatorHash -> ScriptContext -> Value
+valueToSc vh ctx = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt vh (info ctx))

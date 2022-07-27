@@ -42,11 +42,8 @@ lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
 mkPolicy :: ValidatorHash -> TxOutRef -> Integer -> ScriptContext -> Bool
 mkPolicy vh utxo _ ctx = validate
   where
-    valueToCollateralSc :: Value
-    valueToCollateralSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt vh (U.info ctx))
-
     nftIsSentToCollateralSc :: Bool
-    nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf valueToCollateralSc (ownCurrencySymbol ctx) lender == 1)
+    nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf (U.valueToSc vh ctx) (ownCurrencySymbol ctx) lender == 1)
 
     validateMint :: Integer -> Bool
     validateMint amount = U.hasUTxO utxo ctx &&

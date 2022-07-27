@@ -67,11 +67,8 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> RequestDatum -> Integer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
   where
-    valueToCollateralSc :: Value
-    valueToCollateralSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt collateralcsvh (U.info ctx))
-
     containsAmount :: (CurrencySymbol, TokenName, Integer) -> Bool
-    containsAmount (cs, tn, n) = valueOf valueToCollateralSc cs tn >= n
+    containsAmount (cs, tn, n) = valueOf (U.valueToSc collateralcsvh ctx) cs tn >= n
 
     validateCollateral :: Bool
     validateCollateral = case U.ownValue ctx of
@@ -85,7 +82,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     borrowerGetsWhatHeWants = valueOf valueToBorrower (loancs dat) (loantn dat) >= loanamnt dat
 
     validateTimeNftIsSentToCollateralSc :: Bool
-    validateTimeNftIsSentToCollateralSc = elem 1 $ (\(_, tn, _) -> valueOf valueToCollateralSc timeNft tn) <$> flattenValue valueToCollateralSc
+    validateTimeNftIsSentToCollateralSc = elem 1 $ (\(_, tn, _) -> valueOf (U.valueToSc collateralcsvh ctx) timeNft tn) <$> flattenValue (U.valueToSc collateralcsvh ctx)
 
     filterOutTimeNft :: (CurrencySymbol, TokenName, Integer) -> Bool
     filterOutTimeNft (cs, _, _) = cs /= timeNft
@@ -97,7 +94,7 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     validateMint = case mintFlattened of
       [(cs, tn, amt)] -> (amt == 2) &&
                          (tn == lender) &&
-                         (valueOf valueToCollateralSc cs lender == 1)
+                         (valueOf (U.valueToSc collateralcsvh ctx) cs lender == 1)
       _               -> False
 
     validateBorrowerMint :: Bool

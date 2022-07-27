@@ -85,12 +85,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     getInterestAmnt :: Value -> Integer
     getInterestAmnt v = valueOf v (interestcs dat) (interesttn dat)
 
-    -- TODO What if interest is divided into different utxos?
-    valueToInterestSc :: Value
-    valueToInterestSc = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt interestscvh (U.info ctx))
-
     validateDebtAmnt :: Bool
-    validateDebtAmnt = getLoanAmnt valueToInterestSc >= loanamnt dat
+    validateDebtAmnt = getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat
 
     interestPercentage :: Integer
     interestPercentage = case (mintdate rdm + repayinterval dat) < interestPayDate rdm of
@@ -100,10 +96,10 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
          loanHeld = interestPayDate rdm - mintdate rdm
 
     validateInterestAmnt :: Bool
-    validateInterestAmnt = getInterestAmnt valueToInterestSc >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
+    validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
 
     validateDebtAndInterestAmnt :: Bool
-    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt valueToInterestSc >= loanamnt dat + interestamnt dat)
+    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
 
     lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
     lenderNftFilter (cs, tn, n) = tn == lender && n == 1 && cs /= collateralcs dat
@@ -116,7 +112,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
 
     validateNftIsPassedOn :: Bool
     validateNftIsPassedOn = case U.ownValue ctx of
-      Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues valueToInterestSc)
+      Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues (U.valueToSc interestscvh ctx))
       Nothing -> False
 
     validateBorrowerNftBurn :: Bool
