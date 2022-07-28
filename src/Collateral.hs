@@ -35,13 +35,12 @@ import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Prelude              (Show (..))
-import qualified PlutusTx.Builtins.Internal as B
 
 import           Ledger.Typed.Scripts as Scripts
 import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
-import PlutusTx.Builtins (equalsByteString, divideInteger, addInteger, multiplyInteger)
+import PlutusTx.Builtins (equalsByteString, divideInteger, multiplyInteger)
 import qualified Common.Utils             as U
 
 data CollateralDatum = CollateralDatum
@@ -70,6 +69,7 @@ data CollateralRedeemer = CollateralRedeemer
 
 data ContractInfo = ContractInfo
     { borrower     :: !TokenName
+    , lenderNftCs  :: !CurrencySymbol
     , interestscvh :: !ValidatorHash
     , timeNft      :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
@@ -101,7 +101,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
 
     lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
-    lenderNftFilter (cs, tn, n) = tn == lender && n == 1 && cs /= collateralcs dat
+    lenderNftFilter (cs, _tn, n) = cs == lenderNftCs && n == 1
 
     filterValues :: Value -> [(CurrencySymbol, TokenName, Integer)]
     filterValues v = filter lenderNftFilter $ flattenValue v
@@ -143,13 +143,13 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkMintTnName :: Bool
     checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
 
-    inputHasBurntLNft :: CurrencySymbol -> Bool
-    inputHasBurntLNft cs = case U.ownValue ctx of
-      Just v  -> valueOf v cs lender == 1
+    inputHasBurntLNft :: CurrencySymbol -> TokenName -> Bool
+    inputHasBurntLNft cs tn = case U.ownValue ctx of
+      Just v  -> valueOf v cs tn == 1
       Nothing -> False
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, _, n) -> inputHasBurntLNft cs && n == (-2)) (U.mintFlattened ctx))
+    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, tn, n) -> inputHasBurntLNft cs tn && n == (-2)) (U.mintFlattened ctx))
 
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))

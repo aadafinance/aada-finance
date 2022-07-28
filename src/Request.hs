@@ -58,7 +58,7 @@ PlutusTx.makeLift ''RequestDatum
 
 data ContractInfo = ContractInfo
     { borrower       :: !TokenName
-    , lender         :: !TokenName
+    , lenderNftCs    :: !CurrencySymbol
     , collateralcsvh :: !ValidatorHash
     , timeNft        :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
@@ -93,8 +93,8 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     validateMint :: Bool
     validateMint = case mintFlattened of
       [(cs, tn, amt)] -> (amt == 2) &&
-                         (tn == lender) &&
-                         (valueOf (U.valueToSc collateralcsvh ctx) cs lender == 1)
+                         (cs == lenderNftCs) &&
+                         (valueOf (U.valueToSc collateralcsvh ctx) cs tn == 1)
       _               -> False
 
     validateBorrowerMint :: Bool
