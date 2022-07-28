@@ -21,6 +21,7 @@ module Interest
   , validator
   , typedValidator
   , interestAddress
+  , ContractInfo(..)
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
