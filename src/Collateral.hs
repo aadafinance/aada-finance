@@ -35,13 +35,12 @@ import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Prelude              (Show (..))
-import qualified PlutusTx.Builtins.Internal as B
 
 import           Ledger.Typed.Scripts as Scripts
 import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
-import PlutusTx.Builtins (equalsByteString, divideInteger, addInteger, multiplyInteger)
+import PlutusTx.Builtins (equalsByteString, divideInteger, multiplyInteger)
 import qualified Common.Utils             as U
 
 data CollateralDatum = CollateralDatum
