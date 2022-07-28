@@ -35,15 +35,14 @@ import           Prelude                  (Semigroup (..), Show)
 import qualified Common.Utils             as U
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: ValidatorHash -> TxOutRef -> Integer -> ScriptContext -> Bool
-mkPolicy vh utxo _ ctx = validate
+mkPolicy :: ValidatorHash -> Integer -> ScriptContext -> Bool
+mkPolicy vh _ ctx = validate
   where
     nftIsSentToCollateralSc :: Bool
     nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf (U.valueToSc vh ctx) (ownCurrencySymbol ctx) lender == 1)
 
     validateMint :: Integer -> Bool
-    validateMint amount = U.hasUTxO utxo ctx &&
-                          traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
+    validateMint amount = traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
                           nftIsSentToCollateralSc
 
     validateBurn :: Integer -> Bool
@@ -54,25 +53,23 @@ mkPolicy vh utxo _ ctx = validate
         let amount = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) lender
         in validateMint amount || validateBurn amount
 
-policy :: ValidatorHash -> TxOutRef -> Scripts.MintingPolicy
-policy vh utxo = mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| \vh' utxo' -> Scripts.wrapMintingPolicy $ mkPolicy vh' utxo'||])
+policy :: ValidatorHash -> Scripts.MintingPolicy
+policy vh = mkMintingPolicyScript $
+    $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy . mkPolicy ||])
     `PlutusTx.applyCode`
     PlutusTx.liftCode vh
-    `PlutusTx.applyCode`
-    PlutusTx.liftCode utxo
 
-plutusScript :: ValidatorHash -> TxOutRef -> Script
-plutusScript vh utxo = unMintingPolicyScript $ policy vh utxo
+plutusScript :: ValidatorHash -> Script
+plutusScript = unMintingPolicyScript . policy
 
-validator :: ValidatorHash -> TxOutRef -> Validator
-validator vh utxo = Validator $ plutusScript vh utxo
+validator :: ValidatorHash -> Validator
+validator = Validator . plutusScript
 
-scriptAsCbor :: ValidatorHash -> TxOutRef -> LB.ByteString
-scriptAsCbor vh utxo = serialise $ validator vh utxo
+scriptAsCbor :: ValidatorHash -> LB.ByteString
+scriptAsCbor = serialise . validator
 
-lenderNft :: ValidatorHash -> TxOutRef -> PlutusScript PlutusScriptV1
-lenderNft vh utxo = PlutusScriptSerialised $ SBS.toShort $ LB.toStrict $ scriptAsCbor vh utxo
+lenderNft :: ValidatorHash -> PlutusScript PlutusScriptV1
+lenderNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict . scriptAsCbor
 
-lenderNftShortBs :: ValidatorHash -> TxOutRef -> SBS.ShortByteString
-lenderNftShortBs vh utxo = SBS.toShort $ LB.toStrict $ scriptAsCbor vh utxo
+lenderNftShortBs :: ValidatorHash -> SBS.ShortByteString
+lenderNftShortBs = SBS.toShort . LB.toStrict . scriptAsCbor
