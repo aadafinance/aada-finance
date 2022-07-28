@@ -34,10 +34,6 @@ import qualified Plutus.V1.Ledger.Scripts as Plutus
 import           Prelude                  (Semigroup (..), Show)
 import qualified Common.Utils             as U
 
-{-# INLINABLE lender #-}
-lender :: TokenName
-lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
-
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: ValidatorHash -> TxOutRef -> Integer -> ScriptContext -> Bool
 mkPolicy vh utxo _ ctx = validate

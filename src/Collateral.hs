@@ -70,7 +70,6 @@ data CollateralRedeemer = CollateralRedeemer
 
 data ContractInfo = ContractInfo
     { borrower     :: !TokenName
-    , lender       :: !TokenName
     , interestscvh :: !ValidatorHash
     , timeNft      :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)

@@ -35,10 +35,6 @@ import           Ledger.Typed.Scripts as Scripts
 import qualified Ledger as L
 import qualified Common.Utils             as U
 
-{-# INLINABLE lender #-}
-lender :: TokenName
-lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
-
 {-# INLINABLE mkValidator #-}
 mkValidator :: Integer -> Integer -> ScriptContext -> Bool
 mkValidator _ _ ctx = validate
