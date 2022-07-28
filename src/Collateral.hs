@@ -95,7 +95,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
          loanHeld = interestPayDate rdm - mintdate rdm
 
     validateInterestAmnt :: Bool
-    validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
+    validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` interestPercentage) `divideInteger` 100)
 
     validateDebtAndInterestAmnt :: Bool
     validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
@@ -118,13 +118,14 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
 
     validateBorrower :: Bool
-    validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
-                       traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
-                       traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
-                       traceIfFalse "Lender nft is not passed on to interest sc" validateNftIsPassedOn &&
-                       traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
-                       traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
-                       traceIfFalse "invalid time nft token name" checkMintTnName
+    validateBorrower = 
+                      --  traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
+                       traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt -- &&
+                      --  traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
+                      --  traceIfFalse "Lender nft is not passed on to interest sc" validateNftIsPassedOn &&
+                      --  traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
+                      --  traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
+                      --  traceIfFalse "invalid time nft token name" checkMintTnName
 
     checkDeadline :: Bool
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) (U.range ctx))
