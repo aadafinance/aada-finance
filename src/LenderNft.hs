@@ -35,8 +35,8 @@ import           Prelude                  (Semigroup (..), Show)
 import qualified Common.Utils             as U
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: ValidatorHash -> Integer -> ScriptContext -> Bool
-mkPolicy vh _ ctx = validate
+mkPolicy :: ValidatorHash -> TxOutRef -> ScriptContext -> Bool
+mkPolicy vh utxo ctx = validate
   where
     nftIsSentToCollateralSc :: Bool
     nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf (U.valueToSc vh ctx) (ownCurrencySymbol ctx) lender == 1)
