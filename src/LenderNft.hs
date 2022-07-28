@@ -30,28 +30,33 @@ import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
-import qualified Plutus.V1.Ledger.Scripts as Plutus
-import           Prelude                  (Semigroup (..), Show)
 import qualified Common.Utils             as U
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: ValidatorHash -> TxOutRef -> ScriptContext -> Bool
-mkPolicy vh utxo ctx = validate
+mkPolicy vh utxo ctx = all validate mintedValue
   where
-    nftIsSentToCollateralSc :: Bool
-    nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf (U.valueToSc vh ctx) (ownCurrencySymbol ctx) lender == 1)
+    mintedValue :: [(CurrencySymbol, TokenName, Integer)]
+    mintedValue = filter (\(cs, _tn, _n) -> cs == ownCurrencySymbol ctx) $ U.mintFlattened ctx
 
-    validateMint :: Integer -> Bool
-    validateMint amount = traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
-                          nftIsSentToCollateralSc
+    calculateTokenNameHash :: BuiltinByteString
+    calculateTokenNameHash = sha2_256 (consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
 
-    validateBurn :: Integer -> Bool
-    validateBurn amount = traceIfFalse "invalid lender nft burnt amount" (amount == (-2))
+    validateTokenName :: TokenName -> Bool
+    validateTokenName tn = unTokenName tn == calculateTokenNameHash
 
-    validate :: Bool
-    validate =
-        let amount = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) lender
-        in validateMint amount || validateBurn amount
+    nftIsSentToCollateralSc :: TokenName -> Bool
+    nftIsSentToCollateralSc tn = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf (U.valueToSc vh ctx) (ownCurrencySymbol ctx) tn == 1)
+
+    validateMint :: TokenName -> Integer -> Bool
+    validateMint tn amount = traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
+                             traceIfFalse "Minted nft is not sent to collateral sc" (nftIsSentToCollateralSc tn) &&
+                             traceIfFalse "minted nft has invalid token name" (validateTokenName tn)
+
+    validate :: (CurrencySymbol, TokenName, Integer) -> Bool
+    validate (_cs, tn, n)
+     | n > 0     = validateMint tn n
+     | otherwise = True
 
 policy :: ValidatorHash -> Scripts.MintingPolicy
 policy vh = mkMintingPolicyScript $
