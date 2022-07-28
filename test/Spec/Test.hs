@@ -473,7 +473,8 @@ returnPartialLoan = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let repayint = 20000
-  let tx = createLockFundsTx repayint borrower oref sp 100000 <> getMintBorrowerNftTx borrower oref
+  let expiration = 100000
+  let tx = createLockFundsTx repayint borrower oref sp expiration <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, _)] = utxos
