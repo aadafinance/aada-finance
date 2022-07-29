@@ -115,8 +115,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     doesNotContainAdditionalTokens :: Bool
     doesNotContainAdditionalTokens = length (flattenValue $ U.valueToSc interestscvh ctx) < 4
 
-    validateBorrower :: Bool
-    validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
+    validateReturn :: Bool
+    validateReturn = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
                        traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
                        traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
                        traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
@@ -148,12 +148,12 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))
 
-    validateLender :: Bool
-    validateLender = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkForLiquidationNft)
+    validateLiquidation :: Bool
+    validateLiquidation = checkLNftsAreBurnt && (checkDeadline && checkMintTnName || checkForLiquidationNft)
 
     validate :: Bool
-    validate = validateLender ||
-               validateBorrower
+    validate = validateLiquidation ||
+               validateReturn
 
 data Collateral
 instance Scripts.ValidatorTypes Collateral where
