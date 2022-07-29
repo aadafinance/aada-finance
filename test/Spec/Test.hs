@@ -131,64 +131,88 @@ getSc2Params cs = Collateral.ContractInfo {
       , Collateral.timeNft      = scriptCurrencySymbol TimeNft.policy
     }
 
-getTestDatum :: POSIXTime -> CurrencySymbol -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> RequestDatum
-getTestDatum returnt bNftCs liqNft pkh expiration = RequestDatum
-          { borrowersNFT      = bNftCs
-          , borrowersPkh      = pkh
-          , loantn            = "loan-coin-CONYMONY"
-          , loancs            = fakeCoinCs loanCoin
-          , loanamnt          = 150
-          , interesttn        = "interest-coin-MONY"
-          , interestcs        = fakeCoinCs interestCoin
-          , interestamnt      = 50
-          , collateralcs      = fakeCoinCs collateralCoin
-          , repayinterval     = returnt
-          , liquidateNft      = liqNft
-          , collateraltn          = "collateral-coin-CONY" -- collateral token name
-          , collateralamnt        = 100                    -- amount of collateral
-          , collateralFactor      = 5                      -- Colalteral factor used for liquidation
-          , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
-          , requestExpiration     = expiration
-        }
+getTestDatum :: POSIXTime -> CurrencySymbol -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> TokenName -> RequestDatum
+getTestDatum returnt bNftCs liqNft pkh expiration ltn = RequestDatum
+  { borrowersNFT          = bNftCs
+  , borrowersPkh          = pkh
+  , loantn                = "loan-coin-CONYMONY"
+  , loancs                = fakeCoinCs loanCoin
+  , loanamnt              = 150
+  , interesttn            = "interest-coin-MONY"
+  , interestcs            = fakeCoinCs interestCoin
+  , interestamnt          = 50
+  , collateralcs          = fakeCoinCs collateralCoin
+  , repayinterval         = returnt
+  , liquidateNft          = liqNft
+  , collateraltn          = "collateral-coin-CONY" -- collateral token name
+  , collateralamnt        = 100                    -- amount of collateral
+  , collateralFactor      = 5                      -- Colalteral factor used for liquidation
+  , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
+  , requestExpiration     = expiration
+  , lenderNftTn           = ltn
+  }
 
-getTestDatum2 :: POSIXTime -> CurrencySymbol -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> RequestDatum
-getTestDatum2 returnt bNftCs liqNft pkh expiration = RequestDatum
-          { borrowersNFT      = bNftCs
-          , borrowersPkh      = pkh
-          , loantn            = "loan-coin-CONYMONY"
-          , loancs            = fakeCoinCs loanCoin
-          , loanamnt          = 100
-          , interesttn        = "loan-coin-CONYMONY"
-          , interestcs        = fakeCoinCs loanCoin
-          , interestamnt      = 50
-          , collateralcs      = fakeCoinCs collateralCoin
-          , repayinterval     = returnt
-          , liquidateNft      = liqNft
-          , collateraltn          = "collateral-coin-CONY" -- collateral token name
-          , collateralamnt        = 100                    -- amount of collateral
-          , collateralFactor      = 5                      -- Colalteral factor used for liquidation
-          , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
-          , requestExpiration     = expiration
-        }
+getTestDatum2 :: POSIXTime -> CurrencySymbol -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> TokenName -> RequestDatum
+getTestDatum2 returnt bNftCs liqNft pkh expiration ltn = RequestDatum
+  { borrowersNFT          = bNftCs
+  , borrowersPkh          = pkh
+  , loantn                = "loan-coin-CONYMONY"
+  , loancs                = fakeCoinCs loanCoin
+  , loanamnt              = 100
+  , interesttn            = "loan-coin-CONYMONY"
+  , interestcs            = fakeCoinCs loanCoin
+  , interestamnt          = 50
+  , collateralcs          = fakeCoinCs collateralCoin
+  , repayinterval         = returnt
+  , liquidateNft          = liqNft
+  , collateraltn          = "collateral-coin-CONY" -- collateral token name
+  , collateralamnt        = 100                    -- amount of collateral
+  , collateralFactor      = 5                      -- Colalteral factor used for liquidation
+  , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
+  , requestExpiration     = expiration
+  , lenderNftTn           = ltn
+  }
 
-getCollatDatumFronRequestDat :: RequestDatum -> Collateral.CollateralDatum
-getCollatDatumFronRequestDat rqDat@RequestDatum{..} = Collateral.CollateralDatum
-          { Collateral.borrowersNFT      = borrowersNFT
-          , Collateral.borrowersPkh      = borrowersPkh
-          , Collateral.loantn            = loantn
-          , Collateral.loancs            = loancs
-          , Collateral.loanamnt          = loanamnt
-          , Collateral.interesttn        = interesttn
-          , Collateral.interestcs        = interestcs
-          , Collateral.interestamnt      = interestamnt
-          , Collateral.collateralcs      = collateralcs
-          , Collateral.repayinterval     = repayinterval
-          , Collateral.liquidateNft      = liquidateNft
+getCollatDatumFromRequestDat :: RequestDatum -> TokenName -> Collateral.CollateralDatum
+getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn = Collateral.CollateralDatum
+          { Collateral.borrowersNFT          = borrowersNFT
+          , Collateral.borrowersPkh          = borrowersPkh
+          , Collateral.loantn                = loantn
+          , Collateral.loancs                = loancs
+          , Collateral.loanamnt              = loanamnt
+          , Collateral.interesttn            = interesttn
+          , Collateral.interestcs            = interestcs
+          , Collateral.interestamnt          = interestamnt
+          , Collateral.collateralcs          = collateralcs
+          , Collateral.repayinterval         = repayinterval
+          , Collateral.liquidateNft          = liquidateNft
           , Collateral.collateraltn          = "collateral-coin-CONY" -- collateral token name
           , Collateral.collateralamnt        = 100                    -- amount of collateral
           , Collateral.collateralFactor      = 5                      -- Colalteral factor used for liquidation
           , Collateral.liquidationCommission = 150
           , Collateral.requestExpiration     = requestExpiration
+          , Collateral.lenderNftTn           = newTn
+        }
+
+getInterestDatumFromCollatDatum :: Collateral.CollateralDatum -> Interest.InterestDatum
+getInterestDatumFromCollatDatum clDat@Collateral.CollateralDatum{..} = Interest.InterestDatum
+          { Interest.borrowersNFT          = borrowersNFT
+          , Interest.borrowersPkh          = borrowersPkh
+          , Interest.loantn                = loantn
+          , Interest.loancs                = loancs
+          , Interest.loanamnt              = loanamnt
+          , Interest.interesttn            = interesttn
+          , Interest.interestcs            = interestcs
+          , Interest.interestamnt          = interestamnt
+          , Interest.collateralcs          = collateralcs
+          , Interest.repayinterval         = repayinterval
+          , Interest.liquidateNft          = liquidateNft
+          , Interest.collateraltn          = "collateral-coin-CONY" -- collateral token name
+          , Interest.collateralamnt        = 100                    -- amount of collateral
+          , Interest.collateralFactor      = 5                      -- Colalteral factor used for liquidation
+          , Interest.liquidationCommission = 150
+          , Interest.requestExpiration     = requestExpiration
+          , Interest.lenderNftTn           = lenderNftTn
         }
 
 getLenderTokenName :: TxOutRef -> TokenName
@@ -203,21 +227,21 @@ createLockFundsTx t pkh oref usp expiration =
       [ userSpend usp
       , payToScript
         (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy)))
-        (getTestDatum t (getBNftCs oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh) expiration)
+        (getTestDatum t (getBNftCs oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh) expiration "")
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
-getCancelRequestTx :: PubKeyHash -> Value -> RequestDatum -> TxOutRef -> Tx
-getCancelRequestTx pkh val dat lockRef =
+getCancelRequestTx :: PubKeyHash -> Value -> RequestDatum -> TxOutRef -> TokenName -> Tx
+getCancelRequestTx pkh val dat lockRef tn =
     mconcat
-      [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) lockRef 0 dat
+      [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) lockRef tn dat
       , payToPubKey pkh val
       ]
 
-getTxIn :: UserSpend -> RequestDatum -> TxOutRef -> Tx
-getTxIn usp dat scriptTxOut =
+getTxIn :: UserSpend -> RequestDatum -> TxOutRef -> TokenName -> Tx
+getTxIn usp dat scriptTxOut tn =
   mconcat
-  [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) scriptTxOut 0 dat
+  [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) scriptTxOut tn dat
   , userSpend usp
   ]
 
@@ -264,26 +288,26 @@ getTxOutLend :: PubKeyHash -> POSIXTime -> PubKeyHash -> Collateral.CollateralDa
 getTxOutLend borrower dl lender dat nmp utxo = addMintRedeemer nmp utxo $ addMintRedeemer getTimeNftPolicy dl $
  mconcat
   [ mintValue getTimeNftPolicy (getTNftVal dl 1 getTimeNftCurrencySymbol)
-  , mintValue nmp (getLNftVal 2 ncs utxo)
+  , mintValue nmp (getLNftVal 1 ncs utxo)
   , payToScript
       (Collateral.collateralTypedValidator (getSc2Params (scriptCurrencySymbol LenderNft.policy)))
       dat
-      (fakeValue collateralCoin 100 <> adaValue 2 <> getLNftVal 1 ncs utxo <> getTNftVal dl 1 getTimeNftCurrencySymbol)
+      (fakeValue collateralCoin 100 <> adaValue 2 <> getTNftVal dl 1 getTimeNftCurrencySymbol)
   , payToPubKey borrower (fakeValue loanCoin 150 <> adaValue 2)
   , payToPubKey lender (adaValue 2 <> getLNftVal 1 ncs utxo)
   ]
  where
     ncs  = scriptCurrencySymbol nmp
 
-getTxOutReturn :: Integer -> PubKeyHash -> POSIXTime -> MintingPolicy -> CurrencySymbol -> TxOutRef -> Tx
-getTxOutReturn interest borrower dl bmp ncs utxo = addMintRedeemer bmp rdm $ addMintRedeemer getTimeNftPolicy dl $
+getTxOutReturn :: Integer -> PubKeyHash -> POSIXTime -> MintingPolicy -> Interest.InterestDatum -> Tx
+getTxOutReturn interest borrower dl bmp dat = addMintRedeemer bmp rdm $ addMintRedeemer getTimeNftPolicy dl $
  mconcat
   [ mintValue getTimeNftPolicy (getTNftVal dl (-1) getTimeNftCurrencySymbol)
   , mintValue bmp (getBNftVal (-1) bcs)
   , payToScript
       (Interest.typedValidator (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy))
-      0
-      (fakeValue loanCoin 150 <> fakeValue interestCoin interest <> adaValue 2 <> getLNftVal 1 ncs utxo)
+      dat
+      (fakeValue loanCoin 150 <> fakeValue interestCoin interest <> adaValue 2 )
   , payToPubKey borrower (fakeValue collateralCoin 100 <> adaValue 3)
   ]
  where
@@ -328,7 +352,7 @@ borrowerCancelsLoan = do
           let valFromSc1 = fakeValue collateralCoin 100 <> adaValue 2
               valFromUsr = adaValue 1 <> getBNftVal 1 (scriptCurrencySymbol $ BorrowerNft.policy oref)
           sp <- spend u1 valFromUsr
-          tx <- signTx u1 $ getCancelRequestTx u1 valFromSc1 dat lockRef <> getBurnBorrowerNftTx u1 oref sp
+          tx <- signTx u1 $ getCancelRequestTx u1 valFromSc1 dat lockRef (getLenderTokenName lockRef) <> getBurnBorrowerNftTx u1 oref sp
           isRight <$> sendTx tx
       Nothing -> pure False
 
@@ -381,11 +405,11 @@ returnFullLoan = do
   case lockDat of
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -409,8 +433,10 @@ returnFullLoan = do
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
 
+          let intDat = getInterestDatumFromCollatDatum convertedDat
+
           let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
-                    getTxOutReturn 50 borrower mintTime bmp lenderCs lenderNftRef
+                    getTxOutReturn 50 borrower mintTime bmp intDat
 
           wait 2000
           logInfo $  "int pay date time: " ++ show intPayDate
@@ -436,11 +462,11 @@ returnNotEnoughInterest = do
   case lockDat of
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -464,8 +490,11 @@ returnNotEnoughInterest = do
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
 
+
+          let intDat = getInterestDatumFromCollatDatum convertedDat
+
           let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
-                    getTxOutReturn 25 borrower mintTime bmp lenderCs lenderNftRef
+                    getTxOutReturn 25 borrower mintTime bmp intDat
           tx2 <- validateIn (from 6000) tx2
           submitTx lender tx2
           pure True
@@ -489,11 +518,11 @@ returnPartialLoan = do
   case lockDat of
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+              tx = getTxIn sp dat lockRef(getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time1: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -516,9 +545,10 @@ returnPartialLoan = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
+          let intDat = getInterestDatumFromCollatDatum convertedDat
 
           let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
-                    getTxOutReturn 25 borrower mintTime bmp lenderCs lenderNftRef
+                    getTxOutReturn 25 borrower mintTime bmp intDat
           tx2 <- validateIn (from 6000) tx2
           wait 2000
           time <- currentTime
@@ -533,7 +563,7 @@ createLockFundsTx2 t pkh oref usp expiration =
       [ userSpend usp
       , payToScript
         (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy)))
-        (getTestDatum2 t (getBNftCs oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh) expiration)
+        (getTestDatum2 t (getBNftCs oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh) expiration "")
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
@@ -541,26 +571,26 @@ getTxOutLend2 :: PubKeyHash -> POSIXTime -> PubKeyHash -> Collateral.CollateralD
 getTxOutLend2 borrower dl lender dat nmp utxo = addMintRedeemer nmp utxo $ addMintRedeemer getTimeNftPolicy dl $
  mconcat
   [ mintValue getTimeNftPolicy (getTNftVal dl 1 getTimeNftCurrencySymbol)
-  , mintValue nmp (getLNftVal 2 ncs utxo)
+  , mintValue nmp (getLNftVal 1 ncs utxo)
   , payToScript
       (Collateral.collateralTypedValidator (getSc2Params (scriptCurrencySymbol LenderNft.policy)))
       dat
-      (fakeValue collateralCoin 100 <> adaValue 2 <> getLNftVal 1 ncs utxo <> getTNftVal dl 1 getTimeNftCurrencySymbol)
+      (fakeValue collateralCoin 100 <> adaValue 2 <> getTNftVal dl 1 getTimeNftCurrencySymbol)
   , payToPubKey borrower (fakeValue loanCoin 100 <> adaValue 2)
   , payToPubKey lender (adaValue 2 <> getLNftVal 1 ncs utxo)
   ]
  where
     ncs  = scriptCurrencySymbol nmp
 
-getTxOutReturn2 :: PubKeyHash -> POSIXTime -> MintingPolicy -> CurrencySymbol -> TxOutRef -> Tx
-getTxOutReturn2 borrower dl bmp ncs utxo = addMintRedeemer bmp rdm $ addMintRedeemer getTimeNftPolicy dl $
+getTxOutReturn2 :: PubKeyHash -> POSIXTime -> MintingPolicy -> Interest.InterestDatum -> Tx
+getTxOutReturn2 borrower dl bmp dat = addMintRedeemer bmp rdm $ addMintRedeemer getTimeNftPolicy dl $
  mconcat
   [ mintValue getTimeNftPolicy (getTNftVal dl (-1) getTimeNftCurrencySymbol)
   , mintValue bmp (getBNftVal (-1) bcs)
   , payToScript
       (Interest.typedValidator (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy))
-      0
-      (fakeValue loanCoin 125 <> adaValue 2 <> getLNftVal 1 ncs utxo)
+      dat
+      (fakeValue loanCoin 125 <> adaValue 2)
   , payToPubKey borrower (fakeValue collateralCoin 100 <> adaValue 3)
   ]
  where
@@ -594,11 +624,11 @@ returnPartialLoanSameCs = do
   case lockDat of
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 100 <> adaValue 4
           sp <- spend lender valForLenderToSpend
-          let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef <> getTxOutLend2 borrower mintTime lender convertedDat LenderNft.policy lockRef
+          let lenderCs = scriptCurrencySymbol LenderNft.policy
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend2 borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time1: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -624,8 +654,9 @@ returnPartialLoanSameCs = do
 
           intPayDate <- currentTime
           logInfo $ "pay date: " <> show intPayDate 
-          let tx2 = getTxInFromCollateral' sp1 sp2 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
-                    getTxOutReturn2 borrower mintTime bmp lenderCs lenderNftRef
+          let intDat = getInterestDatumFromCollatDatum convertedDat
+              tx2 = getTxInFromCollateral' sp1 sp2 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
+                    getTxOutReturn2 borrower mintTime bmp intDat
 
           tx2 <- validateIn (from 24000) tx2
 
@@ -652,11 +683,11 @@ returnPartialLoanForgedMintDate = do
       Just dat -> do
           -- lender provides loan
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time1: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -679,9 +710,10 @@ returnPartialLoanForgedMintDate = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
+          let intDat = getInterestDatumFromCollatDatum convertedDat
 
           let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer 1 2) lockRef <>
-                    getTxOutReturn interestAmount borrower mintTime bmp lenderCs lenderNftRef
+                    getTxOutReturn interestAmount borrower mintTime bmp intDat
           tx2 <- validateIn (from 6000) tx2
           wait 15000
           time <- currentTime
@@ -709,11 +741,11 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
       Just dat -> do
           -- lender provides loan
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $ "repay interval: " ++ show repayint
           logInfo $ "loan provided and timenft minted time: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
@@ -741,9 +773,10 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
+          let intDat = getInterestDatumFromCollatDatum convertedDat
 
           let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
-                    getTxOutReturn interestAmount borrower mintTime bmp lenderCs lenderNftRef
+                    getTxOutReturn interestAmount borrower mintTime bmp intDat
           tx2 <- validateIn (from 6000) tx2
           time <- currentTime
           logInfo $  "time before repaying: " ++ show time
@@ -898,14 +931,15 @@ provideLoanOnTime = do
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress (getSc1Params (scriptCurrencySymbol LenderNft.policy)) -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, _)] = utxos
+  let lenderNftRef = lockRef
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -925,14 +959,15 @@ provideLoanNotOnTime = do
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress (getSc1Params (scriptCurrencySymbol LenderNft.policy)) -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, _)] = utxos
+  let lenderNftRef = lockRef
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -940,17 +975,17 @@ provideLoanNotOnTime = do
           pure True
       Nothing -> pure False
 
-getTxInFromInterestSc :: UserSpend -> TxOutRef -> Tx
-getTxInFromInterestSc usp1 scriptTxOut =
+getTxInFromInterestSc :: UserSpend -> TxOutRef -> Interest.InterestDatum -> Tx
+getTxInFromInterestSc usp1 scriptTxOut dat =
   mconcat
-  [ spendScript (Interest.typedValidator (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy)) scriptTxOut 0 0
+  [ spendScript (Interest.typedValidator (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy)) scriptTxOut 0 dat
   , userSpend usp1
   ]
 
 getTxOutFromInterestSc :: Integer -> PubKeyHash -> MintingPolicy -> CurrencySymbol -> TxOutRef -> Tx
 getTxOutFromInterestSc interest lender nmp ncs utxo = addMintRedeemer nmp utxo $
  mconcat
-  [ mintValue nmp (getLNftVal (-2) ncs utxo)
+  [ mintValue nmp (getLNftVal (-1) ncs utxo)
   , payToPubKey lender (fakeValue loanCoin 150 <> fakeValue interestCoin interest <> adaValue 4)
   ]
 
@@ -971,12 +1006,12 @@ happyPath = do
   case lockDat of 
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
               lenderCs            = scriptCurrencySymbol LenderNft.policy
 
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef-- add utxo as a redeemer
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef-- add utxo as a redeemer
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000
@@ -1000,9 +1035,10 @@ happyPath = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
+          let intDat = getInterestDatumFromCollatDatum convertedDat
 
           let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
-                    getTxOutReturn 50 borrower mintTime bmp lenderCs lenderNftRef
+                    getTxOutReturn 50 borrower mintTime bmp intDat
 
           -- wait 2000
           logInfo $  "int pay date time: " ++ show intPayDate
@@ -1015,8 +1051,8 @@ happyPath = do
           sp <- spend lender lenderPay
           case utxos of
             [(lockRef, _)] -> do
-              let tx = getTxInFromInterestSc sp lockRef <>
-                      getTxOutFromInterestSc 50 lender LenderNft.policy lenderCs lenderNftRef
+              let tx = getTxInFromInterestSc sp lockRef intDat <>
+                       getTxOutFromInterestSc 50 lender LenderNft.policy lenderCs lenderNftRef
 
               submitTx lender tx
 
@@ -1048,7 +1084,7 @@ getMintOracleNftTxLiq n pkh1 pkh2 pkh3 =
 getTxOutLiquidate :: PubKeyHash -> POSIXTime -> MintingPolicy -> CurrencySymbol -> TxOutRef -> Tx
 getTxOutLiquidate lender dl lmp lcs utxo =
  mconcat
-  [ mintValue lmp (getLNftVal (-2) lcs utxo)
+  [ mintValue lmp (getLNftVal (-1) lcs utxo)
   , payToPubKey lender (fakeValue collateralCoin 100 <> adaValue 2 <> getTNftVal dl 1 getTimeNftCurrencySymbol)
   ]
 
@@ -1079,11 +1115,11 @@ liquidateBorrower = do
   case lockDat of
       Just dat -> do
           mintTime <- currentTime
-          let convertedDat        = getCollatDatumFronRequestDat dat
+          let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef)
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower mintTime lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 6000 99999) tx
           wait 3000

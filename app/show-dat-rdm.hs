@@ -23,7 +23,7 @@ main :: IO ()
 main = do
   let exampleOracleRedeemer = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
-  let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0
+  let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0 "nfttn"
   writeData "example.datum" exampleDatum
   let exampleCollateralRedeemer = CollateralRedeemer 1 2
   writeData "example-collateral-redeemer.json" exampleCollateralRedeemer

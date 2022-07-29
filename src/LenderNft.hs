@@ -49,7 +49,7 @@ mkPolicy utxo ctx = all validate mintedValue
     validateTokenName tn = unTokenName tn == calculateTokenNameHash
 
     validateMint :: TokenName -> Integer -> Bool
-    validateMint tn amount = traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
+    validateMint tn amount = traceIfFalse "invalid lender nft minted amount" (amount == 1) &&
                              traceIfFalse "minted nft has invalid token name" (validateTokenName tn)
 
     validate :: (CurrencySymbol, TokenName, Integer) -> Bool

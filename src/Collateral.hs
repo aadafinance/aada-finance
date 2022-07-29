@@ -44,22 +44,23 @@ import PlutusTx.Builtins (equalsByteString, divideInteger, multiplyInteger)
 import qualified Common.Utils             as U
 
 data CollateralDatum = CollateralDatum
-    { borrowersNFT      :: !CurrencySymbol
-    , borrowersPkh      :: !PaymentPubKeyHash
-    , loantn            :: !TokenName
-    , loancs            :: !CurrencySymbol
-    , loanamnt          :: !Integer
-    , interesttn        :: !TokenName
-    , interestcs        :: !CurrencySymbol
-    , interestamnt      :: !Integer
-    , collateralcs      :: !CurrencySymbol
-    , repayinterval     :: !POSIXTime
-    , liquidateNft      :: !CurrencySymbol
+    { borrowersNFT          :: !CurrencySymbol
+    , borrowersPkh          :: !PaymentPubKeyHash
+    , loantn                :: !TokenName
+    , loancs                :: !CurrencySymbol
+    , loanamnt              :: !Integer
+    , interesttn            :: !TokenName
+    , interestcs            :: !CurrencySymbol
+    , interestamnt          :: !Integer
+    , collateralcs          :: !CurrencySymbol
+    , repayinterval         :: !POSIXTime
+    , liquidateNft          :: !CurrencySymbol
     , collateraltn          :: !TokenName -- collateral token name
     , collateralamnt        :: !Integer   -- amount of collateral
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
+    , lenderNftTn           :: !TokenName
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data CollateralRedeemer = CollateralRedeemer
@@ -100,31 +101,28 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateDebtAndInterestAmnt :: Bool
     validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
 
-    lenderNftFilter :: (CurrencySymbol, TokenName, Integer) -> Bool
-    lenderNftFilter (cs, _tn, n) = cs == lenderNftCs && n == 1
-
-    filterValues :: Value -> [(CurrencySymbol, TokenName, Integer)]
-    filterValues v = filter lenderNftFilter $ flattenValue v
-
-    containsFlattenedValue :: [(CurrencySymbol, TokenName, Integer)] -> (CurrencySymbol, TokenName, Integer) -> Bool
-    containsFlattenedValue xs (cs, tn, _) = foldr (\(cs', tn', _) acc -> (cs' == cs && tn' == tn) || acc) False xs
-
-    validateNftIsPassedOn :: Bool
-    validateNftIsPassedOn = case U.ownValue ctx of
-      Just v  -> foldr (\x acc -> containsFlattenedValue (filterValues v) x && acc) True (filterValues (U.valueToSc interestscvh ctx))
-      Nothing -> False
-
     validateBorrowerNftBurn :: Bool
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
+
+    getCollateralScHashes :: [DatumHash]
+    getCollateralScHashes = map fst (scriptOutputsAt interestscvh (U.info ctx))
+
+    validateOutputHash :: DatumHash -> Bool
+    validateOutputHash h = h `elem` getCollateralScHashes
+
+    ownInputHash :: Bool
+    ownInputHash = case U.ownInput ctx of
+      Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
+      Nothing   -> False
 
     validateBorrower :: Bool
     validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
                        traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
                        traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
-                       traceIfFalse "Lender nft is not passed on to interest sc" validateNftIsPassedOn &&
                        traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
                        traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
-                       traceIfFalse "invalid time nft token name" checkMintTnName
+                       traceIfFalse "invalid time nft token name" checkMintTnName &&
+                       traceIfFalse "datum was not passed on" ownInputHash
 
     checkDeadline :: Bool
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) (U.range ctx))
@@ -143,13 +141,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkMintTnName :: Bool
     checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
 
-    inputHasBurntLNft :: CurrencySymbol -> TokenName -> Bool
-    inputHasBurntLNft cs tn = case U.ownValue ctx of
-      Just v  -> valueOf v cs tn == 1
-      Nothing -> False
-
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = traceIfFalse "2 Lender Nfts not burnt" (any (\(cs, tn, n) -> inputHasBurntLNft cs tn && n == (-2)) (U.mintFlattened ctx))
+    checkLNftsAreBurnt = traceIfFalse "Lender Nft not burnt" (any (\(cs, tn, n) -> cs == lenderNftCs && tn == lenderNftTn dat && n == (-1)) (U.mintFlattened ctx))
 
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))
