@@ -48,3 +48,11 @@ ownValue ctx = do
 {-# INLINEABLE valueToSc #-}
 valueToSc :: ValidatorHash -> ScriptContext -> Value
 valueToSc vh ctx = foldr (\(_, y) acc -> y <> acc) (PlutusTx.Prelude.mempty :: Value) (scriptOutputsAt vh (info ctx))
+
+{-# INLINEABLE csFromAsset #-}
+csFromAsset :: AssetClass -> CurrencySymbol
+csFromAsset as = fst $ unAssetClass as
+
+{-# INLINEABLE tnFromAsset #-}
+tnFromAsset :: AssetClass -> TokenName
+tnFromAsset as = snd $ unAssetClass as

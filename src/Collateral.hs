@@ -13,7 +13,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 
 module Collateral
-  ( collateral
+  ( collateralScript
   , collateralShortBs
   , ContractInfo(..)
   , collateralTypedValidator
@@ -46,17 +46,14 @@ import qualified Common.Utils             as U
 data CollateralDatum = CollateralDatum
     { borrowersNFT          :: !CurrencySymbol
     , borrowersPkh          :: !PaymentPubKeyHash
-    , loantn                :: !TokenName
-    , loancs                :: !CurrencySymbol
+    , loan                  :: !AssetClass
     , loanamnt              :: !Integer
-    , interesttn            :: !TokenName
-    , interestcs            :: !CurrencySymbol
+    , interest              :: !AssetClass
     , interestamnt          :: !Integer
-    , collateralcs          :: !CurrencySymbol
+    , collateral            :: !AssetClass
+    , collateralamnt        :: !Integer
     , repayinterval         :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
-    , collateraltn          :: !TokenName -- collateral token name
-    , collateralamnt        :: !Integer   -- amount of collateral
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
@@ -80,10 +77,10 @@ mkValidator :: ContractInfo -> CollateralDatum -> CollateralRedeemer -> ScriptCo
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
   where
     getLoanAmnt :: Value -> Integer
-    getLoanAmnt v = valueOf v (loancs dat) (loantn dat)
+    getLoanAmnt v = assetClassValueOf v (loan dat)
 
     getInterestAmnt :: Value -> Integer
-    getInterestAmnt v = valueOf v (interestcs dat) (interesttn dat)
+    getInterestAmnt v = assetClassValueOf v (interest dat)
 
     validateDebtAmnt :: Bool
     validateDebtAmnt = getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat
@@ -99,7 +96,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
 
     validateDebtAndInterestAmnt :: Bool
-    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
+    validateDebtAndInterestAmnt = interest dat /= loan dat || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
 
     validateBorrowerNftBurn :: Bool
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
@@ -181,8 +178,8 @@ PlutusTx.makeLift ''ContractInfo
 scriptAsCbor :: ContractInfo -> LBS.ByteString
 scriptAsCbor = serialise . validator
 
-collateral :: ContractInfo -> PlutusScript PlutusScriptV1
-collateral = PlutusScriptSerialised . collateralShortBs
+collateralScript :: ContractInfo -> PlutusScript PlutusScriptV1
+collateralScript = PlutusScriptSerialised . collateralShortBs
 
 collateralShortBs :: ContractInfo -> SBS.ShortByteString
 collateralShortBs = SBS.toShort . LBS.toStrict . scriptAsCbor
