@@ -91,7 +91,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validateBorrowerMint :: Bool
     validateBorrowerMint = case mintFlattened of
       [(cs, tn, amt)] -> (cs == borrowersNFT dat) &&
-                         (tn == borrower) && 
+                         (tn == borrower) &&
                          (amt == (-1))
       _               -> False
 
@@ -120,11 +120,15 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     containtsTimeNft :: TxOut -> Bool
     containtsTimeNft txo = any (\(cs, _tn, n) -> cs == timeNft && n == 1) (flattenValue (txOutValue txo))
 
+    doesNotContainAdditionalTokens :: TxOut -> Bool
+    doesNotContainAdditionalTokens txo = length ((flattenValue . txOutValue) txo) < 4
+
     txOutValidate :: TxOut -> Bool
     txOutValidate txo = isItToCollateral txo &&
                         containsRequiredCollateralAmount txo &&
                         containsNewDatum txo &&
-                        containtsTimeNft txo
+                        containtsTimeNft txo &&
+                        doesNotContainAdditionalTokens txo
 
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
