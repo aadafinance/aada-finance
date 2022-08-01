@@ -30,6 +30,7 @@ import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
+import qualified Common.Utils             as U
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: TxOutRef -> ScriptContext -> Bool
@@ -53,7 +54,8 @@ mkPolicy utxo ctx = case mintedValue of
     checkForOverflow = lengthOfByteString (getTxId . txOutRefId $ utxo) < 256
 
     validateMint :: TokenName -> Integer -> Bool
-    validateMint tn amount = traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
+    validateMint tn amount = U.hasUTxO utxo ctx &&
+                             traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
                              traceIfFalse "minted nft has invalid token name" (validateTokenName tn) &&
                              traceIfFalse "txOutRefId of provided utxo is too big " checkForOverflow
 
