@@ -43,7 +43,7 @@ mkPolicy utxo ctx = all validate mintedValue
     mintedValue = filter (\(cs, _tn, _n) -> cs == ownCurrencySymbol ctx) mintFlattened
 
     calculateTokenNameHash :: BuiltinByteString
-    calculateTokenNameHash = sha2_256 (consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
+    calculateTokenNameHash = consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo)
 
     validateTokenName :: TokenName -> Bool
     validateTokenName tn = unTokenName tn == calculateTokenNameHash

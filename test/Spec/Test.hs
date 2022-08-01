@@ -51,9 +51,9 @@ mainTests cfg =
     ]
 
 mintOracleNftTests :: BchConfig -> TestTree
-mintOracleNftTests cfg = 
-  testGroup 
-    "Mint oracle nft tests" 
+mintOracleNftTests cfg =
+  testGroup
+    "Mint oracle nft tests"
     [
       testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft" mintOracleNft
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail2)
@@ -192,7 +192,7 @@ getCollatDatumFronRequestDat rqDat@RequestDatum{..} = Collateral.CollateralDatum
         }
 
 getLenderTokenName :: TxOutRef -> TokenName
-getLenderTokenName utxo = TokenName $ INT.sha2_256 (INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
+getLenderTokenName utxo = TokenName $ INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo)
 
 getBNftCs :: TxOutRef -> CurrencySymbol
 getBNftCs = scriptCurrencySymbol . BorrowerNft.policy
@@ -619,11 +619,11 @@ returnPartialLoanSameCs = do
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
 
-          logInfo $ "mint date: " <> show mintTime 
+          logInfo $ "mint date: " <> show mintTime
           wait 16000
 
           intPayDate <- currentTime
-          logInfo $ "pay date: " <> show intPayDate 
+          logInfo $ "pay date: " <> show intPayDate
           let tx2 = getTxInFromCollateral' sp1 sp2 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn2 borrower mintTime bmp lenderCs lenderNftRef
 
@@ -968,7 +968,7 @@ happyPath = do
   let [(lockRef, _)] = utxos
   let lenderNftRef = lockRef
   lockDat <- datumAt @RequestDatum lockRef
-  case lockDat of 
+  case lockDat of
       Just dat -> do
           mintTime <- currentTime
           let convertedDat        = getCollatDatumFronRequestDat dat
@@ -1033,7 +1033,7 @@ getTxInFromCollateraLiq lender1 lender2 dat rdm scriptTxOut =
   ]
 
 getMintOracleNftTxLiq :: Integer -> PubKeyHash -> PubKeyHash -> PubKeyHash -> Tx
-getMintOracleNftTxLiq n pkh1 pkh2 pkh3 = 
+getMintOracleNftTxLiq n pkh1 pkh2 pkh3 =
   mconcat
     [ mintValue mp (getOracleNftVal cs n)
     , payToScript Helpers.TestValidator.typedValidator
