@@ -53,14 +53,14 @@ data RequestDatum = RequestDatum
     , lendDate              :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-data RequestCollateral = RequestCollateral {
+data RequestRedeemer = RequestRedeemer {
     lenderTn    :: !TokenName
   , lendDateRdm :: !POSIXTime
 }
 
 PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
 PlutusTx.makeLift ''RequestDatum
-PlutusTx.makeIsDataIndexed ''RequestCollateral [('RequestCollateral, 0)]
+PlutusTx.makeIsDataIndexed ''RequestRedeemer [('RequestRedeemer, 0)]
 
 data ContractInfo = ContractInfo
     { borrower       :: !TokenName
@@ -69,7 +69,7 @@ data ContractInfo = ContractInfo
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> RequestDatum -> RequestCollateral -> ScriptContext -> Bool
+mkValidator :: ContractInfo -> RequestDatum -> RequestRedeemer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
   where
     valueToBorrower :: Value
@@ -140,14 +140,14 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
     type instance DatumType    RequestDataTypes = RequestDatum
-    type instance RedeemerType RequestDataTypes = RequestCollateral
+    type instance RedeemerType RequestDataTypes = RequestRedeemer
 
 requestTypedValidator :: ContractInfo -> Scripts.TypedValidator RequestDataTypes
 requestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTypes
     ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @RequestDatum @RequestCollateral
+    wrap = Scripts.wrapValidator @RequestDatum @RequestRedeemer
 
 requestValidator :: ContractInfo -> Validator
 requestValidator = Scripts.validatorScript . requestTypedValidator
