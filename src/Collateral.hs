@@ -116,7 +116,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
       Nothing   -> False
 
     doesNotContainAdditionalTokens :: Bool
-    doesNotContainAdditionalTokens = length (flattenValue $ U.valueToSc interestscvh ctx) < 4
+    doesNotContainAdditionalTokens = length (flattenValue $ U.valueToSc interestscvh ctx) <= 3
 
     validateBorrower :: Bool
     validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
