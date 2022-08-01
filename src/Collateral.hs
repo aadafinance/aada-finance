@@ -115,8 +115,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
       Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
       Nothing   -> False
 
-    doesNotContainAdditionalTokens :: Bool
-    doesNotContainAdditionalTokens = length (flattenValue $ U.valueToSc interestscvh ctx) <= 3
+    checkForTokensDos :: Bool
+    checkForTokensDos = length (flattenValue $ U.valueToSc interestscvh ctx) <= 3
 
     validateBorrower :: Bool
     validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
@@ -126,7 +126,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
                        traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
                        traceIfFalse "invalid time nft token name" checkMintTnName &&
                        traceIfFalse "datum was not passed on" ownInputHash &&
-                       traceIfFalse "too many tokens sent" doesNotContainAdditionalTokens
+                       traceIfFalse "too many tokens sent" checkForTokensDos
 
     checkDeadline :: Bool
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) (U.range ctx))
