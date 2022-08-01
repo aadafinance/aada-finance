@@ -1004,7 +1004,6 @@ happyPath = do
           let tx2 = getTxInFromCollateral sp1 sp2 sp3 convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 50 borrower mintTime bmp lenderCs lenderNftRef
 
-          -- wait 2000
           logInfo $  "int pay date time: " ++ show intPayDate
           tx2 <- validateIn (from 6000) tx2
           submitTx lender tx2
@@ -1016,7 +1015,7 @@ happyPath = do
           case utxos of
             [(lockRef, _)] -> do
               let tx = getTxInFromInterestSc sp lockRef <>
-                      getTxOutFromInterestSc 50 lender LenderNft.policy lenderCs lenderNftRef
+                       getTxOutFromInterestSc 50 lender LenderNft.policy lenderCs lenderNftRef
 
               submitTx lender tx
 

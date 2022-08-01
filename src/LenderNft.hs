@@ -57,12 +57,8 @@ mkPolicy utxo ctx = case mintedValue of
     validateMint tn amount = U.hasUTxO utxo ctx &&
                              traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
                              traceIfFalse "minted nft has invalid token name" (validateTokenName tn) &&
-                             traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow
-
-    validate :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validate (_cs, tn, n)
-     | n > 0     = validateMint tn n
-     | otherwise = True
+                             traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow ||
+                             traceIfFalse "invalid burn amount" (amount == (-2))
 
 policy :: Scripts.MintingPolicy
 policy = mkMintingPolicyScript $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy mkPolicy ||])
