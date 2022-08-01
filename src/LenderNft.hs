@@ -49,9 +49,13 @@ mkPolicy utxo ctx = case mintedValue of
     validateTokenName :: TokenName -> Bool
     validateTokenName tn = unTokenName tn == calculateTokenNameHash
 
+    checkForOverflow :: Bool
+    checkForOverflow = lengthOfByteString (getTxId . txOutRefId $ utxo) < 256
+
     validateMint :: TokenName -> Integer -> Bool
     validateMint tn amount = traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
-                             traceIfFalse "minted nft has invalid token name" (validateTokenName tn)
+                             traceIfFalse "minted nft has invalid token name" (validateTokenName tn) &&
+                             traceIfFalse "txOutRefId of provided utxo is too big " checkForOverflow
 
     validate :: (CurrencySymbol, TokenName, Integer) -> Bool
     validate (_cs, tn, n)
