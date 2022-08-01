@@ -150,7 +150,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     checkMintTnName = traceIfFalse "invalid time token name" (maybe False tokenNameIsCorrect getTimeTokenName)
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = traceIfFalse "Lender Nft not burnt" (any (\(cs, tn, n) -> cs == lenderNftCs && tn == lenderNftTn dat && n == (-1)) (U.mintFlattened ctx))
+    checkLNftsAreBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) lenderNftCs (lenderNftTn dat) == (-1))
 
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))
