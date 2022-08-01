@@ -50,21 +50,27 @@ data RequestDatum = RequestDatum
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
     , lenderNftTn           :: !TokenName
+    , lendDate              :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
+
+data RequestCollateral = RequestCollateral {
+    lenderTn    :: !TokenName
+  , lendDateRdm :: !POSIXTime
+}
 
 PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
 PlutusTx.makeLift ''RequestDatum
+PlutusTx.makeIsDataIndexed ''RequestCollateral [('RequestCollateral, 0)]
 
 data ContractInfo = ContractInfo
     { borrower       :: !TokenName
     , lenderNftCs    :: !CurrencySymbol
     , collateralcsvh :: !ValidatorHash
-    , timeNft        :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> RequestDatum -> TokenName -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
+mkValidator :: ContractInfo -> RequestDatum -> RequestCollateral -> ScriptContext -> Bool
+mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
   where
     valueToBorrower :: Value
     valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
@@ -72,21 +78,15 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     borrowerGetsWhatHeWants :: Bool
     borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) >= loanamnt dat
 
-    filterOutTimeNft :: (CurrencySymbol, TokenName, Integer) -> Bool
-    filterOutTimeNft (cs, _, _) = cs /= timeNft
-
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = filter filterOutTimeNft $ flattenValue $ txInfoMint (U.info ctx)
-
     validateMint :: Bool
-    validateMint = case mintFlattened of
+    validateMint = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (cs == lenderNftCs) &&
-                         (tn == lenderTn) &&
+                         (tn == lenderTn rdm) &&
                          (amt == 1)
       _               -> False
 
     validateBorrowerMint :: Bool
-    validateBorrowerMint = case mintFlattened of
+    validateBorrowerMint = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (cs == borrowersNFT dat) &&
                          (tn == borrower) &&
                          (amt == (-1))
@@ -96,7 +96,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
     expectedNewDatum :: RequestDatum
-    expectedNewDatum = dat { lenderNftTn = lenderTn }
+    expectedNewDatum = dat { lenderNftTn = lenderTn rdm, lendDate = lendDateRdm rdm }
 
     validateExpiration :: Bool
     validateExpiration = after (requestExpiration dat) (U.range ctx)
@@ -105,7 +105,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
       Just vh -> vh == collateralcsvh
       _       -> False
-  
+
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo = case U.ownValue ctx of
       Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)
@@ -114,9 +114,6 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = findDatumHash' expectedNewDatum (U.info ctx) == txOutDatumHash txo
 
-    containtsTimeNft :: TxOut -> Bool
-    containtsTimeNft txo = any (\(cs, _tn, n) -> cs == timeNft && n == 1) (flattenValue (txOutValue txo))
-
     doesNotContainAdditionalTokens :: TxOut -> Bool
     doesNotContainAdditionalTokens txo = length ((flattenValue . txOutValue) txo) < 4
 
@@ -124,30 +121,33 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     txOutValidate txo = isItToCollateral txo &&
                         containsRequiredCollateralAmount txo &&
                         containsNewDatum txo &&
-                        containtsTimeNft txo &&
                         doesNotContainAdditionalTokens txo
 
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
+    checkDeadline :: Bool
+    checkDeadline = contains (from (lendDateRdm rdm)) (U.range ctx)
+
     validate :: Bool
     validate = validateTxOuts &&
                traceIfFalse "lender nft was not minted" validateMint &&
                traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
+               traceIfFalse "Invalid lend date parameter passed" checkDeadline &&
                traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration ||
                traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
     type instance DatumType    RequestDataTypes = RequestDatum
-    type instance RedeemerType RequestDataTypes = TokenName
+    type instance RedeemerType RequestDataTypes = RequestCollateral
 
 requestTypedValidator :: ContractInfo -> Scripts.TypedValidator RequestDataTypes
 requestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTypes
     ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @RequestDatum @TokenName
+    wrap = Scripts.wrapValidator @RequestDatum @RequestCollateral
 
 requestValidator :: ContractInfo -> Validator
 requestValidator = Scripts.validatorScript . requestTypedValidator

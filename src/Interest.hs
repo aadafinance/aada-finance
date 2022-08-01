@@ -63,6 +63,7 @@ data InterestDatum = InterestDatum
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
     , lenderNftTn           :: !TokenName
+    , lendDate              :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}

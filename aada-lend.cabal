@@ -60,8 +60,7 @@ library
 
   hs-source-dirs:       src, test
 
-  exposed-modules:      TimeNft
-                      , BorrowerNft
+  exposed-modules:      BorrowerNft
                       , LenderNft
                       , Collateral
                       , Interest
@@ -139,21 +138,6 @@ executable mint-lender-nft
                       , cardano-ledger-alonzo
                       , plutus-ledger
                       , aada-lend 
-                      , plutus-tx
-                      , plutus-ledger-api
-                      , bytestring
-                      , aeson
-
-executable mint-time-nft
-  import:               base, project-config
-  hs-source-dirs:       app
-  main-is:              mint-time-nft.hs
-  ghc-options:          -Wall
-
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
-                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
