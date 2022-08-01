@@ -35,7 +35,7 @@ import qualified Common.Utils             as U
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: TxOutRef -> ScriptContext -> Bool
 mkPolicy utxo ctx = case mintedValue of
-    [val] -> validate val
+    [(_cs, tn, n)] -> validateMint tn n
     _     -> False
   where
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
