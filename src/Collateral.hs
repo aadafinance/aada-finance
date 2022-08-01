@@ -42,6 +42,7 @@ import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import PlutusTx.Builtins (equalsByteString, divideInteger, multiplyInteger)
 import qualified Common.Utils             as U
+import Plutus.V1.Ledger.Api
 
 data CollateralDatum = CollateralDatum
     { borrowersNFT          :: !CurrencySymbol
@@ -85,8 +86,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     getInterestAmnt :: Value -> Integer
     getInterestAmnt v = valueOf v (interestcs dat) (interesttn dat)
 
-    validateDebtAmnt :: Bool
-    validateDebtAmnt = getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat
+    validateDebtAmnt :: TxOut -> Bool
+    validateDebtAmnt txo = getLoanAmnt (txOutValue txo) >= loanamnt dat
 
     interestPercentage :: Integer
     interestPercentage = case (mintdate rdm + repayinterval dat) < interestPayDate rdm of
@@ -95,34 +96,41 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
        where
          loanHeld = interestPayDate rdm - mintdate rdm
 
-    validateInterestAmnt :: Bool
-    validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
+    validateInterestAmnt :: TxOut -> Bool
+    validateInterestAmnt txo = getInterestAmnt (txOutValue txo) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
 
-    validateDebtAndInterestAmnt :: Bool
-    validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)
+    validateDebtAndInterestAmnt :: TxOut -> Bool
+    validateDebtAndInterestAmnt txo = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (txOutValue txo) >= loanamnt dat + interestamnt dat)
 
     validateBorrowerNftBurn :: Bool
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
 
-    getInterestScHashes :: [DatumHash]
-    getInterestScHashes = map fst (scriptOutputsAt interestscvh (U.info ctx))
+    findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
+    findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    validateOutputHash :: DatumHash -> Bool
-    validateOutputHash h = h `elem` getInterestScHashes
+    containsNewDatum :: TxOut -> Bool
+    containsNewDatum txo = findDatumHash' (lenderNftTn dat) (U.info ctx) == txOutDatumHash txo
 
-    ownInputHash :: Bool
-    ownInputHash = case U.ownInput ctx of
-      Just txin -> maybe False validateOutputHash (txOutDatumHash txin)
-      Nothing   -> False
+    destinationIsToInterestSc :: TxOut -> Bool
+    destinationIsToInterestSc txo = case toValidatorHash $ txOutAddress txo of
+      Just vh -> vh == interestscvh
+      Nothing -> False
+
+    txOutValidate :: TxOut -> Bool
+    txOutValidate txo = containsNewDatum txo &&
+                        destinationIsToInterestSc txo &&
+                        validateDebtAmnt txo &&
+                        validateInterestAmnt txo &&
+                        validateDebtAndInterestAmnt txo
+
+    validateTxOuts :: Bool
+    validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
     validateBorrower :: Bool
-    validateBorrower = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
-                       traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
-                       traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
-                       traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
+    validateBorrower = traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
                        traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
                        traceIfFalse "invalid time nft token name" checkMintTnName &&
-                       traceIfFalse "datum was not passed on" ownInputHash
+                       traceIfFalse "no correct utxo to interestsc found" validateTxOuts
 
     checkDeadline :: Bool
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (mintdate rdm + repayinterval dat)) (U.range ctx))

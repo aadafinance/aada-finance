@@ -22,7 +22,6 @@ module Interest
   , typedValidator
   , interestAddress
   , ContractInfo(..)
-  , InterestDatum(..)
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
@@ -48,40 +47,20 @@ data ContractInfo = ContractInfo
     { lenderNftCs  :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-data InterestDatum = InterestDatum
-    { borrowersNFT          :: !CurrencySymbol
-    , borrowersPkh          :: !PaymentPubKeyHash
-    , loantn                :: !TokenName
-    , loancs                :: !CurrencySymbol
-    , loanamnt              :: !Integer
-    , interesttn            :: !TokenName
-    , interestcs            :: !CurrencySymbol
-    , interestamnt          :: !Integer
-    , collateralcs          :: !CurrencySymbol
-    , repayinterval         :: !POSIXTime
-    , liquidateNft          :: !CurrencySymbol
-    , collateraltn          :: !TokenName -- collateral token name
-    , collateralamnt        :: !Integer   -- amount of collateral
-    , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
-    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
-    , requestExpiration     :: !POSIXTime
-    , lenderNftTn           :: !TokenName
-    } deriving (Show, Generic, ToJSON, FromJSON)
-
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> InterestDatum -> Integer -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
+mkValidator :: ContractInfo -> TokenName -> Integer -> ScriptContext -> Bool
+mkValidator contractInfo@ContractInfo{..} lenderNftTn _ ctx = validate
   where
     validate :: Bool
     validate = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (amt == (-1)) &&
                          cs == lenderNftCs &&
-                         tn == lenderNftTn dat
+                         tn == lenderNftTn
       _               -> False
 
 data Interest
 instance Scripts.ValidatorTypes Interest where
-    type instance DatumType Interest = InterestDatum
+    type instance DatumType Interest = TokenName
     type instance RedeemerType Interest = Integer
 
 typedValidator :: ContractInfo -> Scripts.TypedValidator Interest
@@ -89,7 +68,7 @@ typedValidator contractInfo = Scripts.mkTypedValidator @Interest
     ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @InterestDatum @Integer
+    wrap = Scripts.wrapValidator @TokenName @Integer
 
 
 validator :: ContractInfo -> Validator
@@ -107,6 +86,5 @@ interest = PlutusScriptSerialised . interestShortBs
 interestAddress :: ContractInfo -> Address
 interestAddress = scriptHashAddress . Scripts.validatorHash . typedValidator
 
-PlutusTx.makeIsDataIndexed ''InterestDatum [('InterestDatum, 0)]
 PlutusTx.makeIsDataIndexed ''ContractInfo [('ContractInfo, 1)]
 PlutusTx.makeLift ''ContractInfo
