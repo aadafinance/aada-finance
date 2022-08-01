@@ -30,11 +30,12 @@ import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
-import qualified Common.Utils             as U
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: TxOutRef -> ScriptContext -> Bool
-mkPolicy utxo ctx = all validate mintedValue
+mkPolicy utxo ctx = case mintedValue of
+    [val] -> validate val
+    _     -> False
   where
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
     mintFlattened = flattenValue $ txInfoMint (scriptContextTxInfo ctx)
