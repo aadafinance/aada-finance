@@ -51,7 +51,7 @@ mkPolicy utxo ctx = case mintedValue of
     validateTokenName tn = unTokenName tn == calculateTokenNameHash
 
     checkForOverflow :: Bool
-    checkForOverflow = lengthOfByteString (getTxId . txOutRefId $ utxo) < 256
+    checkForOverflow = txOutRefIdx utxo < 256
 
     validateMint :: TokenName -> Integer -> Bool
     validateMint tn amount = U.hasUTxO utxo ctx &&
