@@ -16,7 +16,7 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 
 module Interest
-  ( interest
+  ( interestScript
   , interestShortBs
   , validator
   , typedValidator
@@ -51,17 +51,14 @@ data ContractInfo = ContractInfo
 data InterestDatum = InterestDatum
     { borrowersNFT          :: !CurrencySymbol
     , borrowersPkh          :: !PaymentPubKeyHash
-    , loantn                :: !TokenName
-    , loancs                :: !CurrencySymbol
+    , loan                  :: !AssetClass
     , loanamnt              :: !Integer
-    , interesttn            :: !TokenName
-    , interestcs            :: !CurrencySymbol
+    , interest              :: !AssetClass
     , interestamnt          :: !Integer
-    , collateralcs          :: !CurrencySymbol
+    , collateral            :: !AssetClass
+    , collateralamnt        :: !Integer
     , repayinterval         :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
-    , collateraltn          :: !TokenName -- collateral token name
-    , collateralamnt        :: !Integer   -- amount of collateral
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
@@ -101,8 +98,8 @@ script = Plutus.unValidatorScript . validator
 interestShortBs :: ContractInfo -> SBS.ShortByteString
 interestShortBs = SBS.toShort . LBS.toStrict . serialise . script
 
-interest :: ContractInfo -> PlutusScript PlutusScriptV1
-interest = PlutusScriptSerialised . interestShortBs
+interestScript :: ContractInfo -> PlutusScript PlutusScriptV1
+interestScript = PlutusScriptSerialised . interestShortBs
 
 interestAddress :: ContractInfo -> Address
 interestAddress = scriptHashAddress . Scripts.validatorHash . typedValidator

@@ -39,8 +39,8 @@ getRequestScParams cs = Request.ContractInfo {
 main :: IO ()
 main = do
   let scriptnum = 0
-  writePlutusScript scriptnum "interest.plutus" (Interest.interest (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy)) (interestShortBs (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy))
-  writePlutusScript scriptnum "collateral.plutus" (Collateral.collateral (getCollateralScParams (scriptCurrencySymbol LenderNft.policy))) (collateralShortBs (getCollateralScParams (scriptCurrencySymbol LenderNft.policy)))
+  writePlutusScript scriptnum "interest.plutus" (Interest.interestScript (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy)) (interestShortBs (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy))
+  writePlutusScript scriptnum "collateral.plutus" (Collateral.collateralScript (getCollateralScParams (scriptCurrencySymbol LenderNft.policy))) (collateralShortBs (getCollateralScParams (scriptCurrencySymbol LenderNft.policy)))
   writePlutusScript scriptnum "request.plutus" (Request.request (getRequestScParams (scriptCurrencySymbol LenderNft.policy))) (requestShortBs (getRequestScParams (scriptCurrencySymbol LenderNft.policy)))
   writePlutusScript scriptnum "liquidation.plutus" Liquidation.liquidation liquidationShortBs
 

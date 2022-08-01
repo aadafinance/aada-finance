@@ -38,17 +38,14 @@ import Plutus.V1.Ledger.Api
 data RequestDatum = RequestDatum
     { borrowersNFT          :: !CurrencySymbol
     , borrowersPkh          :: !PaymentPubKeyHash
-    , loantn                :: !TokenName
-    , loancs                :: !CurrencySymbol
+    , loan                  :: !AssetClass
     , loanamnt              :: !Integer
-    , interesttn            :: !TokenName
-    , interestcs            :: !CurrencySymbol
+    , interest              :: !AssetClass
     , interestamnt          :: !Integer
-    , collateralcs          :: !CurrencySymbol
+    , collateral            :: !AssetClass
+    , collateralamnt        :: !Integer
     , repayinterval         :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
-    , collateraltn          :: !TokenName -- collateral token name
-    , collateralamnt        :: !Integer   -- amount of collateral
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
@@ -73,7 +70,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
 
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = valueOf valueToBorrower (loancs dat) (loantn dat) >= loanamnt dat
+    borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) >= loanamnt dat
 
     filterOutTimeNft :: (CurrencySymbol, TokenName, Integer) -> Bool
     filterOutTimeNft (cs, _, _) = cs /= timeNft
@@ -108,10 +105,10 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
       Just vh -> vh == collateralcsvh
       _       -> False
-
+  
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo = case U.ownValue ctx of
-      Just v  -> valueOf v (collateralcs dat) (collateraltn dat) >= valueOf (txOutValue txo) (collateralcs dat) (collateraltn dat)
+      Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)
       Nothing -> False
 
     containsNewDatum :: TxOut -> Bool
