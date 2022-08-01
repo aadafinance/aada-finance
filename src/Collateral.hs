@@ -114,12 +114,12 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
 
     validateReturn :: Bool
     validateReturn = traceIfFalse "invalid debt amount sent to interest sc" validateDebtAmnt &&
-                       traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
-                       traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt &&
-                       traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
-                       traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
-                       traceIfFalse "datum was not passed on" ownInputHash &&
-                       traceIfFalse "too many tokens sent" doesNotContainAdditionalTokens
+                     ((interestPayDate < lendDate dat) || (traceIfFalse "invalid interest amount sent to interest sc" validateInterestAmnt &&
+                     traceIfFalse "invalid debt and interest amount" validateDebtAndInterestAmnt)) &&
+                     traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
+                     traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
+                     traceIfFalse "datum was not passed on" ownInputHash &&
+                     traceIfFalse "too many tokens sent" doesNotContainAdditionalTokens
 
     checkDeadline :: Bool
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (lendDate dat + repayinterval dat)) (U.range ctx))
