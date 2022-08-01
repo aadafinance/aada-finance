@@ -35,13 +35,12 @@ import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
 import           Prelude              (Show (..))
-import qualified PlutusTx.Builtins.Internal as B
 
 import           Ledger.Typed.Scripts as Scripts
 import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
-import PlutusTx.Builtins (equalsByteString, divideInteger, addInteger, multiplyInteger)
+import PlutusTx.Builtins (equalsByteString, divideInteger, multiplyInteger)
 import qualified Common.Utils             as U
 
 data CollateralDatum = CollateralDatum
@@ -91,12 +90,12 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     interestPercentage :: Integer
     interestPercentage = case (mintdate rdm + repayinterval dat) < interestPayDate rdm of
       True  -> 100
-      False -> (getPOSIXTime (repayinterval dat) `multiplyInteger` 100) `divideInteger` getPOSIXTime loanHeld
+      False -> (getPOSIXTime loanHeld `multiplyInteger` 100) `divideInteger` getPOSIXTime (repayinterval dat)
        where
          loanHeld = interestPayDate rdm - mintdate rdm
 
     validateInterestAmnt :: Bool
-    validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
+    validateInterestAmnt = getInterestAmnt (U.valueToSc interestscvh ctx) >= ((interestamnt dat `multiplyInteger` interestPercentage) `divideInteger` 100)
 
     validateDebtAndInterestAmnt :: Bool
     validateDebtAndInterestAmnt = not ((interestcs dat == loancs dat) && (interesttn dat == loantn dat)) || (getLoanAmnt (U.valueToSc interestscvh ctx) >= loanamnt dat + interestamnt dat)

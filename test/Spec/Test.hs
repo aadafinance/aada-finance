@@ -473,7 +473,8 @@ returnPartialLoan = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let repayint = 20000
-  let tx = createLockFundsTx repayint borrower oref sp 100000 <> getMintBorrowerNftTx borrower oref
+  let expiration = 100000
+  let tx = createLockFundsTx repayint borrower oref sp expiration <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, _)] = utxos
@@ -502,7 +503,9 @@ returnPartialLoan = do
                         adaValue 1
               valTmp3 = fakeValue interestCoin 25 <>
                         adaValue 1
+
           intPayDate <- currentTime
+          logInfo $  "intPayDate: " ++ show intPayDate
 
           sp1 <- spend borrower valTmp1
           sp2 <- spend borrower valTmp2
