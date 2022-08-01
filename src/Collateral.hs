@@ -108,7 +108,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     getInterestScHashes = map fst (scriptOutputsAt interestscvh (U.info ctx))
 
     validateOutputHash :: DatumHash -> Bool
-    validateOutputHash h = h `elem` getCollateralScHashes
+    validateOutputHash h = h `elem` getInterestScHashes
 
     ownInputHash :: Bool
     ownInputHash = case U.ownInput ctx of
