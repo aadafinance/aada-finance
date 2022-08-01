@@ -35,6 +35,8 @@ import qualified Plutus.V1.Ledger.Scripts as Plutus
 import qualified Common.Utils             as U
 import Plutus.V1.Ledger.Api
 
+import qualified Collateral
+
 data RequestDatum = RequestDatum
     { borrowersNFT          :: !CurrencySymbol
     , borrowersPkh          :: !PaymentPubKeyHash
@@ -98,8 +100,26 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    expectedNewDatum :: RequestDatum
-    expectedNewDatum = dat { lenderNftTn = lenderTn }
+    expectedNewDatum :: Collateral.CollateralDatum
+    expectedNewDatum = Collateral.CollateralDatum { 
+        Collateral.borrowersNFT          = borrowersNFT dat 
+      , Collateral.borrowersPkh          = borrowersPkh dat
+      , Collateral.loantn                = loantn dat
+      , Collateral.loancs                = loancs dat
+      , Collateral.loanamnt              = loanamnt dat
+      , Collateral.interesttn            = interesttn dat
+      , Collateral.interestcs            = interestcs dat
+      , Collateral.interestamnt          = interestamnt dat
+      , Collateral.collateralcs          = collateralcs dat
+      , Collateral.repayinterval         = repayinterval dat
+      , Collateral.liquidateNft          = liquidateNft dat
+      , Collateral.collateraltn          = collateraltn dat 
+      , Collateral.collateralamnt        = collateralamnt dat   
+      , Collateral.collateralFactor      = collateralFactor dat 
+      , Collateral.liquidationCommission = liquidationCommission dat
+      , Collateral.requestExpiration     = requestExpiration dat
+      , Collateral.lenderNftTn           = lenderTn
+    }
 
     validateExpiration :: Bool
     validateExpiration = after (requestExpiration dat) (U.range ctx)
