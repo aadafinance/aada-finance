@@ -104,8 +104,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateBorrowerNftBurn :: Bool
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
 
-    getCollateralScHashes :: [DatumHash]
-    getCollateralScHashes = map fst (scriptOutputsAt interestscvh (U.info ctx))
+    getInterestScHashes :: [DatumHash]
+    getInterestScHashes = map fst (scriptOutputsAt interestscvh (U.info ctx))
 
     validateOutputHash :: DatumHash -> Bool
     validateOutputHash h = h `elem` getCollateralScHashes
