@@ -31,6 +31,7 @@ getRequestScParams cs = Request.ContractInfo {
         Request.borrower       = "B"
       , Request.lenderNftCs    = cs
       , Request.collateralcsvh = validatorHash $ Collateral.validator (getCollateralScParams cs)
+      , Request.timeToSubmitTx  = 10000
     }
 
 main :: IO ()

@@ -66,6 +66,7 @@ data ContractInfo = ContractInfo
     { borrower       :: !TokenName
     , lenderNftCs    :: !CurrencySymbol
     , collateralcsvh :: !ValidatorHash
+    , timeToSubmitTx :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
@@ -127,7 +128,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
     checkDeadline :: Bool
-    checkDeadline = contains (from (lendDateRdm rdm)) (U.range ctx)
+    checkDeadline = after (lendDateRdm rdm) (U.range ctx) && contains (from (lendDateRdm rdm - timeToSubmitTx)) (U.range ctx) 
 
     validate :: Bool
     validate = validateTxOuts &&
