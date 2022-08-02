@@ -16,7 +16,7 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 
 module Interest
-  ( interest
+  ( interestScript
   , interestShortBs
   , validator
   , typedValidator
@@ -80,8 +80,8 @@ script = Plutus.unValidatorScript . validator
 interestShortBs :: ContractInfo -> SBS.ShortByteString
 interestShortBs = SBS.toShort . LBS.toStrict . serialise . script
 
-interest :: ContractInfo -> PlutusScript PlutusScriptV1
-interest = PlutusScriptSerialised . interestShortBs
+interestScript :: ContractInfo -> PlutusScript PlutusScriptV1
+interestScript = PlutusScriptSerialised . interestShortBs
 
 interestAddress :: ContractInfo -> Address
 interestAddress = scriptHashAddress . Scripts.validatorHash . typedValidator

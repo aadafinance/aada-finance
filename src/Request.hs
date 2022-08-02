@@ -40,17 +40,14 @@ import qualified Collateral
 data RequestDatum = RequestDatum
     { borrowersNFT          :: !CurrencySymbol
     , borrowersPkh          :: !PaymentPubKeyHash
-    , loantn                :: !TokenName
-    , loancs                :: !CurrencySymbol
+    , loan                  :: !AssetClass
     , loanamnt              :: !Integer
-    , interesttn            :: !TokenName
-    , interestcs            :: !CurrencySymbol
+    , interest              :: !AssetClass
     , interestamnt          :: !Integer
-    , collateralcs          :: !CurrencySymbol
+    , collateral            :: !AssetClass
+    , collateralamnt        :: !Integer
     , repayinterval         :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
-    , collateraltn          :: !TokenName -- collateral token name
-    , collateralamnt        :: !Integer   -- amount of collateral
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
     , requestExpiration     :: !POSIXTime
@@ -75,7 +72,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
 
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = valueOf valueToBorrower (loancs dat) (loantn dat) >= loanamnt dat
+    borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) >= loanamnt dat
 
     filterOutTimeNft :: (CurrencySymbol, TokenName, Integer) -> Bool
     filterOutTimeNft (cs, _, _) = cs /= timeNft
@@ -93,7 +90,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validateBorrowerMint :: Bool
     validateBorrowerMint = case mintFlattened of
       [(cs, tn, amt)] -> (cs == borrowersNFT dat) &&
-                         (tn == borrower) && 
+                         (tn == borrower) &&
                          (amt == (-1))
       _               -> False
 
@@ -104,17 +101,14 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     expectedNewDatum = Collateral.CollateralDatum { 
         Collateral.borrowersNFT          = borrowersNFT dat 
       , Collateral.borrowersPkh          = borrowersPkh dat
-      , Collateral.loantn                = loantn dat
-      , Collateral.loancs                = loancs dat
+      , Collateral.loan                  = loan dat
       , Collateral.loanamnt              = loanamnt dat
-      , Collateral.interesttn            = interesttn dat
-      , Collateral.interestcs            = interestcs dat
+      , Collateral.interest              = interest dat
       , Collateral.interestamnt          = interestamnt dat
-      , Collateral.collateralcs          = collateralcs dat
+      , Collateral.collateral            = collateral dat
+      , Collateral.collateralamnt        = collateralamnt dat   
       , Collateral.repayinterval         = repayinterval dat
       , Collateral.liquidateNft          = liquidateNft dat
-      , Collateral.collateraltn          = collateraltn dat 
-      , Collateral.collateralamnt        = collateralamnt dat   
       , Collateral.collateralFactor      = collateralFactor dat 
       , Collateral.liquidationCommission = liquidationCommission dat
       , Collateral.requestExpiration     = requestExpiration dat
@@ -128,10 +122,10 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
       Just vh -> vh == collateralcsvh
       _       -> False
-
+  
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo = case U.ownValue ctx of
-      Just v  -> valueOf v (collateralcs dat) (collateraltn dat) >= valueOf (txOutValue txo) (collateralcs dat) (collateraltn dat)
+      Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)
       Nothing -> False
 
     containsNewDatum :: TxOut -> Bool
@@ -140,11 +134,15 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     containtsTimeNft :: TxOut -> Bool
     containtsTimeNft txo = any (\(cs, _tn, n) -> cs == timeNft && n == 1) (flattenValue (txOutValue txo))
 
+    checkForTokensDos :: TxOut -> Bool
+    checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
+
     txOutValidate :: TxOut -> Bool
     txOutValidate txo = isItToCollateral txo &&
                         containsRequiredCollateralAmount txo &&
                         containsNewDatum txo &&
-                        containtsTimeNft txo
+                        containtsTimeNft txo &&
+                        checkForTokensDos txo
 
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)

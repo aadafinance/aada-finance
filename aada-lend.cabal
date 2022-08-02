@@ -95,6 +95,7 @@ library
                       , tasty
                       , mtl
                       , plutus-simple-model
+                      , utf8-string
 
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
@@ -196,6 +197,7 @@ executable generate-example-jsons
                       , plutus-simple-model
                       , mtl
                       , plutus-tx-plugin
+                      , utf8-string
 
 test-suite aada-tests
   type:                exitcode-stdio-1.0
@@ -231,3 +233,4 @@ test-suite aada-tests
                      , text
                      , plutus-simple-model
                      , mtl
+                     , utf8-string
