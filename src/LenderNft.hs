@@ -30,53 +30,50 @@ import qualified Ledger.Typed.Scripts     as Scripts
 import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
-import qualified Plutus.V1.Ledger.Scripts as Plutus
-import           Prelude                  (Semigroup (..), Show)
 import qualified Common.Utils             as U
 
-{-# INLINABLE lender #-}
-lender :: TokenName
-lender = TokenName { unTokenName = consByteString 76 emptyByteString }  -- L
-
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: ValidatorHash -> TxOutRef -> Integer -> ScriptContext -> Bool
-mkPolicy vh utxo _ ctx = validate
+mkPolicy :: TxOutRef -> ScriptContext -> Bool
+mkPolicy utxo ctx = case mintedValue of
+    [(_cs, tn, n)] -> validateMint tn n
+    _     -> False
   where
-    nftIsSentToCollateralSc :: Bool
-    nftIsSentToCollateralSc = traceIfFalse "minted lender nft is not sent to collateral smart contract" (valueOf (U.valueToSc vh ctx) (ownCurrencySymbol ctx) lender == 1)
+    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
+    mintFlattened = flattenValue $ txInfoMint (scriptContextTxInfo ctx)
 
-    validateMint :: Integer -> Bool
-    validateMint amount = U.hasUTxO utxo ctx &&
-                          traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
-                          nftIsSentToCollateralSc
+    mintedValue :: [(CurrencySymbol, TokenName, Integer)]
+    mintedValue = filter (\(cs, _tn, _n) -> cs == ownCurrencySymbol ctx) mintFlattened
 
-    validateBurn :: Integer -> Bool
-    validateBurn amount = traceIfFalse "invalid lender nft burnt amount" (amount == (-2))
+    calculateTokenNameHash :: BuiltinByteString
+    calculateTokenNameHash = consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo)
 
-    validate :: Bool
-    validate =
-        let amount = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) lender
-        in validateMint amount || validateBurn amount
+    validateTokenName :: TokenName -> Bool
+    validateTokenName tn = unTokenName tn == calculateTokenNameHash
 
-policy :: ValidatorHash -> TxOutRef -> Scripts.MintingPolicy
-policy vh utxo = mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| \vh' utxo' -> Scripts.wrapMintingPolicy $ mkPolicy vh' utxo'||])
-    `PlutusTx.applyCode`
-    PlutusTx.liftCode vh
-    `PlutusTx.applyCode`
-    PlutusTx.liftCode utxo
+    checkForOverflow :: Bool
+    checkForOverflow = txOutRefIdx utxo < 256
 
-plutusScript :: ValidatorHash -> TxOutRef -> Script
-plutusScript vh utxo = unMintingPolicyScript $ policy vh utxo
+    validateMint :: TokenName -> Integer -> Bool
+    validateMint tn amount = U.hasUTxO utxo ctx &&
+                             traceIfFalse "invalid lender nft minted amount" (amount == 2) &&
+                             traceIfFalse "minted nft has invalid token name" (validateTokenName tn) &&
+                             traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow ||
+                             traceIfFalse "invalid burn amount" (amount == (-2))
 
-validator :: ValidatorHash -> TxOutRef -> Validator
-validator vh utxo = Validator $ plutusScript vh utxo
+policy :: Scripts.MintingPolicy
+policy = mkMintingPolicyScript $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy mkPolicy ||])
 
-scriptAsCbor :: ValidatorHash -> TxOutRef -> LB.ByteString
-scriptAsCbor vh utxo = serialise $ validator vh utxo
+plutusScript :: Script
+plutusScript = unMintingPolicyScript policy
 
-lenderNft :: ValidatorHash -> TxOutRef -> PlutusScript PlutusScriptV1
-lenderNft vh utxo = PlutusScriptSerialised $ SBS.toShort $ LB.toStrict $ scriptAsCbor vh utxo
+validator :: Validator
+validator = Validator plutusScript
 
-lenderNftShortBs :: ValidatorHash -> TxOutRef -> SBS.ShortByteString
-lenderNftShortBs vh utxo = SBS.toShort $ LB.toStrict $ scriptAsCbor vh utxo
+scriptAsCbor :: LB.ByteString
+scriptAsCbor = serialise validator
+
+lenderNft :: PlutusScript PlutusScriptV1
+lenderNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict $ scriptAsCbor
+
+lenderNftShortBs :: SBS.ShortByteString
+lenderNftShortBs = SBS.toShort . LB.toStrict $ scriptAsCbor
