@@ -35,6 +35,8 @@ import qualified Plutus.V1.Ledger.Scripts as Plutus
 import qualified Common.Utils             as U
 import Plutus.V1.Ledger.Api
 
+import qualified Collateral
+
 data RequestDatum = RequestDatum
     { borrowersNFT          :: !CurrencySymbol
     , borrowersPkh          :: !PaymentPubKeyHash
@@ -95,8 +97,23 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    expectedNewDatum :: RequestDatum
-    expectedNewDatum = dat { lenderNftTn = lenderTn }
+    expectedNewDatum :: Collateral.CollateralDatum
+    expectedNewDatum = Collateral.CollateralDatum { 
+        Collateral.borrowersNFT          = borrowersNFT dat 
+      , Collateral.borrowersPkh          = borrowersPkh dat
+      , Collateral.loan                  = loan dat
+      , Collateral.loanamnt              = loanamnt dat
+      , Collateral.interest              = interest dat
+      , Collateral.interestamnt          = interestamnt dat
+      , Collateral.collateral            = collateral dat
+      , Collateral.collateralamnt        = collateralamnt dat   
+      , Collateral.repayinterval         = repayinterval dat
+      , Collateral.liquidateNft          = liquidateNft dat
+      , Collateral.collateralFactor      = collateralFactor dat 
+      , Collateral.liquidationCommission = liquidationCommission dat
+      , Collateral.requestExpiration     = requestExpiration dat
+      , Collateral.lenderNftTn           = lenderTn
+    }
 
     validateExpiration :: Bool
     validateExpiration = after (requestExpiration dat) (U.range ctx)
@@ -117,15 +134,15 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     containtsTimeNft :: TxOut -> Bool
     containtsTimeNft txo = any (\(cs, _tn, n) -> cs == timeNft && n == 1) (flattenValue (txOutValue txo))
 
-    doesNotContainAdditionalTokens :: TxOut -> Bool
-    doesNotContainAdditionalTokens txo = length ((flattenValue . txOutValue) txo) < 4
+    checkForTokensDos :: TxOut -> Bool
+    checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
     txOutValidate :: TxOut -> Bool
     txOutValidate txo = isItToCollateral txo &&
                         containsRequiredCollateralAmount txo &&
                         containsNewDatum txo &&
                         containtsTimeNft txo &&
-                        doesNotContainAdditionalTokens txo
+                        checkForTokensDos txo
 
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)

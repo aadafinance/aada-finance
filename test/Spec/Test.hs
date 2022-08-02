@@ -215,24 +215,6 @@ getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn = Collateral.Collatera
           , Collateral.lenderNftTn           = newTn
         }
 
-getInterestDatumFromCollatDatum :: Collateral.CollateralDatum -> Interest.InterestDatum
-getInterestDatumFromCollatDatum clDat@Collateral.CollateralDatum{..} = Interest.InterestDatum
-          { Interest.borrowersNFT          = borrowersNFT
-          , Interest.borrowersPkh          = borrowersPkh
-          , Interest.loan                  = loan
-          , Interest.loanamnt              = loanamnt
-          , Interest.interest              = interest
-          , Interest.interestamnt          = interestamnt
-          , Interest.collateral            = collateral
-          , Interest.collateralamnt        = 100                    -- amount of collateral
-          , Interest.repayinterval         = repayinterval
-          , Interest.liquidateNft          = liquidateNft
-          , Interest.collateralFactor      = 5                      -- Colalteral factor used for liquidation
-          , Interest.liquidationCommission = 150
-          , Interest.requestExpiration     = requestExpiration
-          , Interest.lenderNftTn           = lenderNftTn
-        }
-
 getLenderTokenName :: TxOutRef -> TokenName
 getLenderTokenName utxo = TokenName $ INT.sha2_256 (INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
 
@@ -317,7 +299,7 @@ getTxOutLend borrower dl lender dat nmp utxo valToScript = addMintRedeemer nmp u
  where
     ncs  = scriptCurrencySymbol nmp
 
-getTxOutReturn :: Integer -> PubKeyHash -> POSIXTime -> MintingPolicy -> Interest.InterestDatum -> Value -> Tx
+getTxOutReturn :: Integer -> PubKeyHash -> POSIXTime -> MintingPolicy -> TokenName -> Value -> Tx
 getTxOutReturn interest borrower dl bmp dat valToInt = addMintRedeemer bmp rdm $ addMintRedeemer getTimeNftPolicy dl $
  mconcat
   [ mintValue getTimeNftPolicy (getTNftVal dl (-1) getTimeNftCurrencySymbol)
@@ -447,7 +429,7 @@ returnFullLoan = do
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
 
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+          let intDat = Collateral.lenderNftTn convertedDat
 
           let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 50 borrower mintTime bmp intDat (adaValueOf 0)
@@ -505,7 +487,7 @@ returnNotEnoughInterest = do
           let [(lockRef, _)] = utxos
 
 
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+          let intDat = Collateral.lenderNftTn convertedDat
 
           let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 25 borrower mintTime bmp intDat (adaValueOf 0)
@@ -559,7 +541,7 @@ returnPartialLoan = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+          let intDat = Collateral.lenderNftTn convertedDat
 
           let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 25 borrower mintTime bmp intDat (adaValueOf 0)
@@ -596,7 +578,7 @@ getTxOutLend2 borrower dl lender dat nmp utxo = addMintRedeemer nmp utxo $ addMi
  where
     ncs  = scriptCurrencySymbol nmp
 
-getTxOutReturn2 :: PubKeyHash -> POSIXTime -> MintingPolicy -> Interest.InterestDatum -> Tx
+getTxOutReturn2 :: PubKeyHash -> POSIXTime -> MintingPolicy -> TokenName -> Tx
 getTxOutReturn2 borrower dl bmp dat = addMintRedeemer bmp rdm $ addMintRedeemer getTimeNftPolicy dl $
  mconcat
   [ mintValue getTimeNftPolicy (getTNftVal dl (-1) getTimeNftCurrencySymbol)
@@ -659,8 +641,9 @@ returnPartialLoanSameCs = do
           wait 16000
 
           intPayDate <- currentTime
-          logInfo $ "pay date: " <> show intPayDate
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+
+          logInfo $ "pay date: " <> show intPayDate 
+          let intDat = Collateral.lenderNftTn convertedDat
               tx2 = getTxInFromCollateral [sp1, sp2] convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn2 borrower mintTime bmp intDat
 
@@ -716,7 +699,7 @@ returnPartialLoanForgedMintDate = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+          let intDat = Collateral.lenderNftTn convertedDat
 
           let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (CollateralRedeemer 1 2) lockRef <>
                     getTxOutReturn interestAmount borrower mintTime bmp intDat (adaValueOf 0)
@@ -779,7 +762,7 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+          let intDat = Collateral.lenderNftTn convertedDat
 
           let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn interestAmount borrower mintTime bmp intDat (adaValueOf 0)
@@ -981,7 +964,7 @@ provideLoanNotOnTime = do
           pure True
       Nothing -> pure False
 
-getTxInFromInterestSc :: UserSpend -> TxOutRef -> Interest.InterestDatum -> Tx
+getTxInFromInterestSc :: UserSpend -> TxOutRef -> TokenName -> Tx
 getTxInFromInterestSc usp1 scriptTxOut dat =
   mconcat
   [ spendScript (Interest.typedValidator (Interest.ContractInfo $ scriptCurrencySymbol LenderNft.policy)) scriptTxOut 0 dat
@@ -1041,7 +1024,7 @@ happyPath = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+          let intDat = Collateral.lenderNftTn convertedDat
 
           let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 50 borrower mintTime bmp intDat (adaValueOf 0)
@@ -1242,7 +1225,7 @@ borrowerDosLender = do
 
           utxos <- utxoAt $ Collateral.collateralAddress (getSc2Params (scriptCurrencySymbol LenderNft.policy))
           let [(lockRef, _)] = utxos
-          let intDat = getInterestDatumFromCollatDatum convertedDat
+          let intDat = Collateral.lenderNftTn convertedDat
 
           let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (CollateralRedeemer mintTime intPayDate) lockRef <>
                     getTxOutReturn 50 borrower mintTime bmp intDat (generateFakeValues' borrowerDosAmount)
