@@ -69,9 +69,9 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> RequestDatum -> TokenName -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
   where
-    getLendDate :: Maybe POSIXTime
-    getLendDate = case ivFrom (U.range ctx) of
-      LowerBound (Finite x) _ -> Just x
+    getUpperBound :: Maybe POSIXTime
+    getUpperBound = case ivTo (U.range ctx) of
+      UpperBound (Finite x) _ -> Just x
       _                       -> Nothing
 
     valueToBorrower :: Value
@@ -130,12 +130,9 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       Nothing -> False
 
     containsNewDatum :: TxOut -> Bool
-    containsNewDatum txo = case getLendDate of
+    containsNewDatum txo = case getUpperBound of
       Just ld -> findDatumHash' (expectedNewDatum ld) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
-
-    checkForTokensDos :: TxOut -> Bool
-    checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
     checkForTokensDos :: TxOut -> Bool
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
@@ -149,16 +146,10 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
-    checkDeadline :: Bool
-    checkDeadline = case getLendDate of
-      Nothing -> traceIfFalse "couldn't get deadline" False
-      Just ld -> contains (interval ld (ld + timeToSubmitTx)) (U.range ctx) 
-
     validate :: Bool
     validate = traceIfFalse "validate tx outs fail" validateTxOuts &&
                traceIfFalse "lender nft was not minted" validateMint &&
                traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
-               traceIfFalse "Invalid lend date parameter passed" checkDeadline &&
                traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration  ||
                traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
