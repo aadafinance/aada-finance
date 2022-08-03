@@ -16,7 +16,6 @@ import qualified Data.ByteString.Short as SBS
 import               Interest
 import               Collateral
 import               Request
-import               TimeNft
 import               Liquidation
 import               LenderNft
 
@@ -25,7 +24,6 @@ getCollateralScParams cs = Collateral.ContractInfo {
         Collateral.borrower     = "B"
       , Collateral.lenderNftCs  = cs
       , Collateral.interestscvh = validatorHash (Interest.validator (Interest.ContractInfo cs))
-      , Collateral.timeNft      = scriptCurrencySymbol TimeNft.policy
     }
 
 getRequestScParams :: CurrencySymbol -> Request.ContractInfo
@@ -33,7 +31,7 @@ getRequestScParams cs = Request.ContractInfo {
         Request.borrower       = "B"
       , Request.lenderNftCs    = cs
       , Request.collateralcsvh = validatorHash $ Collateral.validator (getCollateralScParams cs)
-      , Request.timeNft        = scriptCurrencySymbol TimeNft.policy
+      , Request.timeToSubmitTx  = 10000
     }
 
 main :: IO ()

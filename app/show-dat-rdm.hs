@@ -4,9 +4,7 @@
 
 import Data.Aeson as Json ( encode )
 import Data.ByteString.Lazy qualified as LB
-import System.Environment ( getArgs )
 import Prelude
-import Data.String (fromString)
 
 import Cardano.Api
     ( scriptDataToJson,
@@ -15,18 +13,15 @@ import Cardano.Api.Shelley ( fromPlutusData )
 import qualified PlutusTx
 import Ledger
 
-import OracleNft
-import Collateral
 import Spec.Test
 
 main :: IO ()
 main = do
   let exampleOracleRedeemer = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
-  let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0 "nfttn"
+  let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0 "nfttn" 0
   writeData "example.datum" exampleDatum
-  let exampleCollateralRedeemer = CollateralRedeemer 1 2
-  writeData "example-collateral-redeemer.json" exampleCollateralRedeemer
+  writeData "example-collateral-redeemer.json" (POSIXTime 2)
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()
