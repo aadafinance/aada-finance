@@ -216,7 +216,7 @@ getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn newMint = Collateral.C
         }
 
 getLenderTokenName :: TxOutRef -> TokenName
-getLenderTokenName utxo = TokenName $ INT.sha2_256 (INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
+getLenderTokenName utxo = TokenName $ INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo)
 
 getBNftCs :: TxOutRef -> CurrencySymbol
 getBNftCs = scriptCurrencySymbol . BorrowerNft.policy
@@ -518,6 +518,7 @@ returnPartialLoan = do
                         adaValue 1
           wait 2000
           intPayDate <- currentTime
+          logInfo $  "intPayDate: " ++ show intPayDate
 
           sp1 <- spend borrower valTmp1
           sp2 <- spend borrower valTmp2
@@ -621,7 +622,6 @@ returnPartialLoanSameCs = do
           wait 16000
 
           intPayDate <- currentTime
-
           logInfo $ "pay date: " <> show intPayDate 
           let intDat = Collateral.lenderNftTn convertedDat
               tx2 = getTxInFromCollateral [sp1, sp2] convertedDat intPayDate lockRef <>

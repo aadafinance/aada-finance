@@ -83,7 +83,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     interestPercentage :: Integer
     interestPercentage = case (lendDate dat + repayinterval dat) < interestPayDate of
       True  -> 100
-      False -> (getPOSIXTime (repayinterval dat) `multiplyInteger` 100) `divideInteger` getPOSIXTime loanHeld
+      False -> (getPOSIXTime loanHeld `multiplyInteger` 100) `divideInteger` getPOSIXTime (repayinterval dat)
        where
          loanHeld = interestPayDate - lendDate dat
 

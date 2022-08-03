@@ -34,7 +34,9 @@ import qualified Common.Utils             as U
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: TxOutRef -> ScriptContext -> Bool
-mkPolicy utxo ctx = all validate mintedValue
+mkPolicy utxo ctx = case mintedValue of
+    [(_cs, tn, n)] -> validateMint tn n
+    _     -> False
   where
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
     mintFlattened = flattenValue $ txInfoMint (scriptContextTxInfo ctx)
@@ -43,19 +45,20 @@ mkPolicy utxo ctx = all validate mintedValue
     mintedValue = filter (\(cs, _tn, _n) -> cs == ownCurrencySymbol ctx) mintFlattened
 
     calculateTokenNameHash :: BuiltinByteString
-    calculateTokenNameHash = sha2_256 (consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
+    calculateTokenNameHash = consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo)
 
     validateTokenName :: TokenName -> Bool
     validateTokenName tn = unTokenName tn == calculateTokenNameHash
 
-    validateMint :: TokenName -> Integer -> Bool
-    validateMint tn amount = traceIfFalse "invalid lender nft minted amount" (amount == 1) &&
-                             traceIfFalse "minted nft has invalid token name" (validateTokenName tn)
+    checkForOverflow :: Bool
+    checkForOverflow = txOutRefIdx utxo < 256
 
-    validate :: (CurrencySymbol, TokenName, Integer) -> Bool
-    validate (_cs, tn, n)
-     | n > 0     = validateMint tn n
-     | otherwise = True
+    validateMint :: TokenName -> Integer -> Bool
+    validateMint tn amount = U.hasUTxO utxo ctx &&
+                             traceIfFalse "invalid lender nft minted amount" (amount == 1) &&
+                             traceIfFalse "minted nft has invalid token name" (validateTokenName tn) &&
+                             traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow ||
+                             traceIfFalse "invalid burn amount" (amount == (-1))
 
 policy :: Scripts.MintingPolicy
 policy = mkMintingPolicyScript $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy mkPolicy ||])
