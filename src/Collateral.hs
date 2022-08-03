@@ -87,14 +87,16 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
        where
          loanHeld = interestPayDate - lendDate dat
 
-    getPartialInterest :: TxOut -> Integer
-    getPartialInterest txo = (interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage
+    getPartialInterest :: Integer
+    getPartialInterest = if interestPercentage /= 0 
+      then (interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage
+      else 0
 
     validateInterestAmnt :: TxOut -> Bool
-    validateInterestAmnt txo = getInterestAmnt (txOutValue txo) >= ((interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage)
+    validateInterestAmnt txo = getInterestAmnt (txOutValue txo) >= getPartialInterest
 
     validateDebtAndInterestAmnt :: TxOut -> Bool
-    validateDebtAndInterestAmnt txo = interest dat /= loan dat || (getLoanAmnt (txOutValue txo) >= loanamnt dat + getPartialInterest txo)
+    validateDebtAndInterestAmnt txo = interest dat /= loan dat || (getLoanAmnt (txOutValue txo) >= loanamnt dat + getPartialInterest)
 
     validateBorrowerNftBurn :: Bool
     validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
