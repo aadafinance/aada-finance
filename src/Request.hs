@@ -106,9 +106,9 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       , Collateral.interest              = interest dat
       , Collateral.interestamnt          = interestamnt dat
       , Collateral.collateral            = collateral dat
+      , Collateral.collateralamnt        = collateralamnt dat   
       , Collateral.repayinterval         = repayinterval dat
       , Collateral.liquidateNft          = liquidateNft dat
-      , Collateral.collateralamnt        = collateralamnt dat   
       , Collateral.collateralFactor      = collateralFactor dat 
       , Collateral.liquidationCommission = liquidationCommission dat
       , Collateral.requestExpiration     = requestExpiration dat
@@ -123,7 +123,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
       Just vh -> vh == collateralcsvh
       _       -> False
-
+  
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo = case U.ownValue ctx of
       Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)
@@ -133,6 +133,9 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     containsNewDatum txo = case getLendDate of
       Just ld -> findDatumHash' (expectedNewDatum ld) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
+
+    checkForTokensDos :: TxOut -> Bool
+    checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
     checkForTokensDos :: TxOut -> Bool
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3

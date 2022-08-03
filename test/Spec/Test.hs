@@ -448,6 +448,7 @@ returnNotEnoughInterest = do
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
