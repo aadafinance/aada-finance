@@ -991,6 +991,8 @@ happyPath = do
                         adaValue 1
               valTmp3 = fakeValue interestCoin 50 <>
                         adaValue 1
+
+          wait 2000
           intPayDate <- currentTime
 
           sp1 <- spend borrower valTmp1
