@@ -39,7 +39,7 @@ import           Ledger.Typed.Scripts as Scripts
 import           Ledger hiding (singleton)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
-import PlutusTx.Builtins (equalsByteString, divideInteger, multiplyInteger)
+import PlutusTx.Builtins (divideInteger, multiplyInteger)
 import qualified Common.Utils             as U
 import Plutus.V1.Ledger.Api
 
