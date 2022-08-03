@@ -85,11 +85,11 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
       True  -> 100
       False -> (getPOSIXTime loanHeld `multiplyInteger` 100) `divideInteger` getPOSIXTime (repayinterval dat)
        where
-         loanHeld = interestPayDate - lendDate dat
+        loanHeld = interestPayDate - lendDate dat
 
     getPartialInterest :: Integer
-    getPartialInterest = if interestPercentage /= 0 
-      then (interestamnt dat `multiplyInteger` 100) `divideInteger` interestPercentage
+    getPartialInterest = if interestPercentage > 0
+      then (interestamnt dat `multiplyInteger` interestPercentage) `divideInteger` 100
       else 0
 
     validateInterestAmnt :: TxOut -> Bool
@@ -127,7 +127,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
 
     validateReturn :: Bool
     validateReturn = traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
-                     traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
+                    traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
                      traceIfFalse "no correct utxo to interestsc found" validateTxOuts &&
                      traceIfFalse "too many tokens sent" checkForTokensDos
 
