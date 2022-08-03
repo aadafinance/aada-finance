@@ -148,7 +148,7 @@ getSc1Params cs = Request.ContractInfo {
         Request.borrower        = "B"
       , Request.lenderNftCs     = cs
       , Request.collateralcsvh  = validatorHash $ Collateral.validator (getSc2Params cs)
-      , Request.timeToSubmitTx  = 10000
+      , Request.timeToSubmitTx  = 5000
     }
 
 getSc2Params :: CurrencySymbol -> Collateral.ContractInfo
@@ -250,17 +250,17 @@ createLockFundsTx t pkh oref usp expiration mintDate =
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
-getCancelRequestTx :: PubKeyHash -> Value -> RequestDatum -> TxOutRef -> RequestRedeemer -> Tx
-getCancelRequestTx pkh val dat lockRef rdm =
+getCancelRequestTx :: PubKeyHash -> Value -> RequestDatum -> TxOutRef -> TokenName -> Tx
+getCancelRequestTx pkh val dat lockRef lenderTn =
     mconcat
-      [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) lockRef rdm dat
+      [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) lockRef lenderTn dat
       , payToPubKey pkh val
       ]
 
-getTxIn :: UserSpend -> RequestDatum -> TxOutRef -> RequestRedeemer -> Tx
-getTxIn usp dat scriptTxOut rdm =
+getTxIn :: UserSpend -> RequestDatum -> TxOutRef -> TokenName -> Tx
+getTxIn usp dat scriptTxOut lenderTn =
   mconcat
-  [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) scriptTxOut rdm dat
+  [ spendScript (requestTypedValidator (getSc1Params (scriptCurrencySymbol LenderNft.policy))) scriptTxOut lenderTn dat
   , userSpend usp
   ]
 
@@ -353,7 +353,7 @@ borrowerCancelsLoan = do
           let valFromSc1 = fakeValue collateralCoin 100 <> adaValue 2
               valFromUsr = adaValue 1 <> getBNftVal 1 (scriptCurrencySymbol $ BorrowerNft.policy oref)
           sp <- spend u1 valFromUsr
-          tx <- signTx u1 $ getCancelRequestTx u1 valFromSc1 dat lockRef (RequestRedeemer (getLenderTokenName lockRef) 0) <> getBurnBorrowerNftTx u1 oref sp
+          tx <- signTx u1 $ getCancelRequestTx u1 valFromSc1 dat lockRef (getLenderTokenName lockRef) <> getBurnBorrowerNftTx u1 oref sp
           isRight <$> sendTx tx
       Nothing -> pure False
 
@@ -406,12 +406,12 @@ returnFullLoan = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
@@ -463,12 +463,12 @@ returnNotEnoughInterest = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
@@ -518,12 +518,12 @@ returnPartialLoan = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "current time1: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
@@ -613,12 +613,12 @@ returnPartialLoanSameCs = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 100 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend2 borrower lender convertedDat LenderNft.policy lockRef
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend2 borrower lender convertedDat LenderNft.policy lockRef
           logInfo $  "current time1: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
@@ -671,12 +671,12 @@ returnPartialLoanForgedMintDate = do
   case lockDat of
       Just dat -> do
           -- lender provides loan
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "current time1: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
@@ -728,12 +728,12 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
   case lockDat of
       Just dat -> do
           -- lender provides loan
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $ "repay interval: " ++ show repayint
           logInfo $ "loan provided and timenft minted time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
@@ -922,11 +922,11 @@ provideLoanOnTime = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
@@ -949,11 +949,11 @@ provideLoanNotOnTime = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
@@ -991,13 +991,13 @@ happyPath = do
   case lockDat of
       Just dat -> do
           curTime <- currentTime
-          let mintTime = POSIXTime 7000
+          let mintTime = POSIXTime 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
               lenderCs            = scriptCurrencySymbol LenderNft.policy
 
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "mint time: " ++ show mintTime
           logInfo $  "curTime time: " ++ show curTime
           tx <- validateIn (interval 2000 6000) tx
@@ -1067,8 +1067,8 @@ getMintOracleNftTxLiq n pkh1 pkh2 pkh3 =
     mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
     cs   = scriptCurrencySymbol mp
 
-getTxOutLiquidate :: PubKeyHash -> POSIXTime -> MintingPolicy -> CurrencySymbol -> TxOutRef -> Tx
-getTxOutLiquidate lender dl lmp lcs utxo =
+getTxOutLiquidate :: PubKeyHash -> MintingPolicy -> CurrencySymbol -> TxOutRef -> Tx
+getTxOutLiquidate lender lmp lcs utxo =
  mconcat
   [ mintValue lmp (getLNftVal (-1) lcs utxo)
   , payToPubKey lender (fakeValue collateralCoin 100 <> adaValue 2)
@@ -1102,15 +1102,17 @@ liquidateBorrower = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 9000
+          let mintTime = 7000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let lenderCs              = scriptCurrencySymbol LenderNft.policy
-              tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+              tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
 
           logInfo $  "current time: " ++ show mintTime
-          tx <- validateIn (interval 2000 8000) tx
+          realCurTime <- currentTime
+          logInfo $ "real current time: " <> show realCurTime
+          tx <- validateIn (interval 7000 11000) tx
           submitTx lender tx
 
           -- loan liquidate phase
@@ -1124,7 +1126,7 @@ liquidateBorrower = do
 
           let liquidate = getTxInFromCollateraLiq lenderSpend1 lenderSpend2 convertedDat intPayDate lockRef <>
                           getMintOracleNftTxLiq 1 oracle1 oracle2 oracle3 <>
-                          getTxOutLiquidate lender mintTime LenderNft.policy lenderCs lenderNftRef
+                          getTxOutLiquidate lender LenderNft.policy lenderCs lenderNftRef
 
           let valh = validatorHash Helpers.TestValidator.validator
               omp  = OracleNft.policy getOracleNftTn oracle1 oracle2 oracle3 (builtinFromValidatorHash valh)
@@ -1163,12 +1165,12 @@ lenderDosBorrower = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4 <> generateFakeValues' lenderDosAmount
 
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (generateFakeValues' lenderDosAmount)
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (generateFakeValues' lenderDosAmount)
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
 
@@ -1192,12 +1194,12 @@ borrowerDosLender = do
   lockDat <- datumAt @RequestDatum lockRef
   case lockDat of
       Just dat -> do
-          let mintTime = 7000
+          let mintTime = 2000
           let convertedDat        = getCollatDatumFromRequestDat dat (getLenderTokenName lenderNftRef) mintTime
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
 
           sp <- spend lender valForLenderToSpend
-          let tx = getTxIn sp dat lockRef (RequestRedeemer (getLenderTokenName lenderNftRef) mintTime) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+          let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
           logInfo $  "current time: " ++ show mintTime
           tx <- validateIn (interval 2000 6000) tx
 

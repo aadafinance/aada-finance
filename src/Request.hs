@@ -53,14 +53,8 @@ data RequestDatum = RequestDatum
     , lendDate              :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
-data RequestRedeemer = RequestRedeemer {
-    lenderTn    :: !TokenName
-  , lendDateRdm :: !POSIXTime
-}
-
 PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
 PlutusTx.makeLift ''RequestDatum
-PlutusTx.makeIsDataIndexed ''RequestRedeemer [('RequestRedeemer, 0)]
 
 data ContractInfo = ContractInfo
     { borrower       :: !TokenName
@@ -70,9 +64,14 @@ data ContractInfo = ContractInfo
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> RequestDatum -> RequestRedeemer -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
+mkValidator :: ContractInfo -> RequestDatum -> TokenName -> ScriptContext -> Bool
+mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
   where
+    getLendDate :: Maybe POSIXTime
+    getLendDate = case ivFrom (U.range ctx) of
+      LowerBound (Finite x) _ -> Just x
+      _                       -> Nothing
+
     valueToBorrower :: Value
     valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
 
@@ -82,7 +81,7 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateMint :: Bool
     validateMint = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (cs == lenderNftCs) &&
-                         (tn == lenderTn rdm) &&
+                         (tn == lenderTn) &&
                          (amt == 1)
       _               -> False
 
@@ -96,8 +95,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    expectedNewDatum :: RequestDatum
-    expectedNewDatum = dat { lenderNftTn = lenderTn rdm, lendDate = lendDateRdm rdm }
+    expectedNewDatum :: POSIXTime -> RequestDatum
+    expectedNewDatum ld = dat { lenderNftTn = lenderTn, lendDate = ld }
 
     validateExpiration :: Bool
     validateExpiration = after (requestExpiration dat) (U.range ctx)
@@ -113,10 +112,12 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
       Nothing -> False
 
     containsNewDatum :: TxOut -> Bool
-    containsNewDatum txo = findDatumHash' expectedNewDatum (U.info ctx) == txOutDatumHash txo
+    containsNewDatum txo = case getLendDate of
+      Just ld -> findDatumHash' (expectedNewDatum ld) (U.info ctx) == txOutDatumHash txo
+      Nothing -> False
 
     doesNotContainAdditionalTokens :: TxOut -> Bool
-    doesNotContainAdditionalTokens txo = length ((flattenValue . txOutValue) txo) < 4
+    doesNotContainAdditionalTokens txo = length ((flattenValue . txOutValue) txo) <= 3
 
     txOutValidate :: TxOut -> Bool
     txOutValidate txo = isItToCollateral txo &&
@@ -128,27 +129,29 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx = validate
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
     checkDeadline :: Bool
-    checkDeadline = after (lendDateRdm rdm) (U.range ctx) && contains (from (lendDateRdm rdm - timeToSubmitTx)) (U.range ctx) 
+    checkDeadline = case getLendDate of
+      Nothing -> traceIfFalse "couldn't get deadline" False
+      Just ld -> contains (interval ld (ld + timeToSubmitTx)) (U.range ctx) 
 
     validate :: Bool
-    validate = validateTxOuts &&
+    validate = traceIfFalse "validate tx outs fail" validateTxOuts &&
                traceIfFalse "lender nft was not minted" validateMint &&
                traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
                traceIfFalse "Invalid lend date parameter passed" checkDeadline &&
-               traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration ||
+               traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration  ||
                traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
     type instance DatumType    RequestDataTypes = RequestDatum
-    type instance RedeemerType RequestDataTypes = RequestRedeemer
+    type instance RedeemerType RequestDataTypes = TokenName
 
 requestTypedValidator :: ContractInfo -> Scripts.TypedValidator RequestDataTypes
 requestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTypes
     ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @RequestDatum @RequestRedeemer
+    wrap = Scripts.wrapValidator @RequestDatum @TokenName
 
 requestValidator :: ContractInfo -> Validator
 requestValidator = Scripts.validatorScript . requestTypedValidator
