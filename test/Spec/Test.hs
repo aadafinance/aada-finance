@@ -148,7 +148,6 @@ getSc1Params cs = Request.ContractInfo {
         Request.borrower        = "B"
       , Request.lenderNftCs     = cs
       , Request.collateralcsvh  = validatorHash $ Collateral.validator (getSc2Params cs)
-      , Request.timeToSubmitTx  = 5000
     }
 
 getSc2Params :: CurrencySymbol -> Collateral.ContractInfo
