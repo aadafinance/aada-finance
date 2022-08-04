@@ -62,7 +62,6 @@ data ContractInfo = ContractInfo
     { borrower       :: !TokenName
     , lenderNftCs    :: !CurrencySymbol
     , collateralcsvh :: !ValidatorHash
-    , timeToSubmitTx :: !POSIXTime
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
