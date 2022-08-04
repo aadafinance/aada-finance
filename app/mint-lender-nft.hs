@@ -10,6 +10,7 @@ import qualified Cardano.Ledger.Alonzo.Data as Alonzo
 import qualified Plutus.V1.Ledger.Api       as Plutus
 
 import qualified Data.ByteString.Short as SBS
+import qualified Data.String           as FS
 
 import           LenderNft (lenderNftShortBs, lenderNft)
 
@@ -23,6 +24,13 @@ writeLenderNftMintingPolicyScript = do
 main :: IO ()
 main = do
   writeLenderNftMintingPolicyScript
+
+parseUTxO :: String -> Plutus.TxOutRef
+parseUTxO s =
+  let
+    (x, y) = span (/= '#') s
+  in
+    Plutus.TxOutRef (Plutus.TxId $ Plutus.getLedgerBytes $ FS.fromString x) $ read $ tail y
 
 writePlutusMintingScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusMintingScript scriptnum filename scriptSerial scriptSBS =
