@@ -13,12 +13,16 @@ import qualified Data.ByteString.Short as SBS
 
 import           LenderNft (lenderNftShortBs, lenderNft)
 
-main :: IO ()
-main = do
+writeLenderNftMintingPolicyScript :: IO ()
+writeLenderNftMintingPolicyScript = do 
   let scriptnum = 0
   let scriptname = "lender.nft"
   putStrLn $ "Writing output to: " ++ scriptname
   writePlutusMintingScript scriptnum scriptname lenderNft lenderNftShortBs
+
+main :: IO ()
+main = do
+  writeLenderNftMintingPolicyScript
 
 writePlutusMintingScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusMintingScript scriptnum filename scriptSerial scriptSBS =
