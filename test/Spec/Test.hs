@@ -215,7 +215,7 @@ getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn newMint = Collateral.C
         }
 
 getLenderTokenName :: TxOutRef -> TokenName
-getLenderTokenName utxo = TokenName $ INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo)
+getLenderTokenName utxo = TokenName $ INT.sha2_256 (INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
 
 getBNftCs :: TxOutRef -> CurrencySymbol
 getBNftCs = scriptCurrencySymbol . BorrowerNft.policy
@@ -975,6 +975,8 @@ happyPath = do
 
           sp <- spend lender valForLenderToSpend
           let tx = getTxIn sp dat lockRef (getLenderTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat LenderNft.policy lockRef (adaValueOf 0)
+          logInfo $  "ref: " ++ show lenderNftRef
+          logInfo $  "hash: " ++ show (getLenderTokenName lenderNftRef)
           logInfo $  "mint time: " ++ show mintTime
           logInfo $  "curTime time: " ++ show curTime
           tx <- validateIn (interval 2000 6000) tx
