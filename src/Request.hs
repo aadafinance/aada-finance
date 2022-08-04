@@ -77,7 +77,10 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
 
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) >= loanamnt dat
+    borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) == loanamnt dat
+
+    allInputgoesToBorrower :: Bool
+    allInputgoesToBorrower =  assetClassValueOf valueToBorrower (loan dat) >= assetClassValueOf (U.valueIn ctx) (loan dat)
 
     validateMint :: Bool
     validateMint = case U.mintFlattened ctx of
@@ -149,6 +152,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validate = traceIfFalse "validate tx outs fail" validateTxOuts &&
                traceIfFalse "lender nft was not minted" validateMint &&
                traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
+               traceIfFalse "someone else besides borrower received loan" allInputgoesToBorrower &&
                traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration  ||
                traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
