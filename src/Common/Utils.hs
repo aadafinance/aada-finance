@@ -33,6 +33,10 @@ ownValue ctx = do
     txo <- ownInput ctx
     pure $ txOutValue txo
 
+{-# INLINABLE valueIn #-}
+valueIn :: ScriptContext -> Value
+valueIn ctx = mconcat $ txOutValue . txInInfoResolved <$> txInfoInputs (info ctx)
+
 {-# INLINEABLE valueToSc #-}
 valueToSc :: ValidatorHash -> ScriptContext -> Value
 valueToSc vh ctx = mconcat $ fmap snd (scriptOutputsAt vh (info ctx))
