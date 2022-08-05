@@ -10,15 +10,83 @@ import qualified Cardano.Ledger.Alonzo.Data as Alonzo
 import qualified Plutus.V1.Ledger.Api       as Plutus
 
 import qualified Data.ByteString.Short as SBS
+import qualified Data.String           as FS
+import Ledger.Value (TokenName(unTokenName))
+
+import Options.Applicative
+import Data.Semigroup ((<>))
+import Control.Monad
 
 import           LenderNft (lenderNftShortBs, lenderNft)
+import Spec.Test
+
+writeLenderNftMintingPolicyScript :: String -> IO ()
+writeLenderNftMintingPolicyScript fp = do
+  putStrLn $ "Writing output to: " ++ fp
+  writePlutusMintingScript 0 fp lenderNft lenderNftShortBs
+
+defaultLenderNftFp :: FilePath
+defaultLenderNftFp = "lender.nft"
+
+data Command =
+    TokenName String
+  | MintingPolicy FilePath
+  deriving Show
+
+parserInfo' :: ParserInfo Command
+parserInfo' = info' parser' "Generate LenderNFT minting policy or its token name"
+  where
+    parser' :: Parser Command
+    parser' = (subparser . foldMap command')
+      [ ("token-name", "Hash utxo get get Lender NFT token name", tokenNameP)
+      , ("minting-policy", "Generate LenderNFT minting policy", mintingPolicyP)
+      ]
+
+    tokenNameP = TokenName <$> tokenNameArg
+    mintingPolicyP = MintingPolicy <$> mintingPolicyArg
+
+    tokenNameArg = strOption
+      (mconcat
+        [ help "Enter utxo to be consumed when minting LenderNFT."
+        , long "utxo"
+        , short 'u'
+        , metavar "UTXO"
+        ])
+
+    mintingPolicyArg = strOption
+      (mconcat
+       [ help "Enter name of lenderNFT minting policy. Default is lender.nft"
+       , long "name"
+       , short 'p'
+       , showDefault
+       , metavar "FILEPATH"
+       , value defaultLenderNftFp ])
+
+    info' :: Parser a -> String -> ParserInfo a
+    info' p desc = info
+      (helper <*> p)
+      (fullDesc <> progDesc desc)
+
+    command' (cmdName, desc, parser) =
+      command cmdName (info' parser desc)
 
 main :: IO ()
 main = do
-  let scriptnum = 0
-  let scriptname = "lender.nft"
-  putStrLn $ "Writing output to: " ++ scriptname
-  writePlutusMintingScript scriptnum scriptname lenderNft lenderNftShortBs
+  opts <- execParser parserInfo'
+  case opts of
+    TokenName utxo -> do
+      let txref = parseUTxO utxo
+          tn = getLenderTokenName txref
+      print $ show (unTokenName tn)
+    MintingPolicy fp -> do
+      writeLenderNftMintingPolicyScript fp
+
+parseUTxO :: String -> Plutus.TxOutRef
+parseUTxO s =
+  let
+    (x, y) = span (/= '#') s
+  in
+    Plutus.TxOutRef (Plutus.TxId $ Plutus.getLedgerBytes $ FS.fromString x) $ read $ tail y
 
 writePlutusMintingScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusMintingScript scriptnum filename scriptSerial scriptSBS =
