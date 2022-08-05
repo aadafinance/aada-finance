@@ -55,7 +55,7 @@ parserInfo' = info' parser' "Generate LenderNFT minting policy or its token name
 
     mintingPolicyArg = strOption
       (mconcat
-       [ help "Enter name of lenderNFT minting policy. Default is lender/.nft"
+       [ help "Enter name of lenderNFT minting policy. Default is lender.nft"
        , long "name"
        , short 'p'
        , showDefault
