@@ -80,7 +80,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) == loanamnt dat
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
-    ownHashFilter mvh = case mvh of
+    ownHashFilter mvh = Just (ownHash ctx) == mvh
       Just vh -> vh == ownHash ctx
       Nothing -> False
 
