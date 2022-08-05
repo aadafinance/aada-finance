@@ -63,7 +63,7 @@ data CollateralDatum = CollateralDatum
 
 data ContractInfo = ContractInfo
     { borrower     :: !TokenName
-    , lenderNftCs  :: !CurrencySymbol
+    , aadaNftCs    :: !CurrencySymbol
     , interestscvh :: !ValidatorHash
     } deriving (Show, Generic, ToJSON, FromJSON)
 
@@ -138,7 +138,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (U.range ctx) (from interestPayDate))
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) lenderNftCs (lenderNftTn dat) == (-1))
+    checkLNftsAreBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) aadaNftCs (lenderNftTn dat) == (-1))
 
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))

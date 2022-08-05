@@ -22,14 +22,14 @@ import               LenderNft
 getCollateralScParams :: CurrencySymbol -> Collateral.ContractInfo
 getCollateralScParams cs = Collateral.ContractInfo {
         Collateral.borrower     = "B"
-      , Collateral.lenderNftCs  = cs
+      , Collateral.aadaNftCs    = cs
       , Collateral.interestscvh = validatorHash (Interest.validator (Interest.ContractInfo cs))
     }
 
 getRequestScParams :: CurrencySymbol -> Request.ContractInfo
 getRequestScParams cs = Request.ContractInfo {
         Request.borrower       = "B"
-      , Request.lenderNftCs    = cs
+      , Request.aadaNftCs      = cs
       , Request.collateralcsvh = validatorHash $ Collateral.validator (getCollateralScParams cs)
     }
 
