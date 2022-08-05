@@ -127,7 +127,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
 
     validateReturn :: Bool
     validateReturn = traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
-                    traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
+                     traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
                      traceIfFalse "no correct utxo to interestsc found" validateTxOuts &&
                      traceIfFalse "too many tokens sent" checkForTokensDos
 
