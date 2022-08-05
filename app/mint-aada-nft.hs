@@ -77,7 +77,7 @@ main = do
   opts <- execParser parserInfo'
   case opts of
     TokenName utxo -> do
-      let (PTX.BuiltinByteString byteString) = unTokenName . getLenderTokenName . parseUTxO $ utxo
+      let (PTX.BuiltinByteString byteString) = unTokenName . getAadaTokenName . parseUTxO $ utxo
       print $ show (encodeHex byteString)
     MintingPolicy fp -> do
       writeAadaNftMintingPolicyScript fp

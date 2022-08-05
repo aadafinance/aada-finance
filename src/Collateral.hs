@@ -62,8 +62,7 @@ data CollateralDatum = CollateralDatum
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data ContractInfo = ContractInfo
-    { borrower     :: !TokenName
-    , aadaNftCs    :: !CurrencySymbol
+    { aadaNftCs    :: !CurrencySymbol
     , interestscvh :: !ValidatorHash
     } deriving (Show, Generic, ToJSON, FromJSON)
 

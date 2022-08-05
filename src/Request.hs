@@ -59,8 +59,7 @@ PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
 PlutusTx.makeLift ''RequestDatum
 
 data ContractInfo = ContractInfo
-    { borrower       :: !TokenName
-    , aadaNftCs      :: !CurrencySymbol
+    { aadaNftCs      :: !CurrencySymbol
     , collateralcsvh :: !ValidatorHash
     } deriving (Show, Generic, ToJSON, FromJSON)
 
