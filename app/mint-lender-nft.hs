@@ -8,9 +8,11 @@ import           Cardano.Api.Shelley
 
 import qualified Cardano.Ledger.Alonzo.Data as Alonzo
 import qualified Plutus.V1.Ledger.Api       as Plutus
+import qualified PlutusTx.Builtins.Internal as PTX
 
 import qualified Data.ByteString.Short as SBS
 import qualified Data.String           as FS
+import Text.Hex (encodeHex)
 import Ledger.Value (TokenName(unTokenName))
 
 import Options.Applicative
@@ -75,9 +77,8 @@ main = do
   opts <- execParser parserInfo'
   case opts of
     TokenName utxo -> do
-      let txref = parseUTxO utxo
-          tn = getLenderTokenName txref
-      print $ show (unTokenName tn)
+      let (PTX.BuiltinByteString byteString) = unTokenName . getLenderTokenName . parseUTxO $ utxo
+      print $ show (encodeHex byteString)
     MintingPolicy fp -> do
       writeLenderNftMintingPolicyScript fp
 

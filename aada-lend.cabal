@@ -143,6 +143,7 @@ executable mint-lender-nft
                       , bytestring
                       , aeson
                       , optparse-applicative
+                      , hex-text
 
 executable mint-oracle-nft
   import:               base, project-config
