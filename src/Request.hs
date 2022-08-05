@@ -81,8 +81,6 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
-      Just vh -> vh == ownHash ctx
-      Nothing -> False
 
     txHasOneInputOnly :: Bool
     txHasOneInputOnly = length (filter ownHashFilter $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
