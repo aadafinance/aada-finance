@@ -62,6 +62,7 @@ library
 
   exposed-modules:      BorrowerNft
                       , LenderNft
+                      , AadaNft
                       , Collateral
                       , Interest
                       , Liquidation
@@ -138,6 +139,23 @@ executable mint-lender-nft
                       , cardano-ledger-alonzo
                       , plutus-ledger
                       , aada-lend 
+                      , plutus-tx
+                      , plutus-ledger-api
+                      , bytestring
+                      , aeson
+                      , optparse-applicative
+                      , hex-text
+
+executable mint-aada-nft
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              mint-aada-nft.hs
+  ghc-options:          -Wall
+
+  build-depends:        cardano-api
+                      , cardano-ledger-alonzo
+                      , plutus-ledger
+                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
