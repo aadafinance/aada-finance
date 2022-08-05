@@ -11,8 +11,8 @@ import Cardano.Api
       ScriptDataJsonSchema(ScriptDataJsonDetailedSchema) )
 import Cardano.Api.Shelley ( fromPlutusData )
 import qualified PlutusTx
+import Plutus.V1.Ledger.Value
 import Ledger
-
 import Spec.Test
 
 main :: IO ()
@@ -22,6 +22,8 @@ main = do
   let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0 "nfttn" 0
   writeData "example.datum" exampleDatum
   writeData "example-collateral-redeemer.json" (POSIXTime 2)
+  let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getLenderTokenName (TxOutRef "ff" 1))
+  writeData "example-request-redeemer.json" exampleRequestRedeemer
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()
