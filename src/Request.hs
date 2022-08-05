@@ -38,7 +38,7 @@ import Plutus.V1.Ledger.Api
 import qualified Collateral
 
 data RequestDatum = RequestDatum
-    { borrowersNFT          :: !CurrencySymbol
+    { borrowersNftTn        :: !TokenName
     , borrowersPkh          :: !PaymentPubKeyHash
     , loan                  :: !AssetClass
     , loanamnt              :: !Integer
@@ -94,8 +94,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
 
     validateBorrowerMint :: Bool
     validateBorrowerMint = case U.mintFlattened ctx of
-      [(cs, tn, amt)] -> (cs == borrowersNFT dat) &&
-                         (tn == borrower) &&
+      [(cs, tn, amt)] -> (cs == aadaNftCs) &&
+                         (tn == borrowersNftTn dat) &&
                          (amt == (-1))
       _               -> False
 
@@ -104,7 +104,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
 
     expectedNewDatum :: POSIXTime -> Collateral.CollateralDatum
     expectedNewDatum ld = Collateral.CollateralDatum { 
-        Collateral.borrowersNFT          = borrowersNFT dat 
+        Collateral.borrowersNftTn        = borrowersNftTn dat
       , Collateral.borrowersPkh          = borrowersPkh dat
       , Collateral.loan                  = loan dat
       , Collateral.loanamnt              = loanamnt dat

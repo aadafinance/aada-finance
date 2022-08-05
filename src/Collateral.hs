@@ -44,7 +44,7 @@ import qualified Common.Utils             as U
 import Plutus.V1.Ledger.Api
 
 data CollateralDatum = CollateralDatum
-    { borrowersNFT          :: !CurrencySymbol
+    { borrowersNftTn        :: !TokenName
     , borrowersPkh          :: !PaymentPubKeyHash
     , loan                  :: !AssetClass
     , loanamnt              :: !Integer
@@ -99,7 +99,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     validateDebtAndInterestAmnt txo = interest dat /= loan dat || (getLoanAmnt (txOutValue txo) >= loanamnt dat + getPartialInterest)
 
     validateBorrowerNftBurn :: Bool
-    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
+    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == aadaNftCs && tn == borrowersNftTn dat && n == (-1)) (U.mintFlattened ctx)
 
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
