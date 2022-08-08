@@ -33,8 +33,8 @@ import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import qualified Common.Utils             as U
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: TxOutRef -> ScriptContext -> Bool
-mkPolicy utxo ctx = case mintedValue of
+mkPolicy :: Bool -> TxOutRef -> ScriptContext -> Bool
+mkPolicy isLender utxo ctx = case mintedValue of
     [(_cs, tn, n)] -> validateMint tn n
     _     -> False
   where
@@ -60,20 +60,23 @@ mkPolicy utxo ctx = case mintedValue of
                              traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow ||
                              traceIfFalse "invalid burn amount" (amount == (-1))
 
-policy :: Scripts.MintingPolicy
-policy = mkMintingPolicyScript $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy mkPolicy ||])
+policy :: Bool -> Scripts.MintingPolicy
+policy isLender = mkMintingPolicyScript $
+ $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy . mkPolicy ||])
+ `PlutusTx.applyCode`
+ PlutusTx.liftCode isLender
 
-plutusScript :: Script
-plutusScript = unMintingPolicyScript policy
+plutusScript :: Bool -> Script
+plutusScript = unMintingPolicyScript . policy
 
-validator :: Validator
-validator = Validator plutusScript
+validator :: Bool -> Validator
+validator = Validator . plutusScript
 
-scriptAsCbor :: LB.ByteString
-scriptAsCbor = serialise validator
+scriptAsCbor :: Bool -> LB.ByteString
+scriptAsCbor = serialise . validator
 
-aadaNft :: PlutusScript PlutusScriptV1
-aadaNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict $ scriptAsCbor
+aadaNft :: Bool -> PlutusScript PlutusScriptV1
+aadaNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict . scriptAsCbor
 
-aadaNftShortBs :: SBS.ShortByteString
-aadaNftShortBs = SBS.toShort . LB.toStrict $ scriptAsCbor
+aadaNftShortBs :: Bool -> SBS.ShortByteString
+aadaNftShortBs = SBS.toShort . LB.toStrict . scriptAsCbor
