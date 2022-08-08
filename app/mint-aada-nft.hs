@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedStrings  #-}
 
 import           Prelude
-import           System.Environment
-
 import           Cardano.Api
 import           Cardano.Api.Shelley
 
@@ -16,38 +14,60 @@ import Text.Hex (encodeHex)
 import Ledger.Value (TokenName(unTokenName))
 
 import Options.Applicative
-import Data.Semigroup ((<>))
-import Control.Monad
 
-import           LenderNft (lenderNftShortBs, lenderNft)
+import           AadaNft (aadaNftShortBs, aadaNft)
 import Spec.Test
 
-writeLenderNftMintingPolicyScript :: String -> IO ()
-writeLenderNftMintingPolicyScript fp = do
+writeAadaNftMintingPolicyScript :: String -> Bool -> IO ()
+writeAadaNftMintingPolicyScript fp isLenderNft = do
   putStrLn $ "Writing output to: " ++ fp
-  writePlutusMintingScript 0 fp lenderNft lenderNftShortBs
+  writePlutusMintingScript 0 fp (aadaNft isLenderNft) (aadaNftShortBs isLenderNft)
 
-defaultLenderNftFp :: FilePath
-defaultLenderNftFp = "lender.nft"
+defaultAadaNftFp :: FilePath
+defaultAadaNftFp = "aada.nft"
+
+data CompleteCommand = CompleteCommand {
+    cmd     :: Command
+  , nftType :: NftType
+  } deriving Show
 
 data Command =
     TokenName String
   | MintingPolicy FilePath
   deriving Show
 
-parserInfo' :: ParserInfo Command
+data NftType =
+    BorrowerNft
+  | LenderNft
+  deriving Show
+
+parserInfo' :: ParserInfo CompleteCommand
 parserInfo' = info' parser' "Generate LenderNFT minting policy or its token name"
   where
-    parser' :: Parser Command
+    parser' :: Parser CompleteCommand
     parser' = (subparser . foldMap command')
       [ ("token-name", "Hash utxo get get Lender NFT token name", tokenNameP)
       , ("minting-policy", "Generate LenderNFT minting policy", mintingPolicyP)
       ]
 
-    tokenNameP = TokenName <$> tokenNameArg
-    mintingPolicyP = MintingPolicy <$> mintingPolicyArg
+    tokenNameP = CompleteCommand <$> tokenNameArg <*> pure LenderNft
+    mintingPolicyP = CompleteCommand <$> mintingPolicyArg <*> nftTypeP
 
-    tokenNameArg = strOption
+    nftTypeP = borrowerNftTypeFlag <|> lenderNftTypeFlag
+
+    borrowerNftTypeFlag = flag' BorrowerNft (
+      long "borrower"
+      <> short 'b'
+      <> help "choose borrower"
+      )
+
+    lenderNftTypeFlag = flag' LenderNft (
+      long "lender"
+      <> short 'l'
+      <> help "choose lender"
+      )
+
+    tokenNameArg = TokenName <$> strOption
       (mconcat
         [ help "Enter utxo to be consumed when minting LenderNFT."
         , long "utxo"
@@ -55,14 +75,14 @@ parserInfo' = info' parser' "Generate LenderNFT minting policy or its token name
         , metavar "UTXO"
         ])
 
-    mintingPolicyArg = strOption
+    mintingPolicyArg = MintingPolicy <$> strOption
       (mconcat
-       [ help "Enter name of lenderNFT minting policy. Default is lender.nft"
+       [ help "Enter name of aada nft minting policy. Default is aada.nft"
        , long "name"
        , short 'p'
        , showDefault
        , metavar "FILEPATH"
-       , value defaultLenderNftFp ])
+       , value defaultAadaNftFp ])
 
     info' :: Parser a -> String -> ParserInfo a
     info' p desc = info
@@ -76,11 +96,13 @@ main :: IO ()
 main = do
   opts <- execParser parserInfo'
   case opts of
-    TokenName utxo -> do
-      let (PTX.BuiltinByteString byteString) = unTokenName . getLenderTokenName . parseUTxO $ utxo
+    CompleteCommand (TokenName utxo) _ -> do
+      let (PTX.BuiltinByteString byteString) = unTokenName . getAadaTokenName . parseUTxO $ utxo
       print $ show (encodeHex byteString)
-    MintingPolicy fp -> do
-      writeLenderNftMintingPolicyScript fp
+    CompleteCommand (MintingPolicy fp) LenderNft -> do
+      writeAadaNftMintingPolicyScript fp True
+    CompleteCommand (MintingPolicy fp) BorrowerNft -> do
+      writeAadaNftMintingPolicyScript fp False
 
 parseUTxO :: String -> Plutus.TxOutRef
 parseUTxO s =

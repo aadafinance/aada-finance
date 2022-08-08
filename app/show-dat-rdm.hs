@@ -22,7 +22,7 @@ main = do
   let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0 "nfttn" 0
   writeData "example.datum" exampleDatum
   writeData "example-collateral-redeemer.json" (POSIXTime 2)
-  let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getLenderTokenName (TxOutRef "ff" 1))
+  let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getAadaTokenName (TxOutRef "ff" 1))
   writeData "example-request-redeemer.json" exampleRequestRedeemer
   putStrLn "Done"
 
