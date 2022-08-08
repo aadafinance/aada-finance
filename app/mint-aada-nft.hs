@@ -19,16 +19,16 @@ import Options.Applicative
 import Data.Semigroup ((<>))
 import Control.Monad
 
-import           LenderNft (lenderNftShortBs, lenderNft)
+import           AadaNft (aadaNftShortBs, aadaNft)
 import Spec.Test
 
-writeLenderNftMintingPolicyScript :: String -> IO ()
-writeLenderNftMintingPolicyScript fp = do
+writeAadaNftMintingPolicyScript :: String -> IO ()
+writeAadaNftMintingPolicyScript fp = do
   putStrLn $ "Writing output to: " ++ fp
-  writePlutusMintingScript 0 fp lenderNft lenderNftShortBs
+  writePlutusMintingScript 0 fp aadaNft aadaNftShortBs
 
-defaultLenderNftFp :: FilePath
-defaultLenderNftFp = "lender.nft"
+defaultAadaNftFp :: FilePath
+defaultAadaNftFp = "aada.nft"
 
 data Command =
     TokenName String
@@ -62,7 +62,7 @@ parserInfo' = info' parser' "Generate LenderNFT minting policy or its token name
        , short 'p'
        , showDefault
        , metavar "FILEPATH"
-       , value defaultLenderNftFp ])
+       , value defaultAadaNftFp ])
 
     info' :: Parser a -> String -> ParserInfo a
     info' p desc = info
@@ -77,10 +77,10 @@ main = do
   opts <- execParser parserInfo'
   case opts of
     TokenName utxo -> do
-      let (PTX.BuiltinByteString byteString) = unTokenName . getLenderTokenName . parseUTxO $ utxo
+      let (PTX.BuiltinByteString byteString) = unTokenName . getAadaTokenName . parseUTxO $ utxo
       print $ show (encodeHex byteString)
     MintingPolicy fp -> do
-      writeLenderNftMintingPolicyScript fp
+      writeAadaNftMintingPolicyScript fp
 
 parseUTxO :: String -> Plutus.TxOutRef
 parseUTxO s =

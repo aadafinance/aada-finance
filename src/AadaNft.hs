@@ -15,9 +15,9 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use foldr" #-}
 
-module LenderNft
-  ( lenderNft
-  , lenderNftShortBs
+module AadaNft
+  ( aadaNft
+  , aadaNftShortBs
   , policy
   ) where
 
@@ -72,8 +72,8 @@ validator = Validator plutusScript
 scriptAsCbor :: LB.ByteString
 scriptAsCbor = serialise validator
 
-lenderNft :: PlutusScript PlutusScriptV1
-lenderNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict $ scriptAsCbor
+aadaNft :: PlutusScript PlutusScriptV1
+aadaNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict $ scriptAsCbor
 
-lenderNftShortBs :: SBS.ShortByteString
-lenderNftShortBs = SBS.toShort . LB.toStrict $ scriptAsCbor
+aadaNftShortBs :: SBS.ShortByteString
+aadaNftShortBs = SBS.toShort . LB.toStrict $ scriptAsCbor

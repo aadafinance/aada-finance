@@ -44,7 +44,7 @@ import qualified Common.Utils             as U
 import Plutus.V1.Ledger.Api
 
 data CollateralDatum = CollateralDatum
-    { borrowersNFT          :: !CurrencySymbol
+    { borrowersNftTn        :: !TokenName
     , borrowersPkh          :: !PaymentPubKeyHash
     , loan                  :: !AssetClass
     , loanamnt              :: !Integer
@@ -62,8 +62,7 @@ data CollateralDatum = CollateralDatum
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data ContractInfo = ContractInfo
-    { borrower     :: !TokenName
-    , lenderNftCs  :: !CurrencySymbol
+    { aadaNftCs    :: !CurrencySymbol
     , interestscvh :: !ValidatorHash
     } deriving (Show, Generic, ToJSON, FromJSON)
 
@@ -99,7 +98,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     validateDebtAndInterestAmnt txo = interest dat /= loan dat || (getLoanAmnt (txOutValue txo) >= loanamnt dat + getPartialInterest)
 
     validateBorrowerNftBurn :: Bool
-    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNFT dat && tn == borrower && n == (-1)) (U.mintFlattened ctx)
+    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == aadaNftCs && tn == borrowersNftTn dat && n == (-1)) (U.mintFlattened ctx)
 
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
@@ -138,7 +137,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (U.range ctx) (from interestPayDate))
 
     checkLNftsAreBurnt :: Bool
-    checkLNftsAreBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) lenderNftCs (lenderNftTn dat) == (-1))
+    checkLNftsAreBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) aadaNftCs (lenderNftTn dat) == (-1))
 
     checkForLiquidationNft :: Bool
     checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))

@@ -60,8 +60,7 @@ library
 
   hs-source-dirs:       src, test
 
-  exposed-modules:      BorrowerNft
-                      , LenderNft
+  exposed-modules:      AadaNft
                       , Collateral
                       , Interest
                       , Liquidation
@@ -113,31 +112,16 @@ executable compile-validators
                       , bytestring
                       , aeson
 
-executable mint-borrower-nft
+executable mint-aada-nft
   import:               base, project-config
   hs-source-dirs:       app
-  main-is:              mint-borrower-nft.hs
+  main-is:              mint-aada-nft.hs
   ghc-options:          -Wall
 
   build-depends:        cardano-api
                       , cardano-ledger-alonzo
                       , plutus-ledger
-                      , aada-lend 
-                      , plutus-tx
-                      , plutus-ledger-api
-                      , bytestring
-                      , aeson
-
-executable mint-lender-nft
-  import:               base, project-config
-  hs-source-dirs:       app
-  main-is:              mint-lender-nft.hs
-  ghc-options:          -Wall
-
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
-                      , aada-lend 
+                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
