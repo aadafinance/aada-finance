@@ -24,6 +24,8 @@ main = do
   writeData "example-collateral-redeemer.json" (POSIXTime 2)
   let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getAadaTokenName (TxOutRef "ff" 1))
   writeData "example-request-redeemer.json" exampleRequestRedeemer
+  let exampleAadaNftRedeemer = Redeemer (PlutusTx.toBuiltinData (TxOutRef "ff" 1))
+  writeData "example-aada-nft-redeemer.json" exampleAadaNftRedeemer
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()
