@@ -72,8 +72,7 @@ ENV LD_LIBRARY_PATH="/usr/local/lib"
 ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 
 COPY --from=build /app/compile-validators /usr/local/bin/
-COPY --from=build /app/mint-borrower-nft /usr/local/bin/
-COPY --from=build /app/mint-lender-nft /usr/local/bin/
+COPY --from=build /app/mint-aada-nft /usr/local/bin/
 COPY --from=build /app/generate-example-jsons /usr/local/bin/
 COPY --from=build /app/mint-oracle-nft /usr/local/bin/
 WORKDIR /app
