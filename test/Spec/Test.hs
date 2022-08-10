@@ -165,7 +165,7 @@ getSc2Params :: Collateral.ContractInfo
 getSc2Params = Collateral.ContractInfo {
         Collateral.lenderNftCs    = getLenderNftCs
       , Collateral.borrowersNftCs = getBorrowerNftCs
-      , Collateral.interestscvh   = validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs))
+      , Collateral.interestSc     = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) Nothing
     }
 
 getTestDatum :: POSIXTime -> TokenName -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> RequestDatum

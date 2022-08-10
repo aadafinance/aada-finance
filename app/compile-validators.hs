@@ -32,18 +32,18 @@ getLenderNftCs = scriptCurrencySymbol getLenderNftPolicy
 getBorrowerNftCs :: CurrencySymbol
 getBorrowerNftCs = scriptCurrencySymbol getBorrowerNftPolicy
 
-getCollateralScParams :: Collateral.ContractInfo
-getCollateralScParams = Collateral.ContractInfo {
+getCollateralScParams :: Maybe StakingCredential -> Collateral.ContractInfo
+getCollateralScParams stakingCredential = Collateral.ContractInfo {
         Collateral.lenderNftCs    = getLenderNftCs
       , Collateral.borrowersNftCs = getBorrowerNftCs
-      , Collateral.interestscvh   = validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs))
+      , Collateral.interestSc     = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) stakingCredential
     }
 
 getRequestScParams :: Maybe StakingCredential -> Request.ContractInfo
 getRequestScParams stakingCredential = Request.ContractInfo {
         Request.lenderNftCs    = getLenderNftCs
       , Request.borrowersNftCs = getBorrowerNftCs
-      , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator getCollateralScParams)) stakingCredential
+      , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator (getCollateralScParams stakingCredential))) stakingCredential
     }
 
 parseStakingKey :: String -> StakingCredential
@@ -57,7 +57,7 @@ main = do
       parsedStakingKey = parseStakingKey stakingKey
       scriptnum = 0
   writePlutusScript scriptnum "interest.plutus" (Interest.interestScript (Interest.ContractInfo getLenderNftCs)) (interestShortBs (Interest.ContractInfo getLenderNftCs))
-  writePlutusScript scriptnum "collateral.plutus" (Collateral.collateralScript getCollateralScParams) (collateralShortBs getCollateralScParams)
+  writePlutusScript scriptnum "collateral.plutus" (Collateral.collateralScript (getCollateralScParams $ Just parsedStakingKey)) (collateralShortBs (getCollateralScParams $ Just parsedStakingKey))
   writePlutusScript scriptnum "request.plutus" (Request.request (getRequestScParams $ Just parsedStakingKey)) (requestShortBs (getRequestScParams $ Just parsedStakingKey))
   writePlutusScript scriptnum "liquidation.plutus" Liquidation.liquidation liquidationShortBs
 

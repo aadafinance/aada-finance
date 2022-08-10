@@ -64,7 +64,7 @@ data CollateralDatum = CollateralDatum
 data ContractInfo = ContractInfo
     { lenderNftCs    :: !CurrencySymbol
     , borrowersNftCs :: !CurrencySymbol
-    , interestscvh :: !ValidatorHash
+    , interestSc     :: !Address
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
@@ -109,7 +109,9 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
 
     destinationIsToInterestSc :: TxOut -> Bool
     destinationIsToInterestSc txo = case toValidatorHash $ txOutAddress txo of
-      Just vh -> vh == interestscvh
+      Just vh -> case toValidatorHash interestSc of
+        Just interestVh -> vh == interestVh
+        _ -> False
       Nothing -> False
 
     txOutValidate :: TxOut -> Bool
@@ -117,19 +119,19 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
                         destinationIsToInterestSc txo &&
                         validateDebtAmnt txo &&
                         validateInterestAmnt txo &&
-                        validateDebtAndInterestAmnt txo
+                        validateDebtAndInterestAmnt txo &&
+                        checkForTokensDos txo
 
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
-    checkForTokensDos :: Bool
-    checkForTokensDos = length (flattenValue $ U.valueToSc interestscvh ctx) <= 3
+    checkForTokensDos :: TxOut -> Bool
+    checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
     validateReturn :: Bool
     validateReturn = traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
                      traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
-                     traceIfFalse "no correct utxo to interestsc found" validateTxOuts &&
-                     traceIfFalse "too many tokens sent" checkForTokensDos
+                     traceIfFalse "no correct utxo to interestsc found" validateTxOuts
 
     checkDeadline :: Bool
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (lendDate dat + repayinterval dat)) (U.range ctx))
