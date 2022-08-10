@@ -61,7 +61,7 @@ PlutusTx.makeLift ''RequestDatum
 data ContractInfo = ContractInfo
     { lenderNftCs    :: !CurrencySymbol
     , borrowersNftCs :: !CurrencySymbol
-    , collateralcsvh :: !ValidatorHash
+    , collateralSc   :: !Address
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
@@ -126,7 +126,9 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
 
     isItToCollateral :: TxOut -> Bool
     isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
-      Just vh -> vh == collateralcsvh
+      Just vh -> case toValidatorHash collateralSc of
+        Just scvh -> scvh == vh
+        _ -> False
       _       -> False
   
     containsRequiredCollateralAmount :: TxOut -> Bool

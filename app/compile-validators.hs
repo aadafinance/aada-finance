@@ -3,7 +3,7 @@
 module Main (main) where
 
 import           Prelude
-
+import           System.Environment
 import           Cardano.Api
 import           Cardano.Api.Shelley
 
@@ -12,6 +12,7 @@ import           Plutus.V1.Ledger.Api
 import           Ledger                 (validatorHash, scriptCurrencySymbol)
 
 import qualified Data.ByteString.Short as SBS
+import qualified Data.String           as FS
 
 import               Interest
 import               Collateral
@@ -38,19 +39,26 @@ getCollateralScParams = Collateral.ContractInfo {
       , Collateral.interestscvh   = validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs))
     }
 
-getRequestScParams :: Request.ContractInfo
-getRequestScParams = Request.ContractInfo {
+getRequestScParams :: Maybe StakingCredential -> Request.ContractInfo
+getRequestScParams stakingCredential = Request.ContractInfo {
         Request.lenderNftCs    = getLenderNftCs
       , Request.borrowersNftCs = getBorrowerNftCs
-      , Request.collateralcsvh = validatorHash $ Collateral.validator getCollateralScParams
+      , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator getCollateralScParams)) stakingCredential
     }
+
+parseStakingKey :: String -> StakingCredential
+parseStakingKey = StakingHash . PubKeyCredential . PubKeyHash . getLedgerBytes . FS.fromString
 
 main :: IO ()
 main = do
-  let scriptnum = 0
+  args <- getArgs
+  let nargs = length args
+      stakingKey = if nargs > 0 then head args else  "ff"
+      parsedStakingKey = parseStakingKey stakingKey
+      scriptnum = 0
   writePlutusScript scriptnum "interest.plutus" (Interest.interestScript (Interest.ContractInfo getLenderNftCs)) (interestShortBs (Interest.ContractInfo getLenderNftCs))
   writePlutusScript scriptnum "collateral.plutus" (Collateral.collateralScript getCollateralScParams) (collateralShortBs getCollateralScParams)
-  writePlutusScript scriptnum "request.plutus" (Request.request getRequestScParams) (requestShortBs getRequestScParams)
+  writePlutusScript scriptnum "request.plutus" (Request.request (getRequestScParams $ Just parsedStakingKey)) (requestShortBs (getRequestScParams $ Just parsedStakingKey))
   writePlutusScript scriptnum "liquidation.plutus" Liquidation.liquidation liquidationShortBs
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()

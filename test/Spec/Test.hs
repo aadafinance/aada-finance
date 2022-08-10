@@ -156,9 +156,9 @@ getBorrowerNftPolicy = AadaNft.policy False
 
 getSc1Params :: Request.ContractInfo
 getSc1Params = Request.ContractInfo {
-        Request.lenderNftCs     = getLenderNftCs
-      , Request.borrowersNftCs  = getBorrowerNftCs
-      , Request.collateralcsvh  = validatorHash $ Collateral.validator getSc2Params
+        Request.lenderNftCs    = getLenderNftCs
+      , Request.borrowersNftCs = getBorrowerNftCs
+      , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator getSc2Params)) Nothing
     }
 
 getSc2Params :: Collateral.ContractInfo
