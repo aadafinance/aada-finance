@@ -1,10 +1,38 @@
 {
   "fields": [
     {
-      "bytes": "ff"
+      "bytes": "6666"
     },
     {
-      "bytes": "ff"
+      "fields": [
+        {
+          "fields": [
+            {
+              "bytes": "ff"
+            }
+          ],
+          "constructor": 0
+        },
+        {
+          "fields": [
+            {
+              "fields": [
+                {
+                  "fields": [
+                    {
+                      "bytes": "6666"
+                    }
+                  ],
+                  "constructor": 0
+                }
+              ],
+              "constructor": 0
+            }
+          ],
+          "constructor": 0
+        }
+      ],
+      "constructor": 0
     },
     {
       "fields": [

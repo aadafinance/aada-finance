@@ -45,7 +45,7 @@ import Plutus.V1.Ledger.Api
 
 data CollateralDatum = CollateralDatum
     { borrowersNftTn        :: !TokenName
-    , borrowersPkh          :: !PaymentPubKeyHash
+    , borrowersAddress      :: !Address
     , loan                  :: !AssetClass
     , loanamnt              :: !Integer
     , interest              :: !AssetClass

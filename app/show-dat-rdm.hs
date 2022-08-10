@@ -19,7 +19,7 @@ main :: IO ()
 main = do
   let exampleOracleRedeemer = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
-  let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0 "nfttn" 0
+  let exampleDatum = getTestDatum 0 "ff" "ff" "ff" 0 "nfttn" 0
   writeData "example.datum" exampleDatum
   writeData "example-collateral-redeemer.json" (POSIXTime 2)
   let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getAadaTokenName (TxOutRef "ff" 1))
