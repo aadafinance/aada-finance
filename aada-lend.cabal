@@ -111,6 +111,7 @@ executable compile-validators
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , optparse-applicative
 
 executable mint-aada-nft
   import:               base, project-config
