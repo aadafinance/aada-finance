@@ -38,11 +38,67 @@ data StakingKey =
   deriving Show
 
 data Command = Command {
-  maybeStakingKey :: Maybe StakingKey
+    maybeStakingKey :: Maybe StakingKey
+  , interestFp      :: FilePath
+  , collateralFp    :: FilePath
+  , requestFp       :: FilePath
+  , liquidationFp   :: FilePath
 } deriving Show
 
 -- ints :: Parser [Integer]
 -- ints = many (option auto (short 'p' <> help "StakingKey pointer arguments. Must provide 3 of them"))
+
+defaultInterestFp :: FilePath
+defaultInterestFp = "interest.plutus"
+
+interestPathParser :: Parser FilePath
+interestPathParser = strOption
+      (mconcat
+       [ help "Enter name of interest validator."
+       , long "interest"
+       , short 'i'
+       , showDefault
+       , metavar "FILEPATH"
+       , value defaultInterestFp ])
+
+defaultCollateralFp :: FilePath
+defaultCollateralFp = "collateral.plutus"
+
+collateralPathParser :: Parser FilePath
+collateralPathParser = strOption
+      (mconcat
+       [ help "Enter name of collateral validator."
+       , long "collateral"
+       , short 'c'
+       , showDefault
+       , metavar "FILEPATH"
+       , value defaultCollateralFp ])
+
+defaultRequestFp :: FilePath
+defaultRequestFp = "request.plutus"
+
+requestPathParser :: Parser FilePath
+requestPathParser = strOption
+      (mconcat
+       [ help "Enter name of request validator."
+       , long "request"
+       , short 'r'
+       , showDefault
+       , metavar "FILEPATH"
+       , value defaultRequestFp ])
+
+liquidationInterestFp :: FilePath
+liquidationInterestFp = "liquidation.plutus"
+
+liquidationPathParser :: Parser FilePath
+liquidationPathParser = strOption
+      (mconcat
+       [ help "Enter name of liquidation validator."
+       , long "liquidation"
+       , short 'l'
+       , showDefault
+       , metavar "FILEPATH"
+       , value liquidationInterestFp ])
 
 parseFirstPtr :: Parser Integer
 parseFirstPtr = option auto (long "first"
@@ -87,7 +143,7 @@ parseStakingKey' :: Parser StakingKey
 parseStakingKey' = (StakingKeyHash <$> parseStakingKeyHash) <|> parseStakingKeyPtr
 
 parseCommand :: Parser Command
-parseCommand = Command <$> optional parseStakingKey'
+parseCommand = Command <$> optional parseStakingKey' <*> interestPathParser <*>  collateralPathParser <*> requestPathParser <*> liquidationPathParser
 
 parser :: ParserInfo Command
 parser = info parseCommand fullDesc
@@ -120,8 +176,8 @@ getRequestScParams stakingCredential = Request.ContractInfo {
 
 getStakingCredentialFromOpts :: Command -> Maybe StakingCredential
 getStakingCredentialFromOpts opts = case opts of
-  Command Nothing -> Nothing
-  Command (Just stakeKey) -> case stakeKey of
+  Command Nothing _ _ _ _-> Nothing
+  Command (Just stakeKey) _ _ _ _ -> case stakeKey of
     StakingKeyHash (StakingHash' h ValidatorHash') -> Just . StakingHash . ScriptCredential . ValidatorHash . getLedgerBytes . FS.fromString $ h
     StakingKeyHash (StakingHash' h PubKeyHash') -> Just . StakingHash . PubKeyCredential . PubKeyHash . getLedgerBytes . FS.fromString $ h
     StakingKeyPtr a b c -> Just $ StakingPtr a b c
@@ -131,10 +187,10 @@ main = do
   opts <- execParser parser
   let stakeKey = getStakingCredentialFromOpts opts
       scriptnum = 0
-  writePlutusScript scriptnum "interest.plutus" (Interest.interestScript (Interest.ContractInfo getLenderNftCs)) (interestShortBs (Interest.ContractInfo getLenderNftCs))
-  writePlutusScript scriptnum "collateral.plutus" (Collateral.collateralScript (getCollateralScParams stakeKey)) (collateralShortBs (getCollateralScParams stakeKey))
-  writePlutusScript scriptnum "request.plutus" (Request.request (getRequestScParams stakeKey)) (requestShortBs (getRequestScParams stakeKey))
-  writePlutusScript scriptnum "liquidation.plutus" Liquidation.liquidation liquidationShortBs
+  writePlutusScript scriptnum (interestFp opts) (Interest.interestScript (Interest.ContractInfo getLenderNftCs)) (interestShortBs (Interest.ContractInfo getLenderNftCs))
+  writePlutusScript scriptnum (collateralFp opts) (Collateral.collateralScript (getCollateralScParams stakeKey)) (collateralShortBs (getCollateralScParams stakeKey))
+  writePlutusScript scriptnum (requestFp opts) (Request.request (getRequestScParams stakeKey)) (requestShortBs (getRequestScParams stakeKey))
+  writePlutusScript scriptnum (liquidationFp opts) Liquidation.liquidation liquidationShortBs
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusScript scriptnum filename scriptSerial scriptSBS =
