@@ -5,7 +5,6 @@
 module Main (main) where
 
 import           Prelude
-import           System.Environment
 import           Cardano.Api
 import           Cardano.Api.Shelley
 
@@ -54,7 +53,7 @@ defaultInterestFp = "interest.plutus"
 interestPathParser :: Parser FilePath
 interestPathParser = strOption
       (mconcat
-       [ help "Enter name of interest validator."
+       [ help "Enter name of interest validator"
        , long "interest"
        , short 'i'
        , showDefault
@@ -67,7 +66,7 @@ defaultCollateralFp = "collateral.plutus"
 collateralPathParser :: Parser FilePath
 collateralPathParser = strOption
       (mconcat
-       [ help "Enter name of collateral validator."
+       [ help "Enter name of collateral validator"
        , long "collateral"
        , short 'c'
        , showDefault
@@ -80,7 +79,7 @@ defaultRequestFp = "request.plutus"
 requestPathParser :: Parser FilePath
 requestPathParser = strOption
       (mconcat
-       [ help "Enter name of request validator."
+       [ help "Enter name of request validator"
        , long "request"
        , short 'r'
        , showDefault
@@ -93,7 +92,7 @@ liquidationInterestFp = "liquidation.plutus"
 liquidationPathParser :: Parser FilePath
 liquidationPathParser = strOption
       (mconcat
-       [ help "Enter name of liquidation validator."
+       [ help "Enter name of liquidation validator"
        , long "liquidation"
        , short 'l'
        , showDefault
@@ -125,16 +124,16 @@ parseStakingKeyHashHash :: Parser String
 parseStakingKeyHashHash = strOption
           ( long "hash"
          <> metavar "STRING"
-         <> help "Credential required to unlock a transaction output")
+         <> help "Staking credential used to assign rewards. The transaction that spends this output must be signed by the key which hash is provided by this parameter" )
 
 parseStakingKeyHash :: Parser StakingHash'
 parseStakingKeyHash = StakingHash' <$> parseStakingKeyHashHash <*> parseHashType
 
 parseHashTypeValidator :: Parser HashType
-parseHashTypeValidator = flag' ValidatorHash' (help "Validator Hash" <> short 'v' <> long "validator")
-
+parseHashTypeValidator = flag' ValidatorHash' (help "Interpret provided staking key hash as a Validator Hash" <> short 'v' <> long "validator")
+ 
 parseHashTypePubKeyHash :: Parser HashType
-parseHashTypePubKeyHash = flag' PubKeyHash' (help "PubKeyHash" <> short 'k' <> long "pubkey")
+parseHashTypePubKeyHash = flag' PubKeyHash' (help "Interpret provided staking key hash as PubKeyHash" <> short 'k' <> long "pubkey")
 
 parseHashType :: Parser HashType
 parseHashType = parseHashTypePubKeyHash <|> parseHashTypeValidator
@@ -146,7 +145,7 @@ parseCommand :: Parser Command
 parseCommand = Command <$> optional parseStakingKey' <*> interestPathParser <*>  collateralPathParser <*> requestPathParser <*> liquidationPathParser
 
 parser :: ParserInfo Command
-parser = info parseCommand fullDesc
+parser = info (helper <*> parseCommand) fullDesc
 
 getLenderNftPolicy :: MintingPolicy
 getLenderNftPolicy = AadaNft.policy True
