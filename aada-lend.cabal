@@ -156,6 +156,7 @@ executable generate-example-jsons
                       , cardano-api
                       , plutus-tx
                       , aeson
+                      , aeson-pretty
                       , containers
                       , plutus-ledger
                       , plutus-ledger-constraints

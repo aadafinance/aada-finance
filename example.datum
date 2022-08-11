@@ -1,102 +1,102 @@
 {
-  "fields": [
-    {
-      "bytes": "6666"
-    },
-    {
-      "fields": [
+    "fields": [
         {
-          "fields": [
-            {
-              "bytes": "ff"
-            }
-          ],
-          "constructor": 0
+            "bytes": "6666"
         },
         {
-          "fields": [
-            {
-              "fields": [
+            "fields": [
                 {
-                  "fields": [
-                    {
-                      "bytes": "6666"
-                    }
-                  ],
-                  "constructor": 0
+                    "fields": [
+                        {
+                            "bytes": "ff"
+                        }
+                    ],
+                    "constructor": 0
+                },
+                {
+                    "fields": [
+                        {
+                            "fields": [
+                                {
+                                    "fields": [
+                                        {
+                                            "bytes": "6666"
+                                        }
+                                    ],
+                                    "constructor": 0
+                                }
+                            ],
+                            "constructor": 0
+                        }
+                    ],
+                    "constructor": 0
                 }
-              ],
-              "constructor": 0
-            }
-          ],
-          "constructor": 0
-        }
-      ],
-      "constructor": 0
-    },
-    {
-      "fields": [
-        {
-          "bytes": "10555a8c6aa2217ed76522758b804a7531d01ff5ee53012ad81ebf23"
+            ],
+            "constructor": 0
         },
         {
-          "bytes": "6c6f616e2d636f696e2d434f4e594d4f4e59"
-        }
-      ],
-      "constructor": 0
-    },
-    {
-      "int": 150
-    },
-    {
-      "fields": [
-        {
-          "bytes": "5a1a36a39eb541a7db0e7211ae16ed958c55414ed1ef51e2e7d763bb"
+            "fields": [
+                {
+                    "bytes": "10555a8c6aa2217ed76522758b804a7531d01ff5ee53012ad81ebf23"
+                },
+                {
+                    "bytes": "6c6f616e2d636f696e2d434f4e594d4f4e59"
+                }
+            ],
+            "constructor": 0
         },
         {
-          "bytes": "696e7465726573742d636f696e2d4d4f4e59"
-        }
-      ],
-      "constructor": 0
-    },
-    {
-      "int": 50
-    },
-    {
-      "fields": [
-        {
-          "bytes": "57cbe9798a05a712df222de7defd4b37a0d783bb40710ea63f64f99e"
+            "int": 150
         },
         {
-          "bytes": "636f6c6c61746572616c2d636f696e2d434f4e59"
+            "fields": [
+                {
+                    "bytes": "5a1a36a39eb541a7db0e7211ae16ed958c55414ed1ef51e2e7d763bb"
+                },
+                {
+                    "bytes": "696e7465726573742d636f696e2d4d4f4e59"
+                }
+            ],
+            "constructor": 0
+        },
+        {
+            "int": 50
+        },
+        {
+            "fields": [
+                {
+                    "bytes": "57cbe9798a05a712df222de7defd4b37a0d783bb40710ea63f64f99e"
+                },
+                {
+                    "bytes": "636f6c6c61746572616c2d636f696e2d434f4e59"
+                }
+            ],
+            "constructor": 0
+        },
+        {
+            "int": 100
+        },
+        {
+            "int": 0
+        },
+        {
+            "bytes": "ff"
+        },
+        {
+            "int": 5
+        },
+        {
+            "int": 150
+        },
+        {
+            "int": 0
+        },
+        {
+            "bytes": "6e6674746e"
+        },
+        {
+            "int": 0
         }
-      ],
-      "constructor": 0
-    },
-    {
-      "int": 100
-    },
-    {
-      "int": 0
-    },
-    {
-      "bytes": "ff"
-    },
-    {
-      "int": 5
-    },
-    {
-      "int": 150
-    },
-    {
-      "int": 0
-    },
-    {
-      "bytes": "6e6674746e"
-    },
-    {
-      "int": 0
-    }
-  ],
-  "constructor": 0
+    ],
+    "constructor": 0
 }
