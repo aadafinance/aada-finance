@@ -2,7 +2,7 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.Aeson as Json ( encode )
+import qualified Data.Aeson.Encode.Pretty as Json
 import Data.ByteString.Lazy qualified as LB
 import Prelude
 
@@ -11,7 +11,6 @@ import Cardano.Api
       ScriptDataJsonSchema(ScriptDataJsonDetailedSchema) )
 import Cardano.Api.Shelley ( fromPlutusData )
 import qualified PlutusTx
-import Plutus.V1.Ledger.Value
 import Ledger
 import Spec.Test
 
@@ -35,7 +34,7 @@ writeData file isData = do
 
 toJsonString :: PlutusTx.ToData a => a -> LB.ByteString
 toJsonString =
-  Json.encode
+  Json.encodePretty
     . scriptDataToJson ScriptDataJsonDetailedSchema
     . fromPlutusData
     . PlutusTx.toData
