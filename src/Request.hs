@@ -122,11 +122,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validateExpiration = after (requestExpiration dat) (U.range ctx)
 
     isItToCollateral :: TxOut -> Bool
-    isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
-      Just vh -> case toValidatorHash collateralSc of
-        Just scvh -> scvh == vh
-        _ -> False
-      _       -> False
+    isItToCollateral txo = txOutAddress txo == collateralSc
 
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo = case U.ownValue ctx of
