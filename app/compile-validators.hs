@@ -51,7 +51,7 @@ main = do
   writePlutusScript scriptnum "interest.plutus" (Interest.interestScript (Interest.ContractInfo getLenderNftCs)) (interestShortBs (Interest.ContractInfo getLenderNftCs))
   writePlutusScript scriptnum "collateral.plutus" (Collateral.collateralScript getCollateralScParams) (collateralShortBs getCollateralScParams)
   writePlutusScript scriptnum "request.plutus" (Request.request getRequestScParams) (requestShortBs getRequestScParams)
-  writePlutusScript scriptnum "liquidation.plutus" Liquidation.liquidation liquidationShortBs
+  writePlutusScript scriptnum "liquidation.plutus" (Liquidation.liquidation $ Liquidation.ContractInfo getBorrowerNftCs) (liquidationShortBs  $ Liquidation.ContractInfo getBorrowerNftCs)
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusScript scriptnum filename scriptSerial scriptSBS =
