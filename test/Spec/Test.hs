@@ -168,10 +168,10 @@ getSc2Params = Collateral.ContractInfo {
       , Collateral.interestSc     = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) Nothing
     }
 
-getTestDatum :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> RequestDatum
-getTestDatum returnt bNftTn liqNft pkh expiration ltn t = RequestDatum
+getTestDatum :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> Maybe StakingCredential -> RequestDatum
+getTestDatum returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
-  , borrowersAddress      = Address (PubKeyCredential pkh) (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
+  , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
   , loanamnt              = 150
   , interest              = assetClass (fakeCoinCs interestCoin) "interest-coin-MONY"
@@ -187,10 +187,10 @@ getTestDatum returnt bNftTn liqNft pkh expiration ltn t = RequestDatum
   , lendDate              = t
   }
 
-getTestDatum2 :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> RequestDatum
-getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t = RequestDatum
+getTestDatum2 :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> Maybe StakingCredential -> RequestDatum
+getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
-  , borrowersAddress      = Address (PubKeyCredential pkh) (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
+  , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
   , loanamnt              = 100
   , interest              = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
@@ -234,7 +234,7 @@ createLockFundsTx t pkh oref usp expiration mintDate oracle =
       [ userSpend usp
       , payToScript
         (requestTypedValidator getSc1Params)
-        (getTestDatum t (getAadaTokenName oref) oracle pkh expiration "" mintDate)
+        (getTestDatum t (getAadaTokenName oref) oracle pkh expiration "" mintDate Nothing)
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
@@ -542,7 +542,7 @@ createLockFundsTx2 t pkh oref usp expiration mintDate =
       [ userSpend usp
       , payToScript
         (requestTypedValidator getSc1Params)
-        (getTestDatum2 t (getAadaTokenName oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") pkh expiration "" mintDate)
+        (getTestDatum2 t (getAadaTokenName oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") pkh expiration "" mintDate Nothing)
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 

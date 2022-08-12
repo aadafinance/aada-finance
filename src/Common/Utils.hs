@@ -48,3 +48,7 @@ csFromAsset as = fst $ unAssetClass as
 {-# INLINEABLE tnFromAsset #-}
 tnFromAsset :: AssetClass -> TokenName
 tnFromAsset as = snd $ unAssetClass as
+
+{-# INLINEABLE valuePaidToAddress #-}
+valuePaidToAddress :: ScriptContext -> Address -> Value
+valuePaidToAddress ctx addr = mconcat (fmap txOutValue (filter (\x -> txOutAddress x == addr) (txInfoOutputs (info ctx))))

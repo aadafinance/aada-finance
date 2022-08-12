@@ -73,13 +73,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       UpperBound (Finite x) _ -> Just x
       _                       -> Nothing
 
-    valueToBorrower :: Maybe Value
-    valueToBorrower = fmap (valuePaidTo (U.info ctx)) (toPubKeyHash $ borrowersAddress dat)
-
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = case valueToBorrower of
-      Just val -> assetClassValueOf val (loan dat) == loanamnt dat
-      _ -> False
+    borrowerGetsWhatHeWants = assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat) == loanamnt dat
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
