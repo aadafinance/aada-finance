@@ -77,7 +77,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
 
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) >= loanamnt dat && assetClassValueOf valueToBorrower (loan dat) >= assetClassValueOf (U.valueIn ctx) (loan dat)
+    borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) >= loanamnt dat
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
