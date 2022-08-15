@@ -39,7 +39,7 @@ import qualified Collateral
 
 data RequestDatum = RequestDatum
     { borrowersNftTn        :: !TokenName
-    , borrowersPkh          :: !PaymentPubKeyHash
+    , borrowersAddress      :: !Address
     , loan                  :: !AssetClass
     , loanamnt              :: !Integer
     , interest              :: !AssetClass
@@ -61,7 +61,7 @@ PlutusTx.makeLift ''RequestDatum
 data ContractInfo = ContractInfo
     { lenderNftCs    :: !CurrencySymbol
     , borrowersNftCs :: !CurrencySymbol
-    , collateralcsvh :: !ValidatorHash
+    , collateralSc   :: !Address
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
@@ -73,11 +73,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       UpperBound (Finite x) _ -> Just x
       _                       -> Nothing
 
-    valueToBorrower :: Value
-    valueToBorrower = valuePaidTo (U.info ctx) (unPaymentPubKeyHash $ borrowersPkh dat)
-
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = assetClassValueOf valueToBorrower (loan dat) == loanamnt dat
+    borrowerGetsWhatHeWants = assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat) == loanamnt dat
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
@@ -103,18 +100,18 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
     expectedNewDatum :: POSIXTime -> Collateral.CollateralDatum
-    expectedNewDatum ld = Collateral.CollateralDatum { 
+    expectedNewDatum ld = Collateral.CollateralDatum {
         Collateral.borrowersNftTn        = borrowersNftTn dat
-      , Collateral.borrowersPkh          = borrowersPkh dat
+      , Collateral.borrowersAddress      = borrowersAddress dat
       , Collateral.loan                  = loan dat
       , Collateral.loanamnt              = loanamnt dat
       , Collateral.interest              = interest dat
       , Collateral.interestamnt          = interestamnt dat
       , Collateral.collateral            = collateral dat
-      , Collateral.collateralamnt        = collateralamnt dat   
+      , Collateral.collateralamnt        = collateralamnt dat
       , Collateral.repayinterval         = repayinterval dat
       , Collateral.liquidateNft          = liquidateNft dat
-      , Collateral.collateralFactor      = collateralFactor dat 
+      , Collateral.collateralFactor      = collateralFactor dat
       , Collateral.liquidationCommission = liquidationCommission dat
       , Collateral.requestExpiration     = requestExpiration dat
       , Collateral.lenderNftTn           = lenderTn
@@ -125,10 +122,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validateExpiration = after (requestExpiration dat) (U.range ctx)
 
     isItToCollateral :: TxOut -> Bool
-    isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
-      Just vh -> vh == collateralcsvh
-      _       -> False
-  
+    isItToCollateral txo = txOutAddress txo == collateralSc
+
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo = case U.ownValue ctx of
       Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)

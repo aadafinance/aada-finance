@@ -156,22 +156,22 @@ getBorrowerNftPolicy = AadaNft.policy False
 
 getSc1Params :: Request.ContractInfo
 getSc1Params = Request.ContractInfo {
-        Request.lenderNftCs     = getLenderNftCs
-      , Request.borrowersNftCs  = getBorrowerNftCs
-      , Request.collateralcsvh  = validatorHash $ Collateral.validator getSc2Params
+        Request.lenderNftCs    = getLenderNftCs
+      , Request.borrowersNftCs = getBorrowerNftCs
+      , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator getSc2Params)) Nothing
     }
 
 getSc2Params :: Collateral.ContractInfo
 getSc2Params = Collateral.ContractInfo {
         Collateral.lenderNftCs    = getLenderNftCs
       , Collateral.borrowersNftCs = getBorrowerNftCs
-      , Collateral.interestscvh   = validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs))
+      , Collateral.interestSc     = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) Nothing
     }
 
-getTestDatum :: POSIXTime -> TokenName -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> RequestDatum
-getTestDatum returnt bNftTn liqNft pkh expiration ltn t = RequestDatum
+getTestDatum :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> Maybe StakingCredential -> RequestDatum
+getTestDatum returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
-  , borrowersPkh          = pkh
+  , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
   , loanamnt              = 150
   , interest              = assetClass (fakeCoinCs interestCoin) "interest-coin-MONY"
@@ -187,10 +187,10 @@ getTestDatum returnt bNftTn liqNft pkh expiration ltn t = RequestDatum
   , lendDate              = t
   }
 
-getTestDatum2 :: POSIXTime -> TokenName -> CurrencySymbol -> PaymentPubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> RequestDatum
-getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t = RequestDatum
+getTestDatum2 :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> Maybe StakingCredential -> RequestDatum
+getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
-  , borrowersPkh          = pkh
+  , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
   , loanamnt              = 100
   , interest              = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
@@ -209,7 +209,7 @@ getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t = RequestDatum
 getCollatDatumFromRequestDat :: RequestDatum -> TokenName -> POSIXTime -> Collateral.CollateralDatum
 getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn newMint = Collateral.CollateralDatum
           { Collateral.borrowersNftTn        = borrowersNftTn
-          , Collateral.borrowersPkh          = borrowersPkh
+          , Collateral.borrowersAddress      = borrowersAddress
           , Collateral.loan                  = loan
           , Collateral.loanamnt              = loanamnt
           , Collateral.interest              = interest
@@ -234,7 +234,7 @@ createLockFundsTx t pkh oref usp expiration mintDate oracle =
       [ userSpend usp
       , payToScript
         (requestTypedValidator getSc1Params)
-        (getTestDatum t (getAadaTokenName oref) oracle (PaymentPubKeyHash pkh) expiration "" mintDate)
+        (getTestDatum t (getAadaTokenName oref) oracle pkh expiration "" mintDate Nothing)
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
@@ -542,7 +542,7 @@ createLockFundsTx2 t pkh oref usp expiration mintDate =
       [ userSpend usp
       , payToScript
         (requestTypedValidator getSc1Params)
-        (getTestDatum2 t (getAadaTokenName oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") (PaymentPubKeyHash pkh) expiration "" mintDate)
+        (getTestDatum2 t (getAadaTokenName oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") pkh expiration "" mintDate Nothing)
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
