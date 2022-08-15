@@ -108,11 +108,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     containsNewDatum txo = findDatumHash' (lenderNftTn dat) (U.info ctx) == txOutDatumHash txo
 
     destinationIsToInterestSc :: TxOut -> Bool
-    destinationIsToInterestSc txo = case toValidatorHash $ txOutAddress txo of
-      Just vh -> case toValidatorHash interestSc of
-        Just interestVh -> vh == interestVh
-        _ -> False
-      Nothing -> False
+    destinationIsToInterestSc txo = txOutAddress txo == interestSc
 
     txOutValidate :: TxOut -> Bool
     txOutValidate txo = containsNewDatum txo &&
