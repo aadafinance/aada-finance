@@ -82,8 +82,11 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
 
-    txHasOneInputOnly :: Bool
-    txHasOneInputOnly = length (filter ownHashFilter $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
+    txHasOneRequestInputOnly :: Bool
+    txHasOneRequestInputOnly = length (filter ownHashFilter $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
+
+    txHasOneScInputOnly :: Bool
+    txHasOneScInputOnly = length (filter isJust $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
 
     validateMint :: Bool
     validateMint = case U.mintFlattened ctx of
@@ -103,7 +106,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
     expectedNewDatum :: POSIXTime -> Collateral.CollateralDatum
-    expectedNewDatum ld = Collateral.CollateralDatum { 
+    expectedNewDatum ld = Collateral.CollateralDatum {
         Collateral.borrowersNftTn        = borrowersNftTn dat
       , Collateral.borrowersPkh          = borrowersPkh dat
       , Collateral.loan                  = loan dat
@@ -111,10 +114,10 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       , Collateral.interest              = interest dat
       , Collateral.interestamnt          = interestamnt dat
       , Collateral.collateral            = collateral dat
-      , Collateral.collateralamnt        = collateralamnt dat   
+      , Collateral.collateralamnt        = collateralamnt dat
       , Collateral.repayinterval         = repayinterval dat
       , Collateral.liquidateNft          = liquidateNft dat
-      , Collateral.collateralFactor      = collateralFactor dat 
+      , Collateral.collateralFactor      = collateralFactor dat
       , Collateral.liquidationCommission = liquidationCommission dat
       , Collateral.requestExpiration     = requestExpiration dat
       , Collateral.lenderNftTn           = lenderTn
@@ -128,7 +131,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = case toValidatorHash $ txOutAddress txo of
       Just vh -> vh == collateralcsvh
       _       -> False
-  
+
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo = case U.ownValue ctx of
       Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)
@@ -155,7 +158,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validate = traceIfFalse "validate tx outs fail" validateTxOuts &&
                traceIfFalse "lender nft was not minted" validateMint &&
                traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
-               traceIfFalse "someone else besides borrower received loan" txHasOneInputOnly &&
+               traceIfFalse "someone else besides borrower received loan" txHasOneRequestInputOnly &&
+               traceIfFalse "more than one smartcontract input is present" txHasOneScInputOnly &&
                traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration  ||
                traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
