@@ -55,10 +55,10 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
     burn :: Bool
     burn = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn < 0
 
-    validate = traceIfFalse "oracle nft wasn't signed by pkh1" (txSignedBy (U.info ctx) pkh1) &&
-               traceIfFalse "oracle nft wasn't signed by pkh2" (txSignedBy (U.info ctx) pkh2) &&
-               traceIfFalse "oracle nft wasn't signed by pkh3" (txSignedBy (U.info ctx) pkh3) &&
-               traceIfFalse "minted oracle nft not sent to validator hash specified in minting policy" mintedValueSentToDest || burn
+    validate = txSignedBy (U.info ctx) pkh1 &&
+               txSignedBy (U.info ctx) pkh2 &&
+               txSignedBy (U.info ctx) pkh3 &&
+               mintedValueSentToDest || burn
 
 policy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Scripts.MintingPolicy
 policy tn pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $

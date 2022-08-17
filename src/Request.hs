@@ -150,13 +150,13 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
     validate :: Bool
-    validate = traceIfFalse "validate tx outs fail" validateTxOuts &&
-               traceIfFalse "lender nft was not minted" validateMint &&
-               traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
-               traceIfFalse "someone else besides borrower received loan" txHasOneRequestInputOnly &&
-               traceIfFalse "more than one smartcontract input is present" txHasOneScInputOnly &&
-               traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration  ||
-               traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
+    validate = validateTxOuts &&
+               validateMint &&
+               borrowerGetsWhatHeWants &&
+               txHasOneRequestInputOnly &&
+               txHasOneScInputOnly &&
+               validateExpiration ||
+               validateBorrowerMint
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
