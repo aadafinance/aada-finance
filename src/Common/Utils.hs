@@ -52,3 +52,10 @@ tnFromAsset as = snd $ unAssetClass as
 {-# INLINEABLE valuePaidToAddress #-}
 valuePaidToAddress :: ScriptContext -> Address -> Value
 valuePaidToAddress ctx addr = mconcat (fmap txOutValue (filter (\x -> txOutAddress x == addr) (txInfoOutputs (info ctx))))
+
+
+{-# INLINEABLE getUpperBound #-}
+getUpperBound :: ScriptContext -> Maybe POSIXTime
+getUpperBound ctx = case ivTo (range ctx) of
+    UpperBound (Finite x) _ -> Just x
+    _                       -> Nothing

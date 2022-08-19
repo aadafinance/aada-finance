@@ -133,7 +133,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     checkDeadline = traceIfFalse "deadline check fail" (contains (from (lendDate dat + repayinterval dat)) (U.range ctx))
 
     checkBorrowerDeadLine :: Bool
-    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (U.range ctx) (from interestPayDate))
+    checkBorrowerDeadLine = after interestPayDate (U.range ctx)
 
     checkLNftIsBurnt :: Bool
     checkLNftIsBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) lenderNftCs (lenderNftTn dat) == (-1))
