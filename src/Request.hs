@@ -128,9 +128,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = txOutAddress txo == collateralSc
 
     containsRequiredCollateralAmount :: TxOut -> Bool
-    containsRequiredCollateralAmount txo = case U.ownValue ctx of
-      Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)
-      Nothing -> False
+    containsRequiredCollateralAmount txo = collateralamnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
 
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = case getUpperBound of
