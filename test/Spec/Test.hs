@@ -79,6 +79,14 @@ testSize cfg =
     -- , testLimits (adaValue 10_000_000 <> borrowerInitialFunds'' <> lenderInitialFunds) cfg "Borrower dos lender" id (borrowerDosLender >> logError "show stats")
     ]
 
+type RepayInterval = POSIXTime
+type RequestExpirationDate = POSIXTime
+type LendDate = POSIXTime
+type BorrowerTokenName = TokenName
+type LenderTokenName = TokenName
+type BorrowersAddressPkh = PubKeyHash
+type LiquidationNftCs = CurrencySymbol
+
 -- TODO move to utils section later
 adaValue :: Integer -> Value
 adaValue = singleton adaSymbol adaToken
@@ -168,7 +176,7 @@ getSc2Params = Collateral.ContractInfo {
       , Collateral.interestSc     = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) Nothing
     }
 
-getTestDatum :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> Maybe StakingCredential -> RequestDatum
+getTestDatum :: RepayInterval -> BorrowerTokenName -> LiquidationNftCs -> BorrowersAddressPkh -> RequestExpirationDate -> LenderTokenName -> LendDate -> Maybe StakingCredential -> RequestDatum
 getTestDatum returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
   , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
@@ -187,7 +195,7 @@ getTestDatum returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   , lendDate              = t
   }
 
-getTestDatum2 :: POSIXTime -> TokenName -> CurrencySymbol -> PubKeyHash -> POSIXTime -> TokenName -> POSIXTime -> Maybe StakingCredential -> RequestDatum
+getTestDatum2 :: RepayInterval -> BorrowerTokenName -> LiquidationNftCs -> BorrowersAddressPkh -> RequestExpirationDate -> LenderTokenName -> LendDate -> Maybe StakingCredential -> RequestDatum
 getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
   , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
@@ -228,7 +236,7 @@ getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn newMint = Collateral.C
 getAadaTokenName :: TxOutRef -> TokenName
 getAadaTokenName utxo = TokenName $ INT.sha2_256 (INT.consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
 
-createLockFundsTx :: POSIXTime -> PubKeyHash -> TxOutRef -> UserSpend -> POSIXTime -> POSIXTime -> CurrencySymbol -> Tx
+createLockFundsTx :: RepayInterval -> BorrowersAddressPkh -> TxOutRef -> UserSpend -> RequestExpirationDate -> LendDate -> LiquidationNftCs -> Tx
 createLockFundsTx t pkh oref usp expiration mintDate oracle =
     mconcat
       [ userSpend usp
@@ -484,11 +492,14 @@ returnPartialLoan = do
   let borrower = head users
       lender   = last users
       valToPay = fakeValue collateralCoin 100 <> adaValue 2 <> adaValue 1
+  
   sp <- spend borrower valToPay
+  
   let oref = getHeadRef sp
-  let borrowerNftRef = oref
-  let repayint = 20000
-  let tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+      borrowerNftRef = oref
+      repayint = 20000
+      tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params
   let [(lockRef, _)] = utxos
@@ -501,7 +512,8 @@ returnPartialLoan = do
               valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
           sp <- spend lender valForLenderToSpend
           let tx = getTxIn sp dat lockRef (getAadaTokenName lenderNftRef) <> getTxOutLend borrower lender convertedDat lockRef (adaValueOf 0)
-          logInfo $  "current time1: " ++ show mintTime
+          realCurTime <- currentTime
+          logInfo $  "current time1: " ++ show realCurTime
           tx <- validateIn (interval 2000 6000) tx
           submitTx lender tx
 
