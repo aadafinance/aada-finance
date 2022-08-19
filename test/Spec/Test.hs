@@ -414,11 +414,11 @@ returnFullLoan = do
 
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat intPayDate lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
                     getTxOutReturn 50 borrower intDat (adaValueOf 0) borrowerNftRef
 
           logInfo $  "int pay date time: " ++ show intPayDate
-          tx2 <- validateIn (from 6000) tx2
+          tx2 <- validateIn (interval 6000 intPayDate) tx2
           submitTx lender tx2
           pure True
       Nothing -> pure False
@@ -471,9 +471,9 @@ returnNotEnoughInterest = do
 
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat intPayDate lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
                     getTxOutReturn 25 borrower intDat (adaValueOf 0) borrowerNftRef
-          tx2 <- validateIn (from 6000) tx2
+          tx2 <- validateIn (interval 6000 intPayDate) tx2
           submitTx lender tx2
           pure True
       Nothing -> pure False
@@ -525,10 +525,10 @@ returnPartialLoan = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat intPayDate lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 4000) lockRef <>
                                         getTxOutReturn 25 borrower intDat (adaValueOf 0) borrowerNftRef
 
-          tx2 <- validateIn (from 6000) tx2
+          tx2 <- validateIn (interval 6000 (intPayDate + 2000)) tx2
           wait 2000
           time <- currentTime
           logInfo $  "time before repaying: " ++ show time
@@ -619,10 +619,10 @@ returnPartialLoanSameCs = do
           intPayDate <- currentTime
           logInfo $ "pay date: " <> show intPayDate
           let intDat = Collateral.lenderNftTn convertedDat
-              tx2 = getTxInFromCollateral [sp1, sp2] convertedDat intPayDate lockRef <>
+              tx2 = getTxInFromCollateral [sp1, sp2] convertedDat (intPayDate + 2000) lockRef <>
                     getTxOutReturn2 borrower intDat borrowerNftRef
 
-          tx2 <- validateIn (from 24000) tx2
+          tx2 <- validateIn (interval 24000 intPayDate) tx2
 
           submitTx lender tx2
           pure True
@@ -735,9 +735,9 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat intPayDate lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
                     getTxOutReturn interestAmount borrower intDat (adaValueOf 0) borrowerNftRef
-          tx2 <- validateIn (from 6000) tx2
+          tx2 <- validateIn (interval 6000 intPayDate) tx2
           time <- currentTime
           logInfo $  "time before repaying: " ++ show time
           submitTx lender tx2
@@ -998,11 +998,11 @@ happyPath = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat intPayDate lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
                     getTxOutReturn 50 borrower intDat (adaValueOf 0) borrowerNftRef
 
           logInfo $  "int pay date time: " ++ show intPayDate
-          tx2 <- validateIn (from 5000) tx2
+          tx2 <- validateIn (interval 5000 intPayDate) tx2
           submitTx lender tx2
 
           -- retrieve loan and interest phase
@@ -1201,11 +1201,11 @@ borrowerDosLender = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat intPayDate lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
                     getTxOutReturn 50 borrower intDat (generateFakeValues' borrowerDosAmount) borrowerNftRef
 
           logInfo $  "int pay date time: " ++ show intPayDate
-          tx2 <- validateIn (from 6000) tx2
+          tx2 <- validateIn (interval 6000 intPayDate) tx2
           submitTx lender tx2
           pure True
       Nothing -> pure False
