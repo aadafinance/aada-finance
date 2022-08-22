@@ -300,7 +300,7 @@ getTxOutReturn interest borrower dat valToInt oref = addMintRedeemer getBorrower
   , payToPubKey borrower (fakeValue collateralCoin 100 <> adaValue 3)
   ]
 
-getTxInFromCollateral :: [UserSpend] -> Collateral.CollateralDatum -> POSIXTime -> TxOutRef -> Tx
+getTxInFromCollateral :: [UserSpend] -> Collateral.CollateralDatum -> Integer -> TxOutRef -> Tx
 getTxInFromCollateral usps dat rdm scriptTxOut =
   mconcat
   (spendScript (Collateral.collateralTypedValidator getSc2Params) scriptTxOut rdm dat : fmap userSpend usps)
@@ -414,7 +414,7 @@ returnFullLoan = do
 
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat 0 lockRef <>
                     getTxOutReturn 50 borrower intDat (adaValueOf 0) borrowerNftRef
 
           logInfo $  "int pay date time: " ++ show intPayDate
@@ -471,7 +471,7 @@ returnNotEnoughInterest = do
 
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat 0 lockRef <>
                     getTxOutReturn 25 borrower intDat (adaValueOf 0) borrowerNftRef
           tx2 <- validateIn (interval 6000 intPayDate) tx2
           submitTx lender tx2
@@ -525,7 +525,7 @@ returnPartialLoan = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 4000) lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat 0 lockRef <>
                                         getTxOutReturn 25 borrower intDat (adaValueOf 0) borrowerNftRef
 
           tx2 <- validateIn (interval 6000 (intPayDate + 2000)) tx2
@@ -619,7 +619,7 @@ returnPartialLoanSameCs = do
           intPayDate <- currentTime
           logInfo $ "pay date: " <> show intPayDate
           let intDat = Collateral.lenderNftTn convertedDat
-              tx2 = getTxInFromCollateral [sp1, sp2] convertedDat (intPayDate + 2000) lockRef <>
+              tx2 = getTxInFromCollateral [sp1, sp2] convertedDat 0 lockRef <>
                     getTxOutReturn2 borrower intDat borrowerNftRef
 
           tx2 <- validateIn (interval 24000 intPayDate) tx2
@@ -735,7 +735,7 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat 0 lockRef <>
                     getTxOutReturn interestAmount borrower intDat (adaValueOf 0) borrowerNftRef
           tx2 <- validateIn (interval 6000 intPayDate) tx2
           time <- currentTime
@@ -998,7 +998,7 @@ happyPath = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat 0 lockRef <>
                     getTxOutReturn 50 borrower intDat (adaValueOf 0) borrowerNftRef
 
           logInfo $  "int pay date time: " ++ show intPayDate
@@ -1020,7 +1020,7 @@ happyPath = do
             _ -> pure False
       Nothing -> pure False
 
-getTxInFromCollateraLiq :: UserSpend -> UserSpend -> Collateral.CollateralDatum -> POSIXTime -> TxOutRef -> Tx
+getTxInFromCollateraLiq :: UserSpend -> UserSpend -> Collateral.CollateralDatum -> Integer -> TxOutRef -> Tx
 getTxInFromCollateraLiq lender1 lender2 dat rdm scriptTxOut =
   mconcat
   [ spendScript (Collateral.collateralTypedValidator getSc2Params) scriptTxOut rdm dat
@@ -1093,14 +1093,13 @@ liquidateBorrower = do
 
           -- loan liquidate phase
           logInfo "liquidate phase"
-          intPayDate <- currentTime
           utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
           let [(lockRef, _)] = utxos
 
           lenderSpend1 <- spend lender (adaValue 2)
           lenderSpend2 <- spend lender (getLNftVal 1 getLenderNftCs lenderNftRef)
 
-          let liquidate = getTxInFromCollateraLiq lenderSpend1 lenderSpend2 convertedDat intPayDate lockRef <>
+          let liquidate = getTxInFromCollateraLiq lenderSpend1 lenderSpend2 convertedDat 0 lockRef <>
                           getMintOracleNftTxLiq 1 oracle1 oracle2 oracle3 <>
                           getTxOutLiquidate lender lenderNftRef
 
@@ -1201,7 +1200,7 @@ borrowerDosLender = do
           let [(lockRef, _)] = utxos
           let intDat = Collateral.lenderNftTn convertedDat
 
-          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat (intPayDate + 2000) lockRef <>
+          let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat 0 lockRef <>
                     getTxOutReturn 50 borrower intDat (generateFakeValues' borrowerDosAmount) borrowerNftRef
 
           logInfo $  "int pay date time: " ++ show intPayDate
