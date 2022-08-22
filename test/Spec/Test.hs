@@ -25,7 +25,7 @@ import Ledger (validatorHash, scriptCurrencySymbol, interval)
 import           Ledger.Value                as Value
 import           PlutusTx
 import qualified PlutusTx.Builtins.Internal as INT
-import Collateral (CollateralDatum (repayinterval))
+import Collateral (CollateralDatum (repayInterval))
 import Control.Monad.State.Strict
 import Helpers.TestValidator
 import qualified Data.ByteString.UTF8 as BSC
@@ -173,12 +173,12 @@ getTestDatum returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
   , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
-  , loanamnt              = 150
+  , loanAmnt              = 150
   , interest              = assetClass (fakeCoinCs interestCoin) "interest-coin-MONY"
-  , interestamnt          = 50
+  , interestAmnt          = 50
   , collateral            = assetClass (fakeCoinCs collateralCoin) "collateral-coin-CONY"
-  , collateralamnt        = 100                    -- amount of collateral
-  , repayinterval         = returnt
+  , collateralAmnt        = 100                    -- amount of collateral
+  , repayInterval         = returnt
   , liquidateNft          = liqNft
   , collateralFactor      = 5                      -- Colalteral factor used for liquidation
   , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -192,12 +192,12 @@ getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   { borrowersNftTn        = bNftTn
   , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
-  , loanamnt              = 100
+  , loanAmnt              = 100
   , interest              = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
-  , interestamnt          = 50
+  , interestAmnt          = 50
   , collateral            = assetClass (fakeCoinCs collateralCoin) "collateral-coin-CONY"
-  , collateralamnt        = 100                    -- amount of collateral
-  , repayinterval         = returnt
+  , collateralAmnt        = 100                    -- amount of collateral
+  , repayInterval         = returnt
   , liquidateNft          = liqNft
   , collateralFactor      = 5                      -- Colalteral factor used for liquidation
   , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -211,12 +211,12 @@ getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn newMint = Collateral.C
           { Collateral.borrowersNftTn        = borrowersNftTn
           , Collateral.borrowersAddress      = borrowersAddress
           , Collateral.loan                  = loan
-          , Collateral.loanamnt              = loanamnt
+          , Collateral.loanAmnt              = loanAmnt
           , Collateral.interest              = interest
-          , Collateral.interestamnt          = interestamnt
+          , Collateral.interestAmnt          = interestAmnt
           , Collateral.collateral            = collateral
-          , Collateral.collateralamnt        = 100                    -- amount of collateral
-          , Collateral.repayinterval         = repayinterval
+          , Collateral.collateralAmnt        = 100                    -- amount of collateral
+          , Collateral.repayInterval         = repayInterval
           , Collateral.liquidateNft          = liquidateNft
           , Collateral.collateralFactor      = 5                      -- Colalteral factor used for liquidation
           , Collateral.liquidationCommission = 150

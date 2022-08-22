@@ -47,12 +47,12 @@ data CollateralDatum = CollateralDatum
     { borrowersNftTn        :: !TokenName
     , borrowersAddress      :: !Address
     , loan                  :: !AssetClass
-    , loanamnt              :: !Integer
+    , loanAmnt              :: !Integer
     , interest              :: !AssetClass
-    , interestamnt          :: !Integer
+    , interestAmnt          :: !Integer
     , collateral            :: !AssetClass
-    , collateralamnt        :: !Integer
-    , repayinterval         :: !POSIXTime
+    , collateralAmnt        :: !Integer
+    , repayInterval         :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -78,21 +78,21 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     getInterestAmnt v = assetClassValueOf v (interest dat)
 
     validateDebtAmnt :: TxOut -> Bool
-    validateDebtAmnt txo = getLoanAmnt (txOutValue txo) >= loanamnt dat
+    validateDebtAmnt txo = getLoanAmnt (txOutValue txo) >= loanAmnt dat
 
     interestPercentage :: Integer
-    interestPercentage = case (lendDate dat + repayinterval dat) < interestPayDate of
+    interestPercentage = case (lendDate dat + repayInterval dat) < interestPayDate of
       True  -> 100
       False -> (loanHeld `multiplyInteger` 100)
                `divideInteger`
-               getPOSIXTime (repayinterval dat)
+               getPOSIXTime (repayInterval dat)
        where
         loanHeld = getPOSIXTime $ interestPayDate - lendDate dat
 
     getPartialInterest :: Integer
     getPartialInterest =
       if interestPercentage > 0
-      then (interestamnt dat `multiplyInteger` interestPercentage) `divideInteger` 100
+      then (interestAmnt dat `multiplyInteger` interestPercentage) `divideInteger` 100
       else 0
 
     validateInterestAmnt :: TxOut -> Bool
@@ -101,7 +101,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     validateDebtAndInterestAmnt :: TxOut -> Bool
     validateDebtAndInterestAmnt txo =
       interest dat /= loan dat
-      || (getLoanAmnt (txOutValue txo) >= loanamnt dat + getPartialInterest)
+      || (getLoanAmnt (txOutValue txo) >= loanAmnt dat + getPartialInterest)
 
     validateBorrowerNftBurn :: Bool
     validateBorrowerNftBurn = any
@@ -141,7 +141,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     checkDeadline :: Bool
     checkDeadline =
       traceIfFalse "deadline check fail"
-      $ contains (from (lendDate dat + repayinterval dat)) (U.range ctx)
+      $ contains (from (lendDate dat + repayInterval dat)) (U.range ctx)
 
     checkBorrowerDeadLine :: Bool
     checkBorrowerDeadLine =

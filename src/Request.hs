@@ -41,12 +41,12 @@ data RequestDatum = RequestDatum
     { borrowersNftTn        :: !TokenName
     , borrowersAddress      :: !Address
     , loan                  :: !AssetClass
-    , loanamnt              :: !Integer
+    , loanAmnt              :: !Integer
     , interest              :: !AssetClass
-    , interestamnt          :: !Integer
+    , interestAmnt          :: !Integer
     , collateral            :: !AssetClass
-    , collateralamnt        :: !Integer
-    , repayinterval         :: !POSIXTime
+    , collateralAmnt        :: !Integer
+    , repayInterval         :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -76,7 +76,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     borrowerGetsWhatHeWants :: Bool
     borrowerGetsWhatHeWants =
       assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat)
-      == loanamnt dat
+      == loanAmnt dat
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
@@ -110,12 +110,12 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
         Collateral.borrowersNftTn        = borrowersNftTn dat
       , Collateral.borrowersAddress      = borrowersAddress dat
       , Collateral.loan                  = loan dat
-      , Collateral.loanamnt              = loanamnt dat
+      , Collateral.loanAmnt              = loanAmnt dat
       , Collateral.interest              = interest dat
-      , Collateral.interestamnt          = interestamnt dat
+      , Collateral.interestAmnt          = interestAmnt dat
       , Collateral.collateral            = collateral dat
-      , Collateral.collateralamnt        = collateralamnt dat
-      , Collateral.repayinterval         = repayinterval dat
+      , Collateral.collateralAmnt        = collateralAmnt dat
+      , Collateral.repayInterval         = repayInterval dat
       , Collateral.liquidateNft          = liquidateNft dat
       , Collateral.collateralFactor      = collateralFactor dat
       , Collateral.liquidationCommission = liquidationCommission dat
@@ -132,7 +132,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
 
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo =
-      collateralamnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
+      collateralAmnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
 
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = case getUpperBound of
