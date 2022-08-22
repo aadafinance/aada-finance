@@ -85,11 +85,11 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     getPartialInterest :: Integer
     getPartialInterest = if repayIntEnd > interestPayDate && denominator > 0
       then
-        ((getPOSIXTime (interestPayDate - lendDate dat) `multiplyInteger` 100) `multiplyInteger` interestamnt dat) `divideInteger` denominator
+        ((getPOSIXTime (interestPayDate - lendDate dat)) `multiplyInteger` interestamnt dat) `divideInteger` denominator
       else
         interestamnt dat
       where
-        denominator = getPOSIXTime (repayinterval dat) `multiplyInteger` 100
+        denominator = getPOSIXTime (repayinterval dat)
         repayIntEnd = lendDate dat + repayinterval dat
 
     validateInterestAmnt :: TxOut -> Bool
