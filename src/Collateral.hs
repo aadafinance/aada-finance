@@ -88,7 +88,8 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
         loanHeld = interestPayDate - lendDate dat
 
     getPartialInterest :: Integer
-    getPartialInterest = if interestPercentage > 0
+    getPartialInterest =
+      if interestPercentage > 0
       then (interestamnt dat `multiplyInteger` interestPercentage) `divideInteger` 100
       else 0
 
