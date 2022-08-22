@@ -46,7 +46,7 @@ data RequestDatum = RequestDatum
     , interestAmnt          :: !Integer
     , collateral            :: !AssetClass
     , collateralAmnt        :: !Integer
-    , repayInterval         :: !POSIXTime
+    , loanDuration          :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -115,7 +115,7 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       , Collateral.interestAmnt          = interestAmnt dat
       , Collateral.collateral            = collateral dat
       , Collateral.collateralAmnt        = collateralAmnt dat
-      , Collateral.repayInterval         = repayInterval dat
+      , Collateral.loanDuration          = loanDuration dat
       , Collateral.liquidateNft          = liquidateNft dat
       , Collateral.collateralFactor      = collateralFactor dat
       , Collateral.liquidationCommission = liquidationCommission dat

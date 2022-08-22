@@ -25,7 +25,7 @@ import Ledger (validatorHash, scriptCurrencySymbol, interval)
 import           Ledger.Value                as Value
 import           PlutusTx
 import qualified PlutusTx.Builtins.Internal as INT
-import Collateral (CollateralDatum (repayInterval))
+import Collateral (CollateralDatum (loanDuration))
 import Control.Monad.State.Strict
 import Helpers.TestValidator
 import qualified Data.ByteString.UTF8 as BSC
@@ -178,7 +178,7 @@ getTestDatum returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   , interestAmnt          = 50
   , collateral            = assetClass (fakeCoinCs collateralCoin) "collateral-coin-CONY"
   , collateralAmnt        = 100                    -- amount of collateral
-  , repayInterval         = returnt
+  , loanDuration         = returnt
   , liquidateNft          = liqNft
   , collateralFactor      = 5                      -- Colalteral factor used for liquidation
   , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -197,7 +197,7 @@ getTestDatum2 returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
   , interestAmnt          = 50
   , collateral            = assetClass (fakeCoinCs collateralCoin) "collateral-coin-CONY"
   , collateralAmnt        = 100                    -- amount of collateral
-  , repayInterval         = returnt
+  , loanDuration         = returnt
   , liquidateNft          = liqNft
   , collateralFactor      = 5                      -- Colalteral factor used for liquidation
   , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -216,7 +216,7 @@ getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn newMint = Collateral.C
           , Collateral.interestAmnt          = interestAmnt
           , Collateral.collateral            = collateral
           , Collateral.collateralAmnt        = 100                    -- amount of collateral
-          , Collateral.repayInterval         = repayInterval
+          , Collateral.loanDuration         = loanDuration
           , Collateral.liquidateNft          = liquidateNft
           , Collateral.collateralFactor      = 5                      -- Colalteral factor used for liquidation
           , Collateral.liquidationCommission = 150

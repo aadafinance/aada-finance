@@ -52,7 +52,7 @@ data CollateralDatum = CollateralDatum
     , interestAmnt          :: !Integer
     , collateral            :: !AssetClass
     , collateralAmnt        :: !Integer
-    , repayInterval         :: !POSIXTime
+    , loanDuration          :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -81,11 +81,11 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     validateDebtAmnt txo = getLoanAmnt (txOutValue txo) >= loanAmnt dat
 
     interestPercentage :: Integer
-    interestPercentage = case (lendDate dat + repayInterval dat) < interestPayDate of
+    interestPercentage = case (lendDate dat + loanDuration dat) < interestPayDate of
       True  -> 100
       False -> (loanHeld `multiplyInteger` 100)
                `divideInteger`
-               getPOSIXTime (repayInterval dat)
+               getPOSIXTime (loanDuration dat)
        where
         loanHeld = getPOSIXTime $ interestPayDate - lendDate dat
 
@@ -141,7 +141,7 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     checkDeadline :: Bool
     checkDeadline =
       traceIfFalse "deadline check fail"
-      $ contains (from (lendDate dat + repayInterval dat)) (U.range ctx)
+      $ contains (from (lendDate dat + loanDuration dat)) (U.range ctx)
 
     checkBorrowerDeadLine :: Bool
     checkBorrowerDeadLine =
