@@ -68,11 +68,6 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> RequestDatum -> TokenName -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
   where
-    getUpperBound :: Maybe POSIXTime
-    getUpperBound = case ivTo (U.range ctx) of
-      UpperBound (Finite x) _ -> Just x
-      _                       -> Nothing
-
     borrowerGetsWhatHeWants :: Bool
     borrowerGetsWhatHeWants =
       assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat)
@@ -135,8 +130,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       collateralAmnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
 
     containsNewDatum :: TxOut -> Bool
-    containsNewDatum txo = case getUpperBound of
-      Just ld -> findDatumHash' (expectedNewDatum ld) (U.info ctx) == txOutDatumHash txo
+    containsNewDatum txo = case U.getUpperBound ctx of
+      Just ub -> findDatumHash' (expectedNewDatum ub) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
 
     checkForTokensDos :: TxOut -> Bool
