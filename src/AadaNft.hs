@@ -36,7 +36,7 @@ import qualified Common.Utils             as U
 mkPolicy :: Bool -> TxOutRef -> ScriptContext -> Bool
 mkPolicy isLender utxo ctx = case mintedValue of
     [(_cs, tn, n)] -> validateMint tn n
-    _     -> False
+    _              -> False
   where
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
     mintFlattened = flattenValue $ txInfoMint (scriptContextTxInfo ctx)
