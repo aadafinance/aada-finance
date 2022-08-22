@@ -138,11 +138,11 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     checkLNftIsBurnt :: Bool
     checkLNftIsBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) lenderNftCs (lenderNftTn dat) == (-1))
 
-    checkForLiquidationNft :: Bool
-    checkForLiquidationNft = any (\(cs, _, n) -> cs == liquidateNft dat && n > 0) (U.mintFlattened ctx)
+    checkForLiquidationToken :: Bool
+    checkForLiquidationToken = any (\(cs, _, n) -> cs == liquidateNft dat && n > 0) (U.mintFlattened ctx)
 
     validateLiquidation :: Bool
-    validateLiquidation = checkLNftIsBurnt && (checkDeadline || checkForLiquidationNft)
+    validateLiquidation = checkLNftIsBurnt && (checkDeadline || checkForLiquidationToken)
 
     validate :: Bool
     validate = validateLiquidation ||
