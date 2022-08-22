@@ -73,8 +73,8 @@ policy tn pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $
     PlutusTx.liftCode pkh3
     `PlutusTx.applyCode`
     PlutusTx.liftCode dest
-    where
-      wrap tn' pkh1' pkh2' pkh3' dest' = Scripts.wrapMintingPolicy $ mkPolicy tn' pkh1' pkh2' pkh3' dest'
+  where
+    wrap tn' pkh1' pkh2' pkh3' dest' = Scripts.wrapMintingPolicy $ mkPolicy tn' pkh1' pkh2' pkh3' dest'
 
 plutusScript :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Script
 plutusScript tn pkh1 pkh2 pkh3 dest  = unMintingPolicyScript $ policy tn pkh1 pkh2 pkh3 dest

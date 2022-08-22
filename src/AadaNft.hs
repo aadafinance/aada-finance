@@ -62,9 +62,9 @@ mkPolicy isLender utxo ctx = case mintedValue of
 
 policy :: Bool -> Scripts.MintingPolicy
 policy isLender = mkMintingPolicyScript $
- $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy . mkPolicy ||])
- `PlutusTx.applyCode`
- PlutusTx.liftCode isLender
+   $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy . mkPolicy ||])
+   `PlutusTx.applyCode`
+   PlutusTx.liftCode isLender
 
 plutusScript :: Bool -> Script
 plutusScript = unMintingPolicyScript . policy
