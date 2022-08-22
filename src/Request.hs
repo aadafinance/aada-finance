@@ -74,7 +74,9 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
       _                       -> Nothing
 
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat) == loanamnt dat
+    borrowerGetsWhatHeWants =
+      assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat)
+      == loanamnt dat
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
@@ -83,7 +85,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     txHasOneRequestInputOnly = length (filter ownHashFilter $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
 
     txHasOneScInputOnly :: Bool
-    txHasOneScInputOnly = length (filter isJust $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
+    txHasOneScInputOnly =
+      length (filter isJust $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
 
     validateMint :: Bool
     validateMint = case U.mintFlattened ctx of
@@ -128,7 +131,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = txOutAddress txo == collateralSc
 
     containsRequiredCollateralAmount :: TxOut -> Bool
-    containsRequiredCollateralAmount txo = collateralamnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
+    containsRequiredCollateralAmount txo =
+      collateralamnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
 
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = case getUpperBound of
@@ -139,22 +143,24 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
     txOutValidate :: TxOut -> Bool
-    txOutValidate txo = isItToCollateral txo &&
-                        containsRequiredCollateralAmount txo &&
-                        containsNewDatum txo &&
-                        checkForTokensDos txo
+    txOutValidate txo =
+      isItToCollateral txo
+      && containsRequiredCollateralAmount txo
+      && containsNewDatum txo
+      && checkForTokensDos txo
 
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
     validate :: Bool
-    validate = traceIfFalse "validate tx outs fail" validateTxOuts &&
-               traceIfFalse "lender nft was not minted" validateMint &&
-               traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants &&
-               traceIfFalse "someone else besides borrower received loan" txHasOneRequestInputOnly &&
-               traceIfFalse "more than one smartcontract input is present" txHasOneScInputOnly &&
-               traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration  ||
-               traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
+    validate =
+      traceIfFalse "validate tx outs fail" validateTxOuts
+      && traceIfFalse "lender nft was not minted" validateMint
+      && traceIfFalse "borrower didn't receive the loan" borrowerGetsWhatHeWants
+      && traceIfFalse "someone else besides borrower received loan" txHasOneRequestInputOnly
+      && traceIfFalse "more than one smartcontract input is present" txHasOneScInputOnly
+      && traceIfFalse "Loan request has expired or txValidTo wasn't set correctly" validateExpiration
+      || traceIfFalse "borrower nft wasn't burnt" validateBorrowerMint
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
@@ -163,7 +169,9 @@ instance Scripts.ValidatorTypes RequestDataTypes where
 
 requestTypedValidator :: ContractInfo -> Scripts.TypedValidator RequestDataTypes
 requestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTypes
-    ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
+    ($$(PlutusTx.compile [|| mkValidator ||])
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
     wrap = Scripts.wrapValidator @RequestDatum @TokenName

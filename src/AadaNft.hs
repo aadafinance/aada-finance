@@ -16,10 +16,10 @@
 {-# HLINT ignore "Use foldr" #-}
 
 module AadaNft
-  ( aadaNft
-  , aadaNftShortBs
-  , policy
-  ) where
+    ( aadaNft
+    , aadaNftShortBs
+    , policy
+    ) where
 
 import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import           Codec.Serialise
@@ -45,7 +45,8 @@ mkPolicy isLender utxo ctx = case mintedValue of
     mintedValue = filter (\(cs, _tn, _n) -> cs == ownCurrencySymbol ctx) mintFlattened
 
     calculateTokenNameHash :: BuiltinByteString
-    calculateTokenNameHash = sha2_256 (consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo)) 
+    calculateTokenNameHash =
+      sha2_256 (consByteString (txOutRefIdx utxo) ((getTxId . txOutRefId) utxo))
 
     validateTokenName :: TokenName -> Bool
     validateTokenName tn = unTokenName tn == calculateTokenNameHash
@@ -54,11 +55,12 @@ mkPolicy isLender utxo ctx = case mintedValue of
     checkForOverflow = txOutRefIdx utxo < 256
 
     validateMint :: TokenName -> Integer -> Bool
-    validateMint tn amount = U.hasUTxO utxo ctx &&
-                             traceIfFalse "invalid lender nft minted amount" (amount == 1) &&
-                             traceIfFalse "minted nft has invalid token name" (validateTokenName tn) &&
-                             traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow ||
-                             traceIfFalse "invalid burn amount" (amount == (-1))
+    validateMint tn amount =
+      U.hasUTxO utxo ctx
+      && traceIfFalse "invalid lender nft minted amount" (amount == 1)
+      && traceIfFalse "minted nft has invalid token name" (validateTokenName tn)
+      && traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow
+      || traceIfFalse "invalid burn amount" (amount == (-1))
 
 policy :: Bool -> Scripts.MintingPolicy
 policy isLender = mkMintingPolicyScript $

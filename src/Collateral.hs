@@ -13,14 +13,14 @@
 {-# LANGUAGE DeriveAnyClass #-}
 
 module Collateral
-  ( collateralScript
-  , collateralShortBs
-  , ContractInfo(..)
-  , collateralTypedValidator
-  , CollateralDatum(..)
-  , validator
-  , collateralAddress
-  ) where
+    ( collateralScript
+    , collateralShortBs
+    , ContractInfo(..)
+    , collateralTypedValidator
+    , CollateralDatum(..)
+    , validator
+    , collateralAddress
+    ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
 
@@ -83,9 +83,11 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     interestPercentage :: Integer
     interestPercentage = case (lendDate dat + repayinterval dat) < interestPayDate of
       True  -> 100
-      False -> (getPOSIXTime loanHeld `multiplyInteger` 100) `divideInteger` getPOSIXTime (repayinterval dat)
+      False -> (loanHeld `multiplyInteger` 100)
+               `divideInteger`
+               getPOSIXTime (repayinterval dat)
        where
-        loanHeld = interestPayDate - lendDate dat
+        loanHeld = getPOSIXTime $ interestPayDate - lendDate dat
 
     getPartialInterest :: Integer
     getPartialInterest =
@@ -97,16 +99,21 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     validateInterestAmnt txo = getInterestAmnt (txOutValue txo) >= getPartialInterest
 
     validateDebtAndInterestAmnt :: TxOut -> Bool
-    validateDebtAndInterestAmnt txo = interest dat /= loan dat || (getLoanAmnt (txOutValue txo) >= loanamnt dat + getPartialInterest)
+    validateDebtAndInterestAmnt txo =
+      interest dat /= loan dat
+      || (getLoanAmnt (txOutValue txo) >= loanamnt dat + getPartialInterest)
 
     validateBorrowerNftBurn :: Bool
-    validateBorrowerNftBurn = any (\(cs, tn, n) -> cs == borrowersNftCs && tn == borrowersNftTn dat && n == (-1)) (U.mintFlattened ctx)
+    validateBorrowerNftBurn = any
+      (\(cs, tn, n) -> cs == borrowersNftCs && tn == borrowersNftTn dat && n == (-1))
+      (U.mintFlattened ctx)
 
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
     containsNewDatum :: TxOut -> Bool
-    containsNewDatum txo = findDatumHash' (lenderNftTn dat) (U.info ctx) == txOutDatumHash txo
+    containsNewDatum txo =
+      findDatumHash' (lenderNftTn dat) (U.info ctx) == txOutDatumHash txo
 
     destinationIsToInterestSc :: TxOut -> Bool
     destinationIsToInterestSc txo = txOutAddress txo == interestSc
@@ -126,28 +133,36 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
     validateReturn :: Bool
-    validateReturn = traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
-                     traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
-                     traceIfFalse "no correct utxo to interestsc found" validateTxOuts
+    validateReturn =
+      traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn
+      && traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine
+      && traceIfFalse "no correct utxo to interestsc found" validateTxOuts
 
     checkDeadline :: Bool
-    checkDeadline = traceIfFalse "deadline check fail" (contains (from (lendDate dat + repayinterval dat)) (U.range ctx))
+    checkDeadline =
+      traceIfFalse "deadline check fail"
+      $ contains (from (lendDate dat + repayinterval dat)) (U.range ctx)
 
     checkBorrowerDeadLine :: Bool
-    checkBorrowerDeadLine = traceIfFalse "borrower deadline check fail" (contains (U.range ctx) (from interestPayDate))
+    checkBorrowerDeadLine =
+      traceIfFalse "borrower deadline check fail"
+      $ contains (U.range ctx) (from interestPayDate)
 
     checkLNftIsBurnt :: Bool
-    checkLNftIsBurnt = traceIfFalse "Lender Nft not burnt" (valueOf (txInfoMint $ U.info ctx) lenderNftCs (lenderNftTn dat) == (-1))
+    checkLNftIsBurnt =
+      traceIfFalse "Lender Nft not burnt"
+      $ valueOf (txInfoMint $ U.info ctx) lenderNftCs (lenderNftTn dat) == (-1)
 
     checkForLiquidationNft :: Bool
-    checkForLiquidationNft = traceIfFalse "liqudation token was not found" (any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx))
+    checkForLiquidationNft =
+      traceIfFalse "liqudation token was not found"
+      $ any (\(cs, _, _) -> cs == liquidateNft dat) (U.mintFlattened ctx)
 
     validateLiquidation :: Bool
     validateLiquidation = checkLNftIsBurnt && (checkDeadline || checkForLiquidationNft)
 
     validate :: Bool
-    validate = validateLiquidation ||
-               validateReturn
+    validate = validateLiquidation || validateReturn
 
 data Collateral
 instance Scripts.ValidatorTypes Collateral where
@@ -156,7 +171,9 @@ instance Scripts.ValidatorTypes Collateral where
 
 collateralTypedValidator :: ContractInfo -> Scripts.TypedValidator Collateral
 collateralTypedValidator contractInfo = Scripts.mkTypedValidator @Collateral
-    ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
+    ($$(PlutusTx.compile [|| mkValidator ||])
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
     wrap = Scripts.wrapValidator @CollateralDatum @POSIXTime

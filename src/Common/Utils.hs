@@ -2,7 +2,6 @@ module Common.Utils where
 
 import Ledger
 import PlutusTx.Prelude
-import qualified PlutusTx.Builtins.Internal as B
 import Plutus.V1.Ledger.Value
 
 {-# INLINABLE info #-}
@@ -11,7 +10,9 @@ info = scriptContextTxInfo
 
 {-# INLINABLE hasUTxO #-}
 hasUTxO :: TxOutRef -> ScriptContext -> Bool
-hasUTxO utxo ctx = traceIfFalse "No minting policy specified utxo found" $ any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs (info ctx)
+hasUTxO utxo ctx =
+    traceIfFalse "No minting policy specified utxo found"
+    $ any (\i -> txInInfoOutRef i == utxo) $ txInfoInputs (info ctx)
 
 {-# INLINEABLE range #-}
 range :: ScriptContext -> POSIXTimeRange
@@ -51,4 +52,6 @@ tnFromAsset as = snd $ unAssetClass as
 
 {-# INLINEABLE valuePaidToAddress #-}
 valuePaidToAddress :: ScriptContext -> Address -> Value
-valuePaidToAddress ctx addr = mconcat (fmap txOutValue (filter (\x -> txOutAddress x == addr) (txInfoOutputs (info ctx))))
+valuePaidToAddress ctx addr = mconcat
+  (fmap txOutValue (filter (\x -> txOutAddress x == addr)
+  (txInfoOutputs (info ctx))))
