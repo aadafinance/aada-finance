@@ -11,6 +11,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use guards" #-}
 
 module Collateral
   ( collateralScript
@@ -80,17 +82,16 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     validateDebtAmnt :: TxOut -> Bool
     validateDebtAmnt txo = getLoanAmnt (txOutValue txo) >= loanamnt dat
 
-    interestPercentage :: POSIXTime -> Integer
-    interestPercentage interestPayDate = case (lendDate dat + repayinterval dat) < interestPayDate of
-      True  -> 100
-      False -> (getPOSIXTime loanHeld `multiplyInteger` 100) `divideInteger` getPOSIXTime (repayinterval dat)
-       where
-        loanHeld = interestPayDate - lendDate dat
-
     getPartialInterest :: POSIXTime -> Integer
-    getPartialInterest interestPayDate = if interestPercentage interestPayDate > 0
-      then (interestamnt dat `multiplyInteger` interestPercentage interestPayDate) `divideInteger` 100
-      else 0
+    getPartialInterest interestPayDate = if repayIntEnd > interestPayDate && denominator > 0
+      then
+        (loanHeld `multiplyInteger` interestamnt dat) `divideInteger` denominator
+      else
+        interestamnt dat
+      where
+        denominator = getPOSIXTime (repayinterval dat)
+        repayIntEnd = lendDate dat + repayinterval dat
+        loanHeld = getPOSIXTime $ interestPayDate - lendDate dat
 
     validateInterestAmnt :: TxOut -> Bool
     validateInterestAmnt txo = case U.getUpperBound ctx of
