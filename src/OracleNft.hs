@@ -57,9 +57,9 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
 
     mintedValueSentToDest :: Bool
     mintedValueSentToDest = any
-      (\x -> checkTargetAddress (txOutAddress x)
-       && valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn == 1
-       && valueOf (txOutValue x) (ownCurrencySymbol ctx) tn == 1)
+      (\x -> checkTargetAddress (txOutAddress x) &&
+       valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn == 1 &&
+       valueOf (txOutValue x) (ownCurrencySymbol ctx) tn == 1)
       (txInfoOutputs (U.info ctx))
     burn :: Bool
     burn = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn < 0

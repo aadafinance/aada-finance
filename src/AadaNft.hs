@@ -56,11 +56,11 @@ mkPolicy isLender utxo ctx = case mintedValue of
 
     validateMint :: TokenName -> Integer -> Bool
     validateMint tn amount =
-      U.hasUTxO utxo ctx
-      && traceIfFalse "invalid lender nft minted amount" (amount == 1)
-      && traceIfFalse "minted nft has invalid token name" (validateTokenName tn)
-      && traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow
-      || traceIfFalse "invalid burn amount" (amount == (-1))
+      U.hasUTxO utxo ctx &&
+      traceIfFalse "invalid lender nft minted amount" (amount == 1) &&
+      traceIfFalse "minted nft has invalid token name" (validateTokenName tn) &&
+      traceIfFalse "txOutRefIdx of provided utxo is too big " checkForOverflow ||
+      traceIfFalse "invalid burn amount" (amount == (-1))
 
 policy :: Bool -> Scripts.MintingPolicy
 policy isLender = mkMintingPolicyScript $

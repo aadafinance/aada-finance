@@ -100,8 +100,8 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
 
     validateDebtAndInterestAmnt :: TxOut -> Bool
     validateDebtAndInterestAmnt txo =
-      interest dat /= loan dat
-      || (getLoanAmnt (txOutValue txo) >= loanAmnt dat + getPartialInterest)
+      interest dat /= loan dat ||
+      (getLoanAmnt (txOutValue txo) >= loanAmnt dat + getPartialInterest)
 
     validateBorrowerNftBurn :: Bool
     validateBorrowerNftBurn = any
@@ -134,9 +134,9 @@ mkValidator contractInfo@ContractInfo{..} dat interestPayDate ctx = validate
 
     validateReturn :: Bool
     validateReturn =
-      traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn
-      && traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine
-      && traceIfFalse "no correct utxo to interestsc found" validateTxOuts
+      traceIfFalse "borrower nft is not burnt" validateBorrowerNftBurn &&
+      traceIfFalse "borrower deadline check fail" checkBorrowerDeadLine &&
+      traceIfFalse "no correct utxo to interestsc found" validateTxOuts
 
     checkDeadline :: Bool
     checkDeadline =
