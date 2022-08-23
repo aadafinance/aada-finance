@@ -41,12 +41,12 @@ data RequestDatum = RequestDatum
     { borrowersNftTn        :: !TokenName
     , borrowersAddress      :: !Address
     , loan                  :: !AssetClass
-    , loanamnt              :: !Integer
+    , loanAmnt              :: !Integer
     , interest              :: !AssetClass
-    , interestamnt          :: !Integer
+    , interestAmnt          :: !Integer
     , collateral            :: !AssetClass
-    , collateralamnt        :: !Integer
-    , repayinterval         :: !POSIXTime
+    , collateralAmnt        :: !Integer
+    , loanDuration          :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
     , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
@@ -68,13 +68,10 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> RequestDatum -> TokenName -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
   where
-    getUpperBound :: Maybe POSIXTime
-    getUpperBound = case ivTo (U.range ctx) of
-      UpperBound (Finite x) _ -> Just x
-      _                       -> Nothing
-
     borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants = assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat) == loanamnt dat
+    borrowerGetsWhatHeWants =
+      assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat)
+      == loanAmnt dat
 
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
@@ -83,7 +80,8 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     txHasOneRequestInputOnly = length (filter ownHashFilter $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
 
     txHasOneScInputOnly :: Bool
-    txHasOneScInputOnly = length (filter isJust $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
+    txHasOneScInputOnly =
+      length (filter isJust $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
 
     validateMint :: Bool
     validateMint = case U.mintFlattened ctx of
@@ -107,12 +105,12 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
         Collateral.borrowersNftTn        = borrowersNftTn dat
       , Collateral.borrowersAddress      = borrowersAddress dat
       , Collateral.loan                  = loan dat
-      , Collateral.loanamnt              = loanamnt dat
+      , Collateral.loanAmnt              = loanAmnt dat
       , Collateral.interest              = interest dat
-      , Collateral.interestamnt          = interestamnt dat
+      , Collateral.interestAmnt          = interestAmnt dat
       , Collateral.collateral            = collateral dat
-      , Collateral.collateralamnt        = collateralamnt dat
-      , Collateral.repayinterval         = repayinterval dat
+      , Collateral.collateralAmnt        = collateralAmnt dat
+      , Collateral.loanDuration          = loanDuration dat
       , Collateral.liquidateNft          = liquidateNft dat
       , Collateral.collateralFactor      = collateralFactor dat
       , Collateral.liquidationCommission = liquidationCommission dat
@@ -128,35 +126,36 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     isItToCollateral txo = txOutAddress txo == collateralSc
 
     containsRequiredCollateralAmount :: TxOut -> Bool
-    containsRequiredCollateralAmount txo = case U.ownValue ctx of
-      Just v  -> assetClassValueOf v (collateral dat) >= assetClassValueOf (txOutValue txo) (collateral dat)
-      Nothing -> False
+    containsRequiredCollateralAmount txo =
+      collateralAmnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
 
     containsNewDatum :: TxOut -> Bool
-    containsNewDatum txo = case getUpperBound of
-      Just ld -> findDatumHash' (expectedNewDatum ld) (U.info ctx) == txOutDatumHash txo
+    containsNewDatum txo = case U.getUpperBound ctx of
+      Just ub -> findDatumHash' (expectedNewDatum ub) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
 
     checkForTokensDos :: TxOut -> Bool
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
     txOutValidate :: TxOut -> Bool
-    txOutValidate txo = isItToCollateral txo &&
-                        containsRequiredCollateralAmount txo &&
-                        containsNewDatum txo &&
-                        checkForTokensDos txo
+    txOutValidate txo =
+      isItToCollateral txo &&
+      containsRequiredCollateralAmount txo &&
+      containsNewDatum txo &&
+      checkForTokensDos txo
 
     validateTxOuts :: Bool
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
     validate :: Bool
-    validate = validateTxOuts &&
-               validateMint &&
-               borrowerGetsWhatHeWants &&
-               txHasOneRequestInputOnly &&
-               txHasOneScInputOnly &&
-               validateExpiration ||
-               validateBorrowerMint
+    validate =
+      validateTxOuts &&
+      validateMint &&
+      borrowerGetsWhatHeWants &&
+      txHasOneRequestInputOnly &&
+      txHasOneScInputOnly &&
+      validateExpiration ||
+      validateBorrowerMint
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
@@ -165,7 +164,9 @@ instance Scripts.ValidatorTypes RequestDataTypes where
 
 requestTypedValidator :: ContractInfo -> Scripts.TypedValidator RequestDataTypes
 requestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTypes
-    ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
+    ($$(PlutusTx.compile [|| mkValidator ||])
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
     wrap = Scripts.wrapValidator @RequestDatum @TokenName

@@ -49,14 +49,11 @@ data ContractInfo = ContractInfo
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> TokenName -> Integer -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} lenderNftTn _ ctx = validate
-  where
-    validate :: Bool
-    validate = case U.mintFlattened ctx of
-      [(cs, tn, amt)] -> (amt == (-1)) &&
-                         cs == lenderNftCs &&
-                         tn == lenderNftTn
-      _               -> False
+mkValidator contractInfo@ContractInfo{..} lenderNftTn _ ctx = case U.mintFlattened ctx of
+    [(cs, tn, amt)] -> (amt == (-1)) &&
+                        cs == lenderNftCs &&
+                        tn == lenderNftTn
+    _               -> False
 
 data Interest
 instance Scripts.ValidatorTypes Interest where
@@ -65,7 +62,9 @@ instance Scripts.ValidatorTypes Interest where
 
 typedValidator :: ContractInfo -> Scripts.TypedValidator Interest
 typedValidator contractInfo = Scripts.mkTypedValidator @Interest
-    ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
+    ($$(PlutusTx.compile [|| mkValidator ||])
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
     wrap = Scripts.wrapValidator @TokenName @Integer
