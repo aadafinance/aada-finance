@@ -106,7 +106,7 @@ executable compile-validators
   build-depends:        cardano-api
                       , cardano-ledger-alonzo
                       , plutus-ledger
-                      , aada-lend 
+                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring

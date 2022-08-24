@@ -1,5 +1,5 @@
 -- Bump this if you need newer packages.
-index-state: 2022-05-18T00:00:00Z
+index-state: 2022-07-01T00:00:00Z
 
 packages: aada-lend.cabal
 
@@ -90,7 +90,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus
-  tag: d24a7540e4659b57ce2ab25dadb968991e232191
+  tag: 8ab4c3355c5fdf67dcf6acc1f5a14668d5e6f0a9
   subdir:
     plutus-core
     plutus-ledger-api
@@ -185,7 +185,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-ledger
-  tag: e290bf8d0ea272a51e9acd10adc96b4e12e00d37
+  tag: 389b266d6226dedf3d2aec7af640b3ca4984c5ea
   subdir:
     eras/alonzo/impl
     eras/babbage/impl
@@ -230,7 +230,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/io-sim
-  tag: 57e888b1894829056cb00b7b5785fdf6a74c3271
+  tag: f4183f274d88d0ad15817c7052df3a6a8b40e6dc
   subdir:
     io-classes
     io-sim
@@ -267,7 +267,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-prelude
-  tag: bb4ed71ba8e587f672d06edf9d2e376f4b055555
+  tag: 533aec85c1ca05c7d171da44b89341fb736ecfe5
   subdir:
     cardano-prelude
     cardano-prelude-test
@@ -305,35 +305,8 @@ source-repository-package
   location: https://github.com/vshabanov/ekg-json
   tag: 00ebe7211c981686e65730b7144fbf5350462608
 
--- TODO This is a compatibility shim to make it easier for our library dependencies to
--- be compatible with both aeson 1 & 2.  Once downstream projects are all upgraded to
--- work with aeson-2, library dependencies will need to be updated to no longer use
--- this compatibility shim and have bounds to indicate they work with aeson-2 only.
--- After this, the dependency to hw-aeson can be dropped.
+-- library for unit tests of Plutus scripts
 source-repository-package
-    type: git
-    location: https://github.com/haskell-works/hw-aeson
-    tag: d99d2f3e39a287607418ae605b132a3deb2b753f
-    --sha256: 1vxqcwjg9q37wbwi27y9ba5163lzfz51f1swbi0rp681yg63zvn4
-
--- Temporary indexing
-source-repository-package
-  type: git
-  location: https://github.com/raduom/hysterical-screams
-  tag: f3bbd38a19f99de5c8ddc650c94330b2d09a865b
-
--- library for unit tests of Plutus scripts                                                               
-source-repository-package
-   type: git                                                                                              
+   type: git
    location: https://github.com/mlabs-haskell/plutus-simple-model
-   tag: 7f8da4a16909fbf3a1a5943040c6ee20676d7cb6
-
-source-repository-package
-  type: git
-  location: https://github.com/mlabs-haskell/plutip
-  tag: 0b5729bc88954c0d27e93dcabea2f6783385c52d
-
-source-repository-package
-  type: git
-  location: https://github.com/mlabs-haskell/bot-plutus-interface
-  tag: d882ffb5630bd927437dc62d4fa98189fc69b3e7
+   tag: fcea754a33a5c40e3a0cad628b80ed3ccd18e47f
