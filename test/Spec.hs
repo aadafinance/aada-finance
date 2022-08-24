@@ -9,5 +9,7 @@ main = do
   defaultMain $
     testGroup
       "Test Suites"
-      [ Spec.Test.tests cfg
+      [ Spec.Test.mainTests cfg
+      , Spec.Test.testSize cfg
+      , Spec.Test.mintOracleNftTests cfg
       ]

@@ -15,12 +15,12 @@
 {-# HLINT ignore "Use foldr" #-}
 {-# HLINT ignore "Use newtype instead of data" #-}
 
-module Interest
-  ( interestScript
-  , interestShortBs
+module Liquidation
+  ( liquidation
+  , liquidationShortBs
   , validator
   , typedValidator
-  , interestAddress
+  , liquidationAddress
   , ContractInfo(..)
   ) where
 
@@ -36,32 +36,33 @@ import           Plutus.V1.Ledger.Scripts
 import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
-import           Prelude              (Show (..))
 import           Ledger.Typed.Scripts as Scripts
-import           Ledger
+import qualified Ledger as L
 import qualified Common.Utils             as U
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
+import           Prelude              (Show (..))
 
 data ContractInfo = ContractInfo
-    { lenderNftCs  :: !CurrencySymbol
+    { borrowerNftCs  :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> TokenName -> Integer -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} lenderNftTn _ ctx = case U.mintFlattened ctx of
-    [(cs, tn, amt)] -> (amt == (-1)) &&
-                        cs == lenderNftCs &&
-                        tn == lenderNftTn
-    _               -> False
+mkValidator contractInfo@ContractInfo{..} borrowerNftTn _ ctx =
+    case U.mintFlattened ctx of
+      [(cs, tn, amt)] -> (amt == (-1)) &&
+                         (tn == borrowerNftTn) &&
+                         (cs == borrowerNftCs)
+      _               -> False
 
-data Interest
-instance Scripts.ValidatorTypes Interest where
-    type instance DatumType Interest = TokenName
-    type instance RedeemerType Interest = Integer
+data Liquidation
+instance Scripts.ValidatorTypes Liquidation where
+    type instance DatumType Liquidation = TokenName
+    type instance RedeemerType Liquidation = Integer
 
-typedValidator :: ContractInfo -> Scripts.TypedValidator Interest
-typedValidator contractInfo = Scripts.mkTypedValidator @Interest
+typedValidator :: ContractInfo -> Scripts.TypedValidator Liquidation
+typedValidator contractInfo = Scripts.mkTypedValidator @Liquidation
     ($$(PlutusTx.compile [|| mkValidator ||])
     `PlutusTx.applyCode`
     PlutusTx.liftCode contractInfo)
@@ -69,21 +70,20 @@ typedValidator contractInfo = Scripts.mkTypedValidator @Interest
   where
     wrap = Scripts.wrapValidator @TokenName @Integer
 
-
 validator :: ContractInfo -> Validator
 validator = Scripts.validatorScript . typedValidator
 
 script :: ContractInfo -> Plutus.Script
 script = Plutus.unValidatorScript . validator
 
-interestShortBs :: ContractInfo -> SBS.ShortByteString
-interestShortBs = SBS.toShort . LBS.toStrict . serialise . script
+liquidationShortBs :: ContractInfo -> SBS.ShortByteString
+liquidationShortBs = SBS.toShort . LBS.toStrict . serialise . script
 
-interestScript :: ContractInfo -> PlutusScript PlutusScriptV1
-interestScript = PlutusScriptSerialised . interestShortBs
+liquidation :: ContractInfo -> PlutusScript PlutusScriptV1
+liquidation = PlutusScriptSerialised . liquidationShortBs
 
-interestAddress :: ContractInfo -> Address
-interestAddress = scriptHashAddress . Scripts.validatorHash . typedValidator
+liquidationAddress :: ContractInfo -> L.Address
+liquidationAddress = L.scriptHashAddress . validatorHash . typedValidator
 
 PlutusTx.makeIsDataIndexed ''ContractInfo [('ContractInfo, 1)]
 PlutusTx.makeLift ''ContractInfo
