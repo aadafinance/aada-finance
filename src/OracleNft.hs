@@ -69,9 +69,7 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
     ownMintedValue = filter (\(cs, _tn, _n) -> cs == ownCurrencySymbol ctx) mintFlattened
 
     singleTokenName :: Bool
-    singleTokenName = case ownMintedValue of
-      val -> all (\(_cs, tn', _n) -> tn == tn') val
-      _   -> False
+    singleTokenName = all (\(_cs, tn', _n) -> tn == tn') ownMintedValue
 
     burn :: Bool
     burn = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn < 0
