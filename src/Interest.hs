@@ -8,15 +8,20 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use foldr" #-}
+{-# HLINT ignore "Use newtype instead of data" #-}
 
 module Interest
-  ( interest
+  ( interestScript
   , interestShortBs
   , validator
   , typedValidator
   , interestAddress
+  , ContractInfo(..)
   ) where
 
 import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
@@ -31,68 +36,54 @@ import           Plutus.V1.Ledger.Scripts
 import           Plutus.V1.Ledger.Value
 import qualified PlutusTx
 import           PlutusTx.Prelude hiding (Semigroup (..), unless)
+import           Prelude              (Show (..))
 import           Ledger.Typed.Scripts as Scripts
-import qualified Ledger as L
+import           Ledger
+import qualified Common.Utils             as U
+import GHC.Generics (Generic)
+import Data.Aeson (ToJSON, FromJSON)
 
-{-# INLINABLE flattenBuiltinByteString #-}
-flattenBuiltinByteString :: [BuiltinByteString] -> BuiltinByteString
-flattenBuiltinByteString [] = emptyByteString
-flattenBuiltinByteString (x:xs) = appendByteString x $ flattenBuiltinByteString xs
-
-{-# INLINABLE lender #-}
-lender :: TokenName
-lender = TokenName { unTokenName = flattenBuiltinByteString [consByteString x emptyByteString | x <- [76]]}  -- L
+data ContractInfo = ContractInfo
+    { lenderNftCs  :: !CurrencySymbol
+    } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: Integer -> Integer -> ScriptContext -> Bool
-mkValidator _ _ ctx = validate
-  where
-    info :: TxInfo
-    info = scriptContextTxInfo ctx
-
-    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
-    mintFlattened = flattenValue $ txInfoMint info
-
-    ownInput :: Maybe TxOut
-    ownInput = case findOwnInput ctx of
-      Just txin -> Just $ txInInfoResolved txin
-      Nothing   -> Nothing
-
-    hasBurntNft :: CurrencySymbol -> Bool
-    hasBurntNft cs = case ownInput of
-      Just txo -> valueOf (txOutValue txo) cs lender == 1
-      Nothing  -> False
-
-    validate :: Bool
-    validate = case mintFlattened of
-      [(cs, tn, amt)] -> (amt == (-2)) &&
-                         hasBurntNft cs &&
-                         (tn == lender)
-      _               -> False
+mkValidator :: ContractInfo -> TokenName -> Integer -> ScriptContext -> Bool
+mkValidator contractInfo@ContractInfo{..} lenderNftTn _ ctx = case U.mintFlattened ctx of
+    [(cs, tn, amt)] -> (amt == (-1)) &&
+                        cs == lenderNftCs &&
+                        tn == lenderNftTn
+    _               -> False
 
 data Interest
 instance Scripts.ValidatorTypes Interest where
-    type instance DatumType Interest = Integer
+    type instance DatumType Interest = TokenName
     type instance RedeemerType Interest = Integer
 
-typedValidator :: Scripts.TypedValidator Interest
-typedValidator = Scripts.mkTypedValidator @Interest
-    $$(PlutusTx.compile [|| mkValidator ||])
+typedValidator :: ContractInfo -> Scripts.TypedValidator Interest
+typedValidator contractInfo = Scripts.mkTypedValidator @Interest
+    ($$(PlutusTx.compile [|| mkValidator ||])
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @Integer @Integer
+    wrap = Scripts.wrapValidator @TokenName @Integer
 
-validator :: Validator
-validator = Scripts.validatorScript typedValidator
 
-script :: Plutus.Script
-script = Plutus.unValidatorScript validator
+validator :: ContractInfo -> Validator
+validator = Scripts.validatorScript . typedValidator
 
-interestShortBs :: SBS.ShortByteString
-interestShortBs = SBS.toShort . LBS.toStrict $ serialise script
+script :: ContractInfo -> Plutus.Script
+script = Plutus.unValidatorScript . validator
 
-interest :: PlutusScript PlutusScriptV1
-interest = PlutusScriptSerialised interestShortBs
+interestShortBs :: ContractInfo -> SBS.ShortByteString
+interestShortBs = SBS.toShort . LBS.toStrict . serialise . script
 
-interestAddress :: L.Address
-interestAddress = L.scriptHashAddress $ validatorHash typedValidator
+interestScript :: ContractInfo -> PlutusScript PlutusScriptV1
+interestScript = PlutusScriptSerialised . interestShortBs
+
+interestAddress :: ContractInfo -> Address
+interestAddress = scriptHashAddress . Scripts.validatorHash . typedValidator
+
+PlutusTx.makeIsDataIndexed ''ContractInfo [('ContractInfo, 1)]
+PlutusTx.makeLift ''ContractInfo

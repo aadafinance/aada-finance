@@ -33,6 +33,22 @@ This repository hosts on-chain code part of aada-lend project.
 - Retrieve loan and loan interest
 
 ### Requirements
+When borrower creates a Loan Request, they can safely lock collateral value into Smart Contract. Smart contract `request.hs` allows:
+- Borrower **burns borrower NFT** to cancel loan request and claim back collateral value.
+- Lender, to provide the loan value (defined in request datum) and move collateral value to `collateral.hs` smart contract.
+
+`collateral.hs` is a validator where collateral value is stored while loan is active. Consuming from this validator is enabled when:
+- Borrower repays the loan value + correct amount of interest value (locking it to `interest.hs`) and **burning borrower NFT**.
+- Loan has expired, and Lender can claim the whole collateral value by **burning Lender NFT**
+- Collateral value fell in terms of the loan and **Oracle liquidation NFT is minted** and **lender NFT is burned** in the transaction
+
+`interest.hs` is a validator that makes sure only the holder of Lender NFT can claim the desired Loan + Interest. This validator allows:
+- Lender to claim Loan and interest amount by **burning Lender NFT**
+
+UTXO locked in `liquidation.hs` is a remaining collateral value liquidated by Lender with oracle. Validator allows to:
+- Borrower to claim collateral amount by **burning borrower NFT**.
+
+### Implementation
 
 #### Aada lend smartcontract part
 

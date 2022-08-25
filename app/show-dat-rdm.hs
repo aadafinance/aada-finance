@@ -2,11 +2,9 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.Aeson as Json ( encode )
+import qualified Data.Aeson.Encode.Pretty as Json
 import Data.ByteString.Lazy qualified as LB
-import System.Environment ( getArgs )
 import Prelude
-import Data.String (fromString)
 
 import Cardano.Api
     ( scriptDataToJson,
@@ -14,19 +12,20 @@ import Cardano.Api
 import Cardano.Api.Shelley ( fromPlutusData )
 import qualified PlutusTx
 import Ledger
-
-import OracleNft
-import Collateral
+import Plutus.V1.Ledger.Credential
 import Spec.Test
 
 main :: IO ()
 main = do
-  let exampleOracleRedeemer = OracleData 1 2 3 4 5 6
+  let exampleOracleRedeemer = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
   writeData "redeemer-of-oracleNft.json" exampleOracleRedeemer
-  let exampleDatum = getTestDatum 0 "ff" "ff" (PaymentPubKeyHash "ff") 0
+  let exampleDatum = getTestDatum 0 "ff" "ff" "ff" 0 "nfttn" 0 (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   writeData "example.datum" exampleDatum
-  let exampleCollateralRedeemer = CollateralRedeemer 1 2
-  writeData "example-collateral-redeemer.json" exampleCollateralRedeemer
+  writeData "example-collateral-redeemer.json" (POSIXTime 2)
+  let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getAadaTokenName (TxOutRef "ff" 1))
+  writeData "example-request-redeemer.json" exampleRequestRedeemer
+  let exampleAadaNftRedeemer = Redeemer (PlutusTx.toBuiltinData (TxOutRef "ff" 1))
+  writeData "example-aada-nft-redeemer.json" exampleAadaNftRedeemer
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()
@@ -36,7 +35,7 @@ writeData file isData = do
 
 toJsonString :: PlutusTx.ToData a => a -> LB.ByteString
 toJsonString =
-  Json.encode
+  Json.encodePretty
     . scriptDataToJson ScriptDataJsonDetailedSchema
     . fromPlutusData
     . PlutusTx.toData

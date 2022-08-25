@@ -60,9 +60,7 @@ library
 
   hs-source-dirs:       src, test
 
-  exposed-modules:      TimeNft
-                      , BorrowerNft
-                      , LenderNft
+  exposed-modules:      AadaNft
                       , Collateral
                       , Interest
                       , Liquidation
@@ -70,6 +68,7 @@ library
                       , OracleNft
                       , Helpers.TestValidator
                       , Spec.Test
+                      , Common.Utils
 
   build-depends:        bytestring
                       , cardano-api
@@ -94,6 +93,7 @@ library
                       , tasty
                       , mtl
                       , plutus-simple-model
+                      , utf8-string
 
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
@@ -111,41 +111,12 @@ executable compile-validators
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , optparse-applicative
 
-executable mint-borrower-nft
+executable mint-aada-nft
   import:               base, project-config
   hs-source-dirs:       app
-  main-is:              mint-borrower-nft.hs
-  ghc-options:          -Wall
-
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
-                      , aada-lend 
-                      , plutus-tx
-                      , plutus-ledger-api
-                      , bytestring
-                      , aeson
-
-executable mint-lender-nft
-  import:               base, project-config
-  hs-source-dirs:       app
-  main-is:              mint-lender-nft.hs
-  ghc-options:          -Wall
-
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
-                      , aada-lend 
-                      , plutus-tx
-                      , plutus-ledger-api
-                      , bytestring
-                      , aeson
-
-executable mint-time-nft
-  import:               base, project-config
-  hs-source-dirs:       app
-  main-is:              mint-time-nft.hs
+  main-is:              mint-aada-nft.hs
   ghc-options:          -Wall
 
   build-depends:        cardano-api
@@ -156,6 +127,8 @@ executable mint-time-nft
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , optparse-applicative
+                      , hex-text
 
 executable mint-oracle-nft
   import:               base, project-config
@@ -184,6 +157,7 @@ executable generate-example-jsons
                       , cardano-api
                       , plutus-tx
                       , aeson
+                      , aeson-pretty
                       , containers
                       , plutus-ledger
                       , plutus-ledger-constraints
@@ -195,6 +169,7 @@ executable generate-example-jsons
                       , plutus-simple-model
                       , mtl
                       , plutus-tx-plugin
+                      , utf8-string
 
 test-suite aada-tests
   type:                exitcode-stdio-1.0
@@ -230,3 +205,4 @@ test-suite aada-tests
                      , text
                      , plutus-simple-model
                      , mtl
+                     , utf8-string
