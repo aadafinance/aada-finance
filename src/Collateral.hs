@@ -146,7 +146,9 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
 
     checkForLiquidationToken :: Bool
     checkForLiquidationToken =
-      any (\(cs, _, n) -> cs == liquidateNft dat && n > 0) (U.mintFlattened ctx)
+      all (\(_, _, n) -> n > 0)
+      $ filter (\(cs, _, n) -> cs == liquidateNft dat)
+      (U.mintFlattened ctx)
 
     validateLiquidation :: Bool
     validateLiquidation = checkLNftIsBurnt && (checkDeadline || checkForLiquidationToken)
