@@ -61,10 +61,23 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
        valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn == 1 &&
        valueOf (txOutValue x) (ownCurrencySymbol ctx) tn == 1)
       (txInfoOutputs (U.info ctx))
+
+    mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
+    mintFlattened = flattenValue $ txInfoMint (scriptContextTxInfo ctx)
+
+    ownMintedValue :: [(CurrencySymbol, TokenName, Integer)]
+    ownMintedValue = filter (\(cs, _tn, _n) -> cs == ownCurrencySymbol ctx) mintFlattened
+
+    singleTokenName :: Bool
+    singleTokenName = case ownMintedValue of
+      val -> all (\(_cs, tn', _n) -> tn == tn') val
+      _   -> False
+
     burn :: Bool
     burn = valueOf (txInfoMint (U.info ctx)) (ownCurrencySymbol ctx) tn < 0
 
     validate =
+      singleTokenName &&
       txSignedBy (U.info ctx) pkh1 &&
       txSignedBy (U.info ctx) pkh2 &&
       txSignedBy (U.info ctx) pkh3 &&
