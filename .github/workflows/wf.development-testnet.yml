@@ -52,3 +52,8 @@ jobs:
             cd docker/${{ github.ref_name }}
             docker-compose pull
             docker-compose up -d
+
+            sleep 5
+            docker-compose exec -T aada-finance compile-validators --hash 3e1d198908bbbe7fb4fae9b3c16037d61ea5f43c6d66bb89d0b369b1 -k
+            docker-compose exec -T aada-finance mint-aada-nft minting-policy -l -p lender.nft
+            docker-compose exec -T aada-finance mint-aada-nft minting-policy -b -p borrower.nft
