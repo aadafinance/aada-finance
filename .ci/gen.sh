@@ -25,10 +25,10 @@ fi
 
 export CARDANO_NODE_SOCKET_PATH=/gz/cardano/cardano-my-node/db/socket
 
-LIQUIDATION_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/liquidation.plutus  --stake-verification-key-file stake.vkey $MAGIC)
-REQUEST_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/request.plutus  --stake-verification-key-file stake.vkey $MAGIC)
-COLLATERAL_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/collateral.plutus  --stake-verification-key-file stake.vkey $MAGIC)
-INTEREST_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/interest.plutus  --stake-verification-key-file stake.vkey $MAGIC)
+LIQUIDATION_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/liquidation.plutus  --stake-verification-key-file ${ARF_PATH}/stake.vkey $MAGIC)
+REQUEST_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/request.plutus  --stake-verification-key-file ${ARF_PATH}/stake.vkey $MAGIC)
+COLLATERAL_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/collateral.plutus  --stake-verification-key-file ${ARF_PATH}/stake.vkey $MAGIC)
+INTEREST_ADDRESS=$(cardano-cli address build --payment-script-file $NODE_ARF_PATH/interest.plutus  --stake-verification-key-file ${ARF_PATH}/stake.vkey $MAGIC)
 LENDER_POLICY=$(cardano-cli transaction policyid --script-file $NODE_ARF_PATH/lender.nft)
 BORROWER_POLICY=$(cardano-cli transaction policyid --script-file $NODE_ARF_PATH/borrower.nft)
 
