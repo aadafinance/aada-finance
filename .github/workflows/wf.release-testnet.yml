@@ -54,6 +54,10 @@ jobs:
             docker-compose up -d
 
             sleep 5
-            docker-compose exec -T aada-finance compile-validators --hash 3e1d198908bbbe7fb4fae9b3c16037d61ea5f43c6d66bb89d0b369b1 -k
-            docker-compose exec -T aada-finance mint-aada-nft minting-policy -l -p lender.nft
-            docker-compose exec -T aada-finance mint-aada-nft minting-policy -b -p borrower.nft
+            cd /gz/aada-finance/
+            hash=$(git rev-parse HEAD)
+            /bin/bash ./.ci/gen.sh ${{ github.ref_name }} ${hash}
+            /usr/bin/python3 .ci/version.py versions.json /gz/aada-app/${hash}/version_details.json ${hash}
+            git add /gz/aada-app/${hash}/versions.json
+            git commit -m "[skip ci] update versions from hash"
+            git push origin ${{ github.ref_name }}
