@@ -54,10 +54,9 @@ jobs:
             docker-compose up -d
 
             sleep 5
-            cd /gz/aada-finance/
             hash=$(git rev-parse HEAD)
-            /bin/bash ./.ci/gen.sh ${{ github.ref_name }} ${hash}
-            /usr/bin/python3 .ci/version.py versions.json /gz/aada-app/${hash}/version_details.json ${hash}
+            /bin/bash /gz/aada-finance/.ci/gen.sh ${{ github.ref_name }} ${hash}
+            /usr/bin/python3 /gz/aada-finance/.ci/version.py /gz/aada-finance/versions.json /gz/aada-app/${hash}/version_details.json ${hash}
             git add /gz/aada-app/${hash}/versions.json
             git commit -m "[skip ci] update versions from hash"
             git push origin ${{ github.ref_name }}
