@@ -69,6 +69,8 @@ library
                       , Helpers.TestValidator
                       , Spec.Test
                       , Common.Utils
+                      , NFTStaking
+                      , StakingPolicy
 
   build-depends:        bytestring
                       , cardano-api
@@ -106,7 +108,7 @@ executable compile-validators
   build-depends:        cardano-api
                       , cardano-ledger-alonzo
                       , plutus-ledger
-                      , aada-lend 
+                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
@@ -206,3 +208,17 @@ test-suite aada-tests
                      , plutus-simple-model
                      , mtl
                      , utf8-string
+
+executable aada-staking
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              aada-tokens-staking.hs
+  ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
+
+  build-depends:        cardano-api
+                      , cardano-ledger-alonzo
+                      , plutus-ledger
+                      , aada-lend
+                      , plutus-tx
+                      , plutus-ledger-api
+                      , bytestring
