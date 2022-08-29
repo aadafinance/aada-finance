@@ -433,5 +433,17 @@ Use this template:
 
 
 - email: `tomas@aada.finance`
+<<<<<<< HEAD
 
 
+||||||| constructed merge base
+=======
+
+# Nix shell
+
+`nix develop -f shell.nix`
+
+OR
+
+`nix-shell`
+>>>>>>> Convert scripts to V2 without anything else

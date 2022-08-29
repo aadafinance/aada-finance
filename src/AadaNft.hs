@@ -12,29 +12,34 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use foldr" #-}
 
 module AadaNft
-    ( aadaNft
-    , aadaNftShortBs
-    , policy
+    ( aadaNftScript
+    , aadaNftPolicy
     ) where
 
-import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy     as LB
 import qualified Data.ByteString.Short    as SBS
-import           Ledger                   hiding (singleton)
-import qualified Ledger.Typed.Scripts     as Scripts
-import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import qualified Common.Utils             as U
+import           Plutus.V2.Ledger.Tx
+import           Plutus.V2.Ledger.Contexts hiding (TxOut(..))
+import           Plutus.V1.Ledger.Value
+import           Plutus.V1.Ledger.Scripts
+import           PlutusTx (unsafeFromBuiltinData)
+import           Plutus.Model.V1
 
 {-# INLINABLE mkPolicy #-}
-mkPolicy :: Bool -> TxOutRef -> ScriptContext -> Bool
-mkPolicy isLender utxo ctx = case mintedValue of
+mkPolicy :: Bool -> BuiltinData -> BuiltinData -> ()
+mkPolicy isLender
+  (unsafeFromBuiltinData -> utxo :: TxOutRef)
+  (unsafeFromBuiltinData -> ctx :: ScriptContext)
+  = check $ case mintedValue of
     [(_cs, tn, n)] -> validateMint tn n
     _              -> False
   where
@@ -62,23 +67,32 @@ mkPolicy isLender utxo ctx = case mintedValue of
       checkForOverflow ||
       amount == (-1)
 
-policy :: Bool -> Scripts.MintingPolicy
-policy isLender = mkMintingPolicyScript $
-   $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy . mkPolicy ||])
-   `PlutusTx.applyCode`
-   PlutusTx.liftCode isLender
+aadaNftScript :: Bool -> Script
+aadaNftScript isLender = fromCompiledCode $
+    ($$(PlutusTx.compile [|| mkPolicy ||]) `PlutusTx.applyCode` PlutusTx.liftCode isLender)
 
-plutusScript :: Bool -> Script
-plutusScript = unMintingPolicyScript . policy
+-- code below is for plutus-simple-model testing
+aadaNftPolicy :: Bool -> TypedPolicy TxOutRef
+aadaNftPolicy isLender = mkTypedPolicy $
+    ($$(PlutusTx.compile [|| mkPolicy ||]) `PlutusTx.applyCode` PlutusTx.liftCode isLender)
 
-validator :: Bool -> Validator
-validator = Validator . plutusScript
+-- policy :: Bool -> Scripts.MintingPolicy
+-- policy isLender = mkMintingPolicyScript $
+--    $$(PlutusTx.compile [|| Scripts.wrapMintingPolicy . mkPolicy ||])
+--    `PlutusTx.applyCode`
+--    PlutusTx.liftCode isLender
 
-scriptAsCbor :: Bool -> LB.ByteString
-scriptAsCbor = serialise . validator
+-- plutusScript :: Bool -> Script
+-- plutusScript = unMintingPolicyScript . policy
 
-aadaNft :: Bool -> PlutusScript PlutusScriptV1
-aadaNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict . scriptAsCbor
+-- validator :: Bool -> Validator
+-- validator = Validator . plutusScript
 
-aadaNftShortBs :: Bool -> SBS.ShortByteString
-aadaNftShortBs = SBS.toShort . LB.toStrict . scriptAsCbor
+-- scriptAsCbor :: Bool -> LB.ByteString
+-- scriptAsCbor = serialise . validator
+
+-- aadaNft :: Bool -> PlutusScript PlutusScriptV1
+-- aadaNft = PlutusScriptSerialised . SBS.toShort . LB.toStrict . scriptAsCbor
+
+-- aadaNftShortBs :: Bool -> SBS.ShortByteString
+-- aadaNftShortBs = SBS.toShort . LB.toStrict . scriptAsCbor

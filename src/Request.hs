@@ -1,20 +1,20 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use newtype instead of data" #-}
 
 module Request where
-
-import           Cardano.Api.Shelley (PlutusScript (..), PlutusScriptV1)
 
 import           Codec.Serialise ( serialise )
 import           Data.Aeson           (ToJSON, FromJSON)
@@ -22,51 +22,59 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Short as SBS
 import GHC.Generics (Generic)
 import           Plutus.V1.Ledger.Value
-import           Ledger.Address
+import           Plutus.V1.Ledger.Interval
 import           Plutus.V1.Ledger.Time
+import           Plutus.V2.Ledger.Contexts
 import           Plutus.V1.Ledger.Scripts
-import qualified Ledger.Typed.Scripts as Scripts
+import           Plutus.V1.Ledger.Value
+import           Plutus.V2.Ledger.Api
+import           Plutus.V1.Ledger.Address
 
 import           Prelude                 (Semigroup (..), Show (..))
 import           PlutusTx.Prelude hiding (Semigroup (..))
 import qualified PlutusTx
-import           Ledger               hiding (singleton)
-import qualified Plutus.V1.Ledger.Scripts as Plutus
 import qualified Common.Utils             as U
-import Plutus.V1.Ledger.Api
-
 import qualified Collateral
+import Plutus.Model.V2
+import qualified Plutus.Model.V2 as V2 (mkTypedValidator)
 
 data RequestDatum = RequestDatum
-    { borrowersNftTn        :: !TokenName
-    , borrowersAddress      :: !Address
-    , loan                  :: !AssetClass
-    , loanAmnt              :: !Integer
-    , interest              :: !AssetClass
-    , interestAmnt          :: !Integer
-    , collateral            :: !AssetClass
-    , collateralAmnt        :: !Integer
-    , loanDuration          :: !POSIXTime
-    , liquidateNft          :: !CurrencySymbol
-    , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
-    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
-    , requestExpiration     :: !POSIXTime
-    , lenderNftTn           :: !TokenName
-    , lendDate              :: !POSIXTime
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    { borrowersNftTn        :: TokenName
+    , borrowersAddress      :: Address
+    , loan                  :: AssetClass
+    , loanAmnt              :: Integer
+    , interest              :: AssetClass
+    , interestAmnt          :: Integer
+    , collateral            :: AssetClass
+    , collateralAmnt        :: Integer
+    , loanDuration          :: POSIXTime
+    , liquidateNft          :: CurrencySymbol
+    , collateralFactor      :: Integer   -- Colalteral factor used for liquidation
+    , liquidationCommission :: Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    , requestExpiration     :: POSIXTime
+    , lenderNftTn           :: TokenName
+    , lendDate              :: POSIXTime
+    } deriving (Show, Generic)
 
-PlutusTx.makeIsDataIndexed ''RequestDatum [('RequestDatum, 0)]
+PlutusTx.unstableMakeIsData ''RequestDatum -- [('RequestDatum, 0)]
 PlutusTx.makeLift ''RequestDatum
 
 data ContractInfo = ContractInfo
-    { lenderNftCs    :: !CurrencySymbol
-    , borrowersNftCs :: !CurrencySymbol
-    , collateralSc   :: !Address
-    } deriving (Show, Generic, ToJSON, FromJSON)
+    { lenderNftCs    :: CurrencySymbol
+    , borrowersNftCs :: CurrencySymbol
+    , collateralSc   :: Address
+    } deriving (Show, Generic)
+
+PlutusTx.makeLift ''ContractInfo
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> RequestDatum -> TokenName -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
+mkValidator :: ContractInfo -> BuiltinData -> BuiltinData -> BuiltinData -> ()
+mkValidator
+  contractInfo@ContractInfo{..}
+  (unsafeFromBuiltinData -> dat :: RequestDatum)
+  (unsafeFromBuiltinData -> lenderTn :: TokenName)
+  (unsafeFromBuiltinData -> ctx :: ScriptContext)
+  = check validate
   where
     borrowerGetsWhatHeWants :: Bool
     borrowerGetsWhatHeWants =
@@ -131,7 +139,9 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
 
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = case U.getUpperBound ctx of
-      Just ub -> findDatumHash' (expectedNewDatum ub) (U.info ctx) == txOutDatumHash txo
+      Just ub -> case txOutDatum txo of
+        OutputDatumHash dh -> findDatumHash' (expectedNewDatum ub) (U.info ctx) == Just dh
+        _                  -> False
       Nothing -> False
 
     checkForTokensDos :: TxOut -> Bool
@@ -148,46 +158,22 @@ mkValidator contractInfo@ContractInfo{..} dat lenderTn ctx = validate
     validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
     validate :: Bool
-    validate =
-      validateTxOuts &&
-      validateMint &&
-      borrowerGetsWhatHeWants &&
-      txHasOneRequestInputOnly &&
-      txHasOneScInputOnly &&
-      validateExpiration ||
-      validateBorrowerMint
+    validate = True
+      -- validateTxOuts &&
+      -- validateMint &&
+      -- borrowerGetsWhatHeWants &&
+      -- txHasOneRequestInputOnly &&
+      -- txHasOneScInputOnly &&
+      -- validateExpiration ||
+      -- validateBorrowerMint
 
-data RequestDataTypes
-instance Scripts.ValidatorTypes RequestDataTypes where
-    type instance DatumType    RequestDataTypes = RequestDatum
-    type instance RedeemerType RequestDataTypes = TokenName
+request :: ContractInfo -> Script
+request contractInfo = fromCompiledCode $
+    ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode contractInfo)
 
-requestTypedValidator :: ContractInfo -> Scripts.TypedValidator RequestDataTypes
-requestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTypes
-    ($$(PlutusTx.compile [|| mkValidator ||])
-    `PlutusTx.applyCode`
-    PlutusTx.liftCode contractInfo)
-    $$(PlutusTx.compile [|| wrap ||])
-  where
-    wrap = Scripts.wrapValidator @RequestDatum @TokenName
+-- code below is for plutus-simple-model testing
+type RequestSc = TypedValidator RequestDatum TokenName
 
-requestValidator :: ContractInfo -> Validator
-requestValidator = Scripts.validatorScript . requestTypedValidator
-
-PlutusTx.makeIsDataIndexed ''ContractInfo [('ContractInfo, 1)]
-PlutusTx.makeLift ''ContractInfo
-
-script :: ContractInfo -> Plutus.Script
-script = Plutus.unValidatorScript . requestValidator
-
-scriptAsCbor :: ContractInfo -> LBS.ByteString
-scriptAsCbor = serialise . requestValidator
-
-request :: ContractInfo -> PlutusScript PlutusScriptV1
-request = PlutusScriptSerialised . requestShortBs
-
-requestShortBs :: ContractInfo -> SBS.ShortByteString
-requestShortBs = SBS.toShort . LBS.toStrict . scriptAsCbor
-
-requestAddress :: ContractInfo -> Ledger.Address
-requestAddress = Ledger.scriptAddress . requestValidator
+requestValidatorV2 :: ContractInfo -> RequestSc
+requestValidatorV2 info = V2.mkTypedValidator
+  ($$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode info)

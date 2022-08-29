@@ -1,40 +1,42 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 module OracleNft
   ( oracleNft
-  , oracleNftShortBs
-  , policy
+  , oracleCs
   ) where
 
-import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy     as LB
 import qualified Data.ByteString.Short    as SBS
-import           Ledger                   hiding (singleton)
-import qualified Ledger.Typed.Scripts     as Scripts
-import           Ledger.Value             as Value
 import qualified PlutusTx
 import           PlutusTx.Prelude         hiding (Semigroup (..), unless)
 import qualified Plutus.V1.Ledger.Scripts as Plutus
+import           Plutus.V2.Ledger.Contexts
+import           Plutus.V1.Ledger.Scripts
+import           Plutus.V1.Ledger.Value
+import           Plutus.V2.Ledger.Api
+import           Plutus.V1.Ledger.Address
 import           Prelude                  (Semigroup (..), Show)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import qualified Common.Utils             as U
+import           Plutus.Model.V1
 
 {-# INLINABLE mkPolicy #-}
 mkPolicy
@@ -44,9 +46,9 @@ mkPolicy
     -> PubKeyHash
     -> BuiltinByteString
     -> BuiltinData
-    -> ScriptContext
-    -> Bool
-mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
+    -> BuiltinData
+    -> ()
+mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer (unsafeFromBuiltinData -> ctx :: ScriptContext) = check validate
   where
     checkTargetAddress :: Address -> Bool
     checkTargetAddress addr = case toValidatorHash addr of
@@ -81,15 +83,9 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
       txSignedBy (U.info ctx) pkh3 &&
       mintedValueSentToDest || burn
 
-policy
-    :: TokenName
-    -> PubKeyHash
-    -> PubKeyHash
-    -> PubKeyHash
-    -> BuiltinByteString
-    -> Scripts.MintingPolicy
-policy tn pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| wrap ||])
+oracleNft :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> Script
+oracleNft tn pkh1 pkh2 pkh3 dest = fromCompiledCode $
+    $$(PlutusTx.compile [|| mkPolicy ||])
     `PlutusTx.applyCode`
     PlutusTx.liftCode tn
     `PlutusTx.applyCode`
@@ -100,53 +96,21 @@ policy tn pkh1 pkh2 pkh3 dest = mkMintingPolicyScript $
     PlutusTx.liftCode pkh3
     `PlutusTx.applyCode`
     PlutusTx.liftCode dest
-  where
-    wrap tn' pkh1' pkh2' pkh3' dest' =
-      Scripts.wrapMintingPolicy $ mkPolicy tn' pkh1' pkh2' pkh3' dest'
 
-plutusScript
-    :: TokenName
-    -> PubKeyHash
-    -> PubKeyHash
-    -> PubKeyHash
-    -> BuiltinByteString
-    -> Script
-plutusScript tn pkh1 pkh2 pkh3 dest = unMintingPolicyScript $ policy tn pkh1 pkh2 pkh3 dest
+-- part below is for plutus-simple-model testing
+typedPolicy :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> TypedPolicy BuiltinData
+typedPolicy tn pkh1 pkh2 pkh3 dest = mkTypedPolicy $
+    $$(PlutusTx.compile [|| mkPolicy ||])
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode tn
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode pkh1
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode pkh2
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode pkh3
+    `PlutusTx.applyCode`
+    PlutusTx.liftCode dest
 
-validator
-  :: TokenName
-  -> PubKeyHash
-  -> PubKeyHash
-  -> PubKeyHash
-  -> BuiltinByteString
-  -> Validator
-validator tn pkh1 pkh2 pkh3 dest = Validator $ plutusScript tn pkh1 pkh2 pkh3 dest
-
-scriptAsCbor
-    :: TokenName
-    -> PubKeyHash
-    -> PubKeyHash
-    -> PubKeyHash
-    -> BuiltinByteString
-    -> LB.ByteString
-scriptAsCbor tn pkh1 pkh2 pkh3 dest = serialise $ validator tn pkh1 pkh2 pkh3 dest
-
-oracleNft
-    :: TokenName
-    -> PubKeyHash
-    -> PubKeyHash
-    -> PubKeyHash
-    -> BuiltinByteString
-    -> PlutusScript PlutusScriptV1
-oracleNft tn pkh1 pkh2 pkh3 dest =
-  PlutusScriptSerialised $ SBS.toShort $ LB.toStrict $ scriptAsCbor tn pkh1 pkh2 pkh3 dest
-
-oracleNftShortBs
-    :: TokenName
-    -> PubKeyHash
-    -> PubKeyHash
-    -> PubKeyHash
-    -> BuiltinByteString
-    -> SBS.ShortByteString
-oracleNftShortBs tn pkh1 pkh2 pkh3 dest =
-  SBS.toShort $ LB.toStrict $ scriptAsCbor tn pkh1 pkh2 pkh3 dest
+oracleCs :: TokenName -> PubKeyHash -> PubKeyHash -> PubKeyHash -> BuiltinByteString -> CurrencySymbol
+oracleCs tn pkh1 pkh2 pkh3 dest = scriptCurrencySymbol $ typedPolicy tn pkh1 pkh2 pkh3 dest

@@ -1,8 +1,11 @@
 module Common.Utils where
 
-import Ledger
+-- import Ledger
 import PlutusTx.Prelude
 import Plutus.V1.Ledger.Value
+import Plutus.V2.Ledger.Contexts hiding (TxOut(..))
+import Plutus.V2.Ledger.Api hiding (TxOut(..))
+import Plutus.V2.Ledger.Tx
 
 {-# INLINABLE info #-}
 info :: ScriptContext -> TxInfo

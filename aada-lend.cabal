@@ -66,17 +66,17 @@ library
                       , Liquidation
                       , Request
                       , OracleNft
-                      , Helpers.TestValidator
                       , Spec.Test
                       , Common.Utils
-                      , NFTStaking
-                      , StakingPolicy
+                      -- , NFTStaking
+                      -- , StakingPolicy
+                      , PlutarchHashing
 
   build-depends:        bytestring
-                      , cardano-api
                       , flat
+                      , cryptonite
+                      , memory
                       , plutus-core
-                      , plutus-ledger
                       , plutus-ledger-api
                       , plutus-tx
                       , plutus-tx-plugin
@@ -89,13 +89,11 @@ library
                       , cardano-ledger-core
                       , cardano-ledger-shelley
                       , cardano-crypto-class
-                      , cardano-wallet-core
-                      , plutus-ledger-constraints
-                      , plutus-contract
                       , tasty
                       , mtl
                       , plutus-simple-model
                       , utf8-string
+                      , ply-core
 
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
 
@@ -105,15 +103,18 @@ executable compile-validators
   main-is:              compile-validators.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:        cardano-ledger-alonzo
                       , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , aeson-pretty
                       , optparse-applicative
+                      , ply-core
+                      , plutus-simple-model
+                      , text
+                      , base16-bytestring
 
 executable mint-aada-nft
   import:               base, project-config
@@ -121,16 +122,18 @@ executable mint-aada-nft
   main-is:              mint-aada-nft.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:        cardano-ledger-alonzo
                       , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , aeson-pretty
                       , optparse-applicative
                       , hex-text
+                      , ply-core
+                      , text
+                      , base16-bytestring
 
 executable mint-oracle-nft
   import:               base, project-config
@@ -138,32 +141,28 @@ executable mint-oracle-nft
   main-is:              mint-oracle-nft.hs
   ghc-options:          -Wall
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
+  build-depends:        cardano-ledger-alonzo
                       , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , ply-core
+                      , text
 
 executable generate-example-jsons
   import:               base, project-config
   hs-source-dirs:       app, test
   main-is:              show-dat-rdm.hs
   ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
-  other-modules:        Helpers.TestValidator, Spec.Test
+  other-modules:        Spec.Test
 
   build-depends:        aada-lend
                       , bytestring
-                      , cardano-api
                       , plutus-tx
                       , aeson
                       , aeson-pretty
                       , containers
-                      , plutus-ledger
-                      , plutus-ledger-constraints
-                      , plutus-contract
                       , plutus-ledger-api
                       , serialise
                       , tasty
@@ -172,6 +171,9 @@ executable generate-example-jsons
                       , mtl
                       , plutus-tx-plugin
                       , utf8-string
+                      , text
+                      , base16-bytestring
+                      , vector
 
 test-suite aada-tests
   type:                exitcode-stdio-1.0
@@ -182,10 +184,7 @@ test-suite aada-tests
   build-depends:       base ^>=4.14.1.0
                      , containers
                      , data-default
-                     , freer-extras
                      , lens
-                     , plutus-contract
-                     , plutus-ledger
                      , aada-lend
                      , plutus-tx
                      , QuickCheck
@@ -194,7 +193,6 @@ test-suite aada-tests
                      , tasty-quickcheck
                      , text
                      , cardano-ledger-shelley
-                     , cardano-api
                      , serialise
                      , data-default
                      , bytestring
@@ -202,23 +200,19 @@ test-suite aada-tests
                      , plutus-tx
                      , plutus-tx-plugin
                      , aeson
-                     , plutus-ledger
-                     , plutus-ledger-constraints
                      , text
                      , plutus-simple-model
                      , mtl
                      , utf8-string
 
-executable aada-staking
-  import:               base, project-config
-  hs-source-dirs:       app
-  main-is:              aada-tokens-staking.hs
-  ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
+-- executable aada-staking
+--   import:               base, project-config
+--   hs-source-dirs:       app
+--   main-is:              aada-tokens-staking.hs
+--   ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
-                      , aada-lend
-                      , plutus-tx
-                      , plutus-ledger-api
-                      , bytestring
+--   build-depends:        cardano-ledger-alonzo
+--                       , aada-lend
+--                       , plutus-tx
+--                       , plutus-ledger-api
+--                       , bytestring

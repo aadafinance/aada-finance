@@ -1,16 +1,16 @@
 {
+    "constructor": 0,
     "fields": [
         {
+            "constructor": 0,
             "fields": [
                 {
                     "bytes": "ff"
                 }
-            ],
-            "constructor": 0
+            ]
         },
         {
             "int": 1
         }
-    ],
-    "constructor": 0
+    ]
 }
