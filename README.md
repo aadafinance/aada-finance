@@ -416,14 +416,14 @@ Important parameters to be provided are:
 - **requestExpiration** - When does loan request expire. Lender should not be able to provide Loan past this time value.
 4. Create transaction like so:
 ```
-           collateralAmnt   ┌──┐       collateralAmnt of    ┌──────────┐
+           collateralAmnt   ┌──┐       collateralAmnt of   ┌──────────┐
 ┌────────┐ of collateral +  │  │─────────collateral + ────▶│Request.hs│
-│Borrower│─datum + tx fees─▶│  │         datum + 2 Ada      └──────────┘
+│Borrower│─datum + tx fees─▶│  │         datum + 2 Ada     └──────────┘
 └────────┘     + 4 Ada      │  │
                             │Tx│
-┌────────┐ borrower token   │  │         2 Ada + 1          ┌──────────┐
+┌────────┐ borrower token   │  │         2 Ada + 1         ┌──────────┐
 │AadaNft │─minting policy──▶│  ├───AadaNft.borrowerNftTn──▶│ Borrower │
-└────────┘     script       │  │                            └──────────┘
+└────────┘     script       │  │                           └──────────┘
                             └──┘
 ```
 > Warning: Borrower won't be able to claim his collateral back if correct Borrower Token is not minted when locking collateral!
@@ -446,17 +446,17 @@ Important parameters to be updated are:
 5. Create transaction like so:
 ```
                                ┌──┐
-┌──────┐   loanAmnt of loan +  │  │         2 Ada + 1          ┌──────┐
+┌──────┐   loanAmnt of loan +  │  │         2 Ada + 1         ┌──────┐
 │Lender│───tx fees + 6 Ada + ─▶│  │────AadaNft.lenderNftTn───▶│Lender│
-└──────┘    datum + redeemer   │  │                            └──────┘
+└──────┘    datum + redeemer   │  │                           └──────┘
                                │  │
-┌──────────┐ collateralAmnt of │  │ collateralAmnt of  ┌───────────────┐
+┌──────────┐ collateralAmnt of │  │ collateralAmnt of ┌───────────────┐
 │Request.hs│───collateral + ──▶│Tx├───collateral + ──▶│ Collateral.hs │
-└──────────┘   datum + 2 Ada   │  │   datum + 2 Ada    └───────────────┘
+└──────────┘   datum + 2 Ada   │  │   datum + 2 Ada   └───────────────┘
                                │  │
-┌────────┐    lender token     │  │    loanAmnt of          ┌──────────┐
+┌────────┐    lender token     │  │    loanAmnt of         ┌──────────┐
 │AadaNft │───minting policy───▶│  ├───loan + 2 Ada────────▶│ Borrower │
-└────────┘       script        │  │                         └──────────┘
+└────────┘       script        │  │                        └──────────┘
                                └──┘
 ```
 5. Submit transaction
@@ -475,14 +475,14 @@ Important parameters to be updated are:
 ┌────────┐ of interest + tx fees  │  │
 │Borrower│──────────+ 1 ─────────▶│  │
 └────────┘ AadaNft.borrowerNftTn  │  │
-              + 4 Ada + datum     │  │ loanAmnt of loan + x    ┌───────────┐
+              + 4 Ada + datum     │  │ loanAmnt of loan + x   ┌───────────┐
                                   │  │─of interest + 2 Ada +─▶│Interest.hs│
-                                  │  │         datum           └───────────┘
+                                  │  │         datum          └───────────┘
 ┌─────────────┐ collateralAmnt of │Tx│
 │Collateral.hs│───collateral + ──▶│  │
-└─────────────┘   datum + 2 Ada   │  │  collateralAmnt         ┌──────────┐
+└─────────────┘   datum + 2 Ada   │  │  collateralAmnt        ┌──────────┐
                                   │  ├──of collateral +──────▶│ Borrower │
-┌────────┐      borrower token    │  │       2 Ada             └──────────┘
+┌────────┐      borrower token    │  │       2 Ada            └──────────┘
 │AadaNft │──────minting policy───▶│  │
 └────────┘          script        │  │
                                   └──┘
@@ -528,9 +528,9 @@ Important parameters to be updated are:
 │ Lender │─AadaNft.lenderNftTn +─▶│  │
 └────────┘    tx fees + datum     │  │
                                   │  │
-┌─────────────┐ collateralAmnt of │Tx│    collateralAmnt       ┌──────────┐
+┌─────────────┐ collateralAmnt of │Tx│    collateralAmnt      ┌──────────┐
 │Collateral.hs│───collateral + ──▶│  ├────of collateral +────▶│  Lender  │
-└─────────────┘   datum + 2 Ada   │  │         2 Ada           └──────────┘
+└─────────────┘   datum + 2 Ada   │  │         2 Ada          └──────────┘
                                   │  │
 ┌────────┐       lender token     │  │
 │AadaNft │──────minting policy───▶│  │
@@ -548,9 +548,9 @@ Important parameters to be updated are:
                                   ┌──┐
 ┌────────┐       2 Ada + 1        │  │
 │ Lender │─AadaNft.lenderNftTn +─▶│  │
-└────────┘    tx fees + datum     │  │                         ┌──────────┐
+└────────┘    tx fees + datum     │  │                        ┌──────────┐
                                   │  ├───x of collateral─────▶│  Lender  │
-┌─────────────┐ collateralAmnt of │  │       + 2 Ada           └──────────┘
+┌─────────────┐ collateralAmnt of │  │       + 2 Ada          └──────────┘
 │Collateral.hs│───collateral + ──▶│  │
 └─────────────┘   datum + 2 Ada   │Tx│
                                   │  │
