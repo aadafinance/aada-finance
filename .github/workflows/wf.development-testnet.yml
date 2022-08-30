@@ -54,6 +54,8 @@ jobs:
             docker-compose up -d
 
             sleep 5
-            docker-compose exec -T aada-finance compile-validators --hash 3e1d198908bbbe7fb4fae9b3c16037d61ea5f43c6d66bb89d0b369b1 -k
-            docker-compose exec -T aada-finance mint-aada-nft minting-policy -l -p lender.nft
-            docker-compose exec -T aada-finance mint-aada-nft minting-policy -b -p borrower.nft
+            /gz/aada-finance/.ci/gen.sh ${{ github.ref_name }}
+            export CARDANO_NODE_SOCKET_PATH=/gz/cardano/cardano-my-node/db/socket
+            export VERSION=$(docker-compose exec -T aada-finance "compile-validators --version" | \
+              cut -d '"' -f 2)
+            /usr/bin/python3 /gz/aada-finance/.ci/version.py /gz/aada-finance/versions.json /gz/aada-app/${VERSION}/version_details.json $VERSION
