@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ -z "$1" ]; then
     echo "Usage: $0 <branch>"
     exit 1
@@ -9,14 +11,14 @@ BRANCH=$1
 ARF_PATH="/gz/aada-app"
 
 echo "Getting the version ..."
-VERSION=$(docker-compose exec -T aada-finance "compile-validators --version" | \
+VERSION=$(docker-compose exec -T aada-finance compile-validators --version | \
     cut -d '"' -f 2)
 echo "Version: $VERSION"
 NODE_ARF_PATH="${ARF_PATH}/${VERSION}"
 WRITE_PATH="${NODE_ARF_PATH}/version_details.json"
 
 echo "Create the version path ..."
-docker-compose exec -T aada-finance "mkdir -p $VERSION || true"
+docker-compose exec -T aada-finance mkdir -p $VERSION || true
 export CARDANO_NODE_SOCKET_PATH=/gz/cardano/cardano-my-node/db/socket
 
 echo "Getting stake hash ..."
