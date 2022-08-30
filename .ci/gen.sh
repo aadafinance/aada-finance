@@ -7,13 +7,13 @@ fi
 
 BRANCH=$1
 ARF_PATH="/gz/aada-app"
-WRITE_PATH="${ARF_PATH}/version_details.json"
 
 echo "Getting the version ..."
 VERSION=$(docker-compose exec -T aada-finance "compile-validators --version" | \
     cut -d '"' -f 2)
 echo "Version: $VERSION"
 NODE_ARF_PATH="${ARF_PATH}/${VERSION}"
+WRITE_PATH="${NODE_ARF_PATH}/version_details.json"
 
 # cd to docker-compose directory
 echo "Go to the docker-compose directory ..."
