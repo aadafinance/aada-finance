@@ -15,9 +15,6 @@ echo "Version: $VERSION"
 NODE_ARF_PATH="${ARF_PATH}/${VERSION}"
 WRITE_PATH="${NODE_ARF_PATH}/version_details.json"
 
-# cd to docker-compose directory
-echo "Go to the docker-compose directory ..."
-
 echo "Create the version path ..."
 docker-compose exec -T aada-finance "mkdir -p $VERSION || true"
 export CARDANO_NODE_SOCKET_PATH=/gz/cardano/cardano-my-node/db/socket
