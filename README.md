@@ -416,15 +416,15 @@ Important parameters to be provided are:
 - **requestExpiration** - When does loan request expire. Lender should not be able to provide Loan past this time value.
 4. Create transaction like so:
 ```
-           collateralAmnt    ┌──┐       collateralAmnt of    ┌──────────┐
-┌────────┐ of collateral +   │  │─────────collateral + ────▶│Request.hs│
+           collateralAmnt   ┌──┐       collateralAmnt of    ┌──────────┐
+┌────────┐ of collateral +  │  │─────────collateral + ────▶│Request.hs│
 │Borrower│─datum + tx fees─▶│  │         datum + 2 Ada      └──────────┘
-└────────┘     + 4 Ada       │  │
-                             │Tx│
-┌────────┐ borrower token    │  │         2 Ada + 1          ┌──────────┐
+└────────┘     + 4 Ada      │  │
+                            │Tx│
+┌────────┐ borrower token   │  │         2 Ada + 1          ┌──────────┐
 │AadaNft │─minting policy──▶│  ├───AadaNft.borrowerNftTn──▶│ Borrower │
-└────────┘     script        │  │                            └──────────┘
-                             └──┘
+└────────┘     script       │  │                            └──────────┘
+                            └──┘
 ```
 > Warning: Borrower won't be able to claim his collateral back if correct Borrower Token is not minted when locking collateral!
 5. Submit transaction
@@ -445,19 +445,19 @@ Important parameters to be updated are:
 ```
 5. Create transaction like so:
 ```
-                                ┌──┐
-┌──────┐   loanAmnt of loan +   │  │         2 Ada + 1          ┌──────┐
+                               ┌──┐
+┌──────┐   loanAmnt of loan +  │  │         2 Ada + 1          ┌──────┐
 │Lender│───tx fees + 6 Ada + ─▶│  │────AadaNft.lenderNftTn───▶│Lender│
-└──────┘    datum + redeemer    │  │                            └──────┘
-                                │  │
-┌──────────┐ collateralAmnt of  │  │ collateralAmnt of  ┌───────────────┐
+└──────┘    datum + redeemer   │  │                            └──────┘
+                               │  │
+┌──────────┐ collateralAmnt of │  │ collateralAmnt of  ┌───────────────┐
 │Request.hs│───collateral + ──▶│Tx├───collateral + ──▶│ Collateral.hs │
-└──────────┘   datum + 2 Ada    │  │   datum + 2 Ada    └───────────────┘
-                                │  │
-┌────────┐    lender token      │  │    loanAmnt of          ┌──────────┐
+└──────────┘   datum + 2 Ada   │  │   datum + 2 Ada    └───────────────┘
+                               │  │
+┌────────┐    lender token     │  │    loanAmnt of          ┌──────────┐
 │AadaNft │───minting policy───▶│  ├───loan + 2 Ada────────▶│ Borrower │
-└────────┘       script         │  │                         └──────────┘
-                                └──┘
+└────────┘       script        │  │                         └──────────┘
+                               └──┘
 ```
 5. Submit transaction
 
@@ -471,21 +471,21 @@ Important parameters to be updated are:
 ```
 4. Create transaction like so:
 ```
-           loanAmnt of loan + x    ┌──┐
-┌────────┐ of interest + tx fees   │  │
+           loanAmnt of loan + x   ┌──┐
+┌────────┐ of interest + tx fees  │  │
 │Borrower│──────────+ 1 ─────────▶│  │
-└────────┘ AadaNft.borrowerNftTn   │  │
-              + 4 Ada + datum      │  │ loanAmnt of loan + x    ┌───────────┐
-                                   │  │─of interest + 2 Ada +─▶│Interest.hs│
-                                   │  │         datum           └───────────┘
-┌─────────────┐ collateralAmnt of  │Tx│
+└────────┘ AadaNft.borrowerNftTn  │  │
+              + 4 Ada + datum     │  │ loanAmnt of loan + x    ┌───────────┐
+                                  │  │─of interest + 2 Ada +─▶│Interest.hs│
+                                  │  │         datum           └───────────┘
+┌─────────────┐ collateralAmnt of │Tx│
 │Collateral.hs│───collateral + ──▶│  │
-└─────────────┘   datum + 2 Ada    │  │  collateralAmnt         ┌──────────┐
-                                   │  ├──of collateral +──────▶│ Borrower │
-┌────────┐      borrower token     │  │       2 Ada             └──────────┘
+└─────────────┘   datum + 2 Ada   │  │  collateralAmnt         ┌──────────┐
+                                  │  ├──of collateral +──────▶│ Borrower │
+┌────────┐      borrower token    │  │       2 Ada             └──────────┘
 │AadaNft │──────minting policy───▶│  │
-└────────┘          script         │  │
-                                   └──┘
+└────────┘          script        │  │
+                                  └──┘
 ```
 5. Submit transaction
 
@@ -499,18 +499,18 @@ Important parameters to be updated are:
 ```
 4. Create transaction like so:
 ```
-┌───────┐                          ┌──┐
+┌───────┐                         ┌──┐
 │Lender │───────tx fees + 1 ─────▶│  │
-└───────┘ AadaNft.lenderNftTn + 2  │  │
-                Ada + datum        │  │
-                                   │  │
-┌─────────────┐ loanAmnt of loan   │Tx│  loanAmnt of loan +     ┌──────────┐
+└───────┘ AadaNft.lenderNftTn + 2 │  │
+                Ada + datum       │  │
+                                  │  │
+┌─────────────┐ loanAmnt of loan  │Tx│  loanAmnt of loan +     ┌──────────┐
 │ Interest.hs │─+ x of interest +▶│  ├───x of interest + 2 ──▶│  Lender  │
-└─────────────┘   2 Ada + datum    │  │          Ada            └──────────┘
-                                   │  │
-┌────────┐       lender token      │  │
+└─────────────┘   2 Ada + datum   │  │          Ada            └──────────┘
+                                  │  │
+┌────────┐       lender token     │  │
 │AadaNft │──────minting policy───▶│  │
-└────────┘          script         └──┘
+└────────┘          script        └──┘
 ```
 5. Submit transaction
 
@@ -523,18 +523,18 @@ Important parameters to be updated are:
 
 3. Create transaction like so:
 ```
-                                   ┌──┐
-┌────────┐       2 Ada + 1         │  │
+                                  ┌──┐
+┌────────┐       2 Ada + 1        │  │
 │ Lender │─AadaNft.lenderNftTn +─▶│  │
-└────────┘    tx fees + datum      │  │
-                                   │  │
-┌─────────────┐ collateralAmnt of  │Tx│    collateralAmnt       ┌──────────┐
+└────────┘    tx fees + datum     │  │
+                                  │  │
+┌─────────────┐ collateralAmnt of │Tx│    collateralAmnt       ┌──────────┐
 │Collateral.hs│───collateral + ──▶│  ├────of collateral +────▶│  Lender  │
-└─────────────┘   datum + 2 Ada    │  │         2 Ada           └──────────┘
-                                   │  │
-┌────────┐       lender token      │  │
+└─────────────┘   datum + 2 Ada   │  │         2 Ada           └──────────┘
+                                  │  │
+┌────────┐       lender token     │  │
 │AadaNft │──────minting policy───▶│  │
-└────────┘          script         └──┘
+└────────┘          script        └──┘
 ```
 
 ##### Liquidation with Oracle
@@ -545,22 +545,22 @@ Important parameters to be updated are:
 ```
 4. Create transaction like so:
 ```
-                                   ┌──┐
-┌────────┐       2 Ada + 1         │  │
+                                  ┌──┐
+┌────────┐       2 Ada + 1        │  │
 │ Lender │─AadaNft.lenderNftTn +─▶│  │
-└────────┘    tx fees + datum      │  │                         ┌──────────┐
-                                   │  ├───x of collateral─────▶│  Lender  │
-┌─────────────┐ collateralAmnt of  │  │       + 2 Ada           └──────────┘
+└────────┘    tx fees + datum     │  │                         ┌──────────┐
+                                  │  ├───x of collateral─────▶│  Lender  │
+┌─────────────┐ collateralAmnt of │  │       + 2 Ada           └──────────┘
 │Collateral.hs│───collateral + ──▶│  │
-└─────────────┘   datum + 2 Ada    │Tx│
-                                   │  │
-┌────────┐       lender token      │  │ borrowerNftTn Datum +
+└─────────────┘   datum + 2 Ada   │Tx│
+                                  │  │
+┌────────┐       lender token     │  │ borrowerNftTn Datum +
 │AadaNft │──────minting policy───▶│  │        2 Ada +       ┌────────────┐
-└────────┘          script         │  ├─(collateralAmnt - x) │Liquidate.hs│
-                                   │  │     of collateral    └────────────┘
-┌────────┐ minting policy + rest   │  │
+└────────┘          script        │  ├─(collateralAmnt - x) │Liquidate.hs│
+                                  │  │     of collateral    └────────────┘
+┌────────┐ minting policy + rest  │  │
 │ Oracle │─what is required like ▶│  │
-└────────┘      signatures         └──┘
+└────────┘      signatures        └──┘
 ```
 5. Submit transaction
 
