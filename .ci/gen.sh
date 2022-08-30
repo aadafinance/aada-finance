@@ -6,7 +6,6 @@ if [ -z "$1" ]; then
 fi
 
 BRANCH=$1
-MASTER_DIR="/gz/aada-finance"
 ARF_PATH="/gz/aada-app"
 WRITE_PATH="${ARF_PATH}/version_details.json"
 
@@ -18,7 +17,6 @@ NODE_ARF_PATH="${ARF_PATH}/${VERSION}"
 
 # cd to docker-compose directory
 echo "Go to the docker-compose directory ..."
-cd ${MASTER_DIR}/docker/${BRANCH}
 
 echo "Create the version path ..."
 docker-compose exec -T aada-finance "mkdir -p $VERSION || true"
@@ -88,7 +86,3 @@ cat > ${WRITE_PATH} <<EOF
   }
 }
 EOF
-
-# switch back to master directory
-echo "Go back to the master directory ..."
-cd $OLDPWD
