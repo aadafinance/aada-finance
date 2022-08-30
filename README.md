@@ -504,9 +504,9 @@ Important parameters to be updated are:
 └───────┘ AadaNft.lenderNftTn + 2 │  │
                 Ada + datum       │  │
                                   │  │
-┌─────────────┐ loanAmnt of loan  │Tx│  loanAmnt of loan +     ┌──────────┐
+┌─────────────┐ loanAmnt of loan  │Tx│  loanAmnt of loan +    ┌──────────┐
 │ Interest.hs │─+ x of interest +▶│  ├───x of interest + 2 ──▶│  Lender  │
-└─────────────┘   2 Ada + datum   │  │          Ada            └──────────┘
+└─────────────┘   2 Ada + datum   │  │          Ada           └──────────┘
                                   │  │
 ┌────────┐       lender token     │  │
 │AadaNft │──────minting policy───▶│  │
