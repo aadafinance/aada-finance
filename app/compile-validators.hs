@@ -193,7 +193,7 @@ main :: IO ()
 main = do
   opts <- execParser parser
   case opts of
-    (Command _ _ _ _ _ f) -> print $ showVersion version
+    (Command _ _ _ _ _ True) -> print $ showVersion version
     _ -> do
       let stakeKey = getStakingCredentialFromOpts opts
           scriptnum = 0
