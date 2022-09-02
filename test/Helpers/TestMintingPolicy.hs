@@ -15,7 +15,7 @@
 
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
-module OracleNft
+module Helpers.TestMintingPolicy
   ( oracleNft
   , oracleNftShortBs
   , policy

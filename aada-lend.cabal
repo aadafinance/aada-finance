@@ -65,8 +65,8 @@ library
                       , Interest
                       , Liquidation
                       , Request
-                      , OracleNft
                       , Helpers.TestValidator
+                      , Helpers.TestMintingPolicy
                       , Spec.Test
                       , Common.Utils
                       , NFTStaking
@@ -131,21 +131,6 @@ executable mint-aada-nft
                       , aeson
                       , optparse-applicative
                       , hex-text
-
-executable mint-oracle-nft
-  import:               base, project-config
-  hs-source-dirs:       app
-  main-is:              mint-oracle-nft.hs
-  ghc-options:          -Wall
-
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
-                      , aada-lend
-                      , plutus-tx
-                      , plutus-ledger-api
-                      , bytestring
-                      , aeson
 
 executable generate-example-jsons
   import:               base, project-config

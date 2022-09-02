@@ -11,5 +11,4 @@ main = do
       "Test Suites"
       [ Spec.Test.mainTests cfg
       , Spec.Test.testSize cfg
-      , Spec.Test.mintOracleNftTests cfg
       ]
