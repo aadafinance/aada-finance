@@ -245,6 +245,25 @@ Available options:
   -l,--lender              choose lender policy
 ```
 
+### Compile OracleNft minting script
+
+Geting example OracleNft minting script:
+```bash
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft <pkh1> <pkh2> <pkh3> <valh> <tn>"
+```
+
+Options:
+- `pkh1 -> PubKeyHash of party which mush sign to mint this Nft`
+- `pkh2 -> PubKeyHash of party which mush sign to mint this Nft`
+- `pkh3 -> PubKeyHash of party which mush sign to mint this Nft`
+- `valh -> ValidatorHash where Nft Must be sent to be minted`
+- `tn -> TokenName for Nft to be minted`
+
+Example:
+```bash
+docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft ff ff ff ff ff"
+```
+
 ### Usage
 
 #### Get example datum and redeemers
