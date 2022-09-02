@@ -76,10 +76,10 @@ mkPolicy tn pkh1 pkh2 pkh3 dest _redeemer ctx = validate
 
     validate =
       singleTokenName &&
-      txSignedBy (U.info ctx) pkh1 &&
+      (txSignedBy (U.info ctx) pkh1 &&
       txSignedBy (U.info ctx) pkh2 &&
       txSignedBy (U.info ctx) pkh3 &&
-      mintedValueSentToDest || burn
+      mintedValueSentToDest || burn)
 
 policy
     :: TokenName
