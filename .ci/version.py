@@ -7,7 +7,7 @@ if len(argv) != 4:
 
 ver = argv[1]
 new_ver = argv[2]
-version = argv[3]
+hash = argv[3]
 
 if not os.path.isfile(new_ver):
     print("Version file not found: " + new_ver)
@@ -22,6 +22,6 @@ else:
     with open(ver, 'r') as f:
         ver_json = json.load(f)
 
-ver_json[version] = new_ver_json[version]
+ver_json[hash] = new_ver_json[hash]
 with open(ver, 'w') as f:
     f.write(json.dumps(ver_json))
