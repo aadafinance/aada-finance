@@ -1,9 +1,9 @@
-name: ci development-testnet branch
+name: ci master branch
 
 on:
   push:
     branches:
-      - development-testnet
+      - master
 
 env:
   IMG_NAME: "mantasand/aada-finance"
@@ -38,10 +38,10 @@ jobs:
       - name: Deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ${{secrets.STAG_SERVER}}
-          username: ${{secrets.STAG_USER}}
-          key: ${{secrets.STAG_KEY}}
-          port: ${{ secrets.STAG_PORT }}
+          host: ${{ secrets.PROD_SERVER }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_KEY }}
+          port: ${{ secrets.PROD_PORT }}
           script: |
 
             cd /gz/aada-finance/

@@ -54,9 +54,11 @@ jobs:
             docker-compose up -d
 
             sleep 5
-            hash=$(git rev-parse HEAD)
-            /gz/aada-finance/.ci/gen.sh ${{ github.ref_name }} ${hash}
-            /usr/bin/python3 /gz/aada-finance/.ci/version.py /gz/aada-finance/versions.json /gz/aada-app/${hash}/version_details.json ${hash}
-            git add /gz/aada-app/${hash}/versions.json
-            git commit -m "[skip ci] update versions from hash"
+            /gz/aada-finance/.ci/gen.sh ${{ github.ref_name }}
+            export CARDANO_NODE_SOCKET_PATH=/gz/cardano/cardano-my-node/db/socket
+            export VERSION=$(docker-compose exec -T aada-finance compile-validators --version | \
+              cut -d '"' -f 2)
+            /usr/bin/python3 /gz/aada-finance/.ci/version.py /gz/aada-finance/versions.json /gz/aada-app/${VERSION}/version_details.json $VERSION
+            git add /gz/aada-finance/versions.json
+            git commit -m "[skip ci] update versions from ci"
             git push origin ${{ github.ref_name }}

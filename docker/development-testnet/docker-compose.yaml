@@ -7,7 +7,12 @@ x-logging:
         max-size: "10m"
 services:
   aada-finance:
+<<<<<<<< HEAD:docker/development-testnet/docker-compose.yaml
     image: mantasand/aada-finance:development-testnet-latest
+========
+    container_name: aada-finance_aada-finance_1
+    image: mantasand/aada-finance:release-testnet-latest
+>>>>>>>> release-testnet:docker/release-testnet/docker-compose.yaml
     restart: always
     stdin_open: true
     tty: true

@@ -45,6 +45,7 @@ common project-config
                         -Wpartial-fields
                         -Wredundant-constraints
                         -Wunused-packages
+                        "-fplugin-opt PlutusTx.Plugin:defer-errors"
 
 common maybe-Win32
   if os(windows)
@@ -57,15 +58,19 @@ library
   if flag(unexpected_thunks)
     cpp-options: -DUNEXPECTED_THUNKS
 
-  hs-source-dirs:       src, testing
+  hs-source-dirs:       src, test
 
-  exposed-modules:      TimeNft
-                      , BorrowerNft
-                      , LenderNft
+  exposed-modules:      AadaNft
                       , Collateral
                       , Interest
+                      , Liquidation
                       , Request
-                      , TestingOffChain
+                      , OracleNft
+                      , Helpers.TestValidator
+                      , Spec.Test
+                      , Common.Utils
+                      , NFTStaking
+                      , StakingPolicy
 
   build-depends:        bytestring
                       , cardano-api
@@ -87,10 +92,12 @@ library
                       , cardano-wallet-core
                       , plutus-ledger-constraints
                       , plutus-contract
-
+                      , tasty
+                      , mtl
+                      , plutus-simple-model
+                      , utf8-string
 
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
-
 
 executable compile-validators
   import:               base, project-config
@@ -101,85 +108,117 @@ executable compile-validators
   build-depends:        cardano-api
                       , cardano-ledger-alonzo
                       , plutus-ledger
-                      , aada-lend 
+                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , optparse-applicative
 
-executable mint-borrower-nft
+executable mint-aada-nft
   import:               base, project-config
   hs-source-dirs:       app
-  main-is:              mint-borrower-nft.hs
+  main-is:              mint-aada-nft.hs
   ghc-options:          -Wall
 
   build-depends:        cardano-api
                       , cardano-ledger-alonzo
                       , plutus-ledger
-                      , aada-lend 
+                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
                       , aeson
+                      , optparse-applicative
+                      , hex-text
 
-executable mint-lender-nft
+executable mint-oracle-nft
   import:               base, project-config
   hs-source-dirs:       app
-  main-is:              mint-lender-nft.hs
+  main-is:              mint-oracle-nft.hs
   ghc-options:          -Wall
 
   build-depends:        cardano-api
                       , cardano-ledger-alonzo
                       , plutus-ledger
-                      , aada-lend 
+                      , aada-lend
                       , plutus-tx
                       , plutus-ledger-api
                       , bytestring
                       , aeson
 
-executable mint-time-nft
+executable generate-example-jsons
   import:               base, project-config
-  hs-source-dirs:       app
-  main-is:              mint-time-nft.hs
-  ghc-options:          -Wall
+  hs-source-dirs:       app, test
+  main-is:              show-dat-rdm.hs
+  ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
+  other-modules:        Helpers.TestValidator, Spec.Test
 
-  build-depends:        cardano-api
-                      , cardano-ledger-alonzo
-                      , plutus-ledger
-                      , aada-lend 
-                      , plutus-tx
-                      , plutus-ledger-api
+  build-depends:        aada-lend
                       , bytestring
+                      , cardano-api
+                      , plutus-tx
                       , aeson
+                      , aeson-pretty
+                      , containers
+                      , plutus-ledger
+                      , plutus-ledger-constraints
+                      , plutus-contract
+                      , plutus-ledger-api
+                      , serialise
+                      , tasty
+                      , tasty-hunit
+                      , plutus-simple-model
+                      , mtl
+                      , plutus-tx-plugin
+                      , utf8-string
 
-executable test
-  import:              base, project-config
-  hs-source-dirs:      testing
-  main-is:             EmulatorTrace.hs
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       aeson
-                     , bytestring
-                     , cardano-api
-                     , cardano-crypto-class
-                     , cardano-ledger-core
-                     , cardano-ledger-shelley
-                     , cardano-wallet-core
+test-suite aada-tests
+  type:                exitcode-stdio-1.0
+  main-is:             Spec.hs
+  hs-source-dirs:      test
+  default-language:    Haskell2010
+  ghc-options:         -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+  build-depends:       base ^>=4.14.1.0
                      , containers
                      , data-default
                      , freer-extras
-                     , playground-common
+                     , lens
                      , plutus-contract
                      , plutus-ledger
-                     , plutus-ledger-api
-                     , plutus-ledger-constraints
-                     , plutus-pab
-                     , plutus-tx-plugin
-                     , plutus-tx
-                     , plutus-use-cases
-                     , prettyprinter
-                     , serialise
-                     , text
-                     , lens
-                     , time
-                     , openapi3
                      , aada-lend
+                     , plutus-tx
+                     , QuickCheck
+                     , tasty
+                     , tasty-hunit
+                     , tasty-quickcheck
+                     , text
+                     , cardano-ledger-shelley
+                     , cardano-api
+                     , serialise
+                     , data-default
+                     , bytestring
+                     , plutus-ledger-api
+                     , plutus-tx
+                     , plutus-tx-plugin
+                     , aeson
+                     , plutus-ledger
+                     , plutus-ledger-constraints
+                     , text
+                     , plutus-simple-model
+                     , mtl
+                     , utf8-string
+
+executable aada-staking
+  import:               base, project-config
+  hs-source-dirs:       app
+  main-is:              aada-tokens-staking.hs
+  ghc-options:          -threaded -rtsopts "-with-rtsopts=-T"
+
+  build-depends:        cardano-api
+                      , cardano-ledger-alonzo
+                      , plutus-ledger
+                      , aada-lend
+                      , plutus-tx
+                      , plutus-ledger-api
+                      , bytestring
