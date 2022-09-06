@@ -64,8 +64,6 @@ mintOracleNftTests cfg =
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail5)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail6)
     , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft without one signature" (mustFail mintOracleNftShouldFail7)
-    , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft send to wrong validator hash" (mustFail mintOracleNftShouldFail8)
-    , testNoErrors (adaValue 10_000_000) cfg "test mint oracle nft mint two values" (mustFail mintOracleNftShouldFail9)
     ]
 
 testSize :: BchConfig -> TestTree
@@ -329,7 +327,7 @@ borrowerCancelsLoan = do
   sp <- spend u1 valToPay
   let oref = getHeadRef sp
   let borrowerNftRef = oref
-  let tx = createLockFundsTx 0 u1 oref sp 0 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx u1 oref
+  let tx = createLockFundsTx 0 u1 oref sp 0 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx u1 oref
   submitTx u1 tx
   utxos <- utxoAt $ requestAddress getSc1Params
   let [(lockRef, _)] = utxos
@@ -384,7 +382,7 @@ returnFullLoan = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let borrowerNftRef = oref
-  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
 
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
@@ -440,7 +438,7 @@ returnNotEnoughInterest = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let borrowerNftRef = oref
-  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
 
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params
@@ -498,7 +496,7 @@ returnPartialLoan = do
   let oref = getHeadRef sp
       borrowerNftRef = oref
       repayint = 20000
-      tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+      tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params
@@ -554,7 +552,7 @@ createLockFundsTx2 t pkh oref usp expiration mintDate =
       [ userSpend usp
       , payToScript
         (requestTypedValidator getSc1Params)
-        (getTestDatum2 t (getAadaTokenName oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") pkh expiration "" mintDate Nothing)
+        (getTestDatum2 t (getAadaTokenName oref) (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") pkh expiration "" mintDate Nothing)
         (fakeValue collateralCoin 100 <> adaValue 2)
       ]
 
@@ -650,7 +648,7 @@ returnPartialLoanForgedMintDate = do
   let oref = getHeadRef sp
   let borrowerNftRef = oref
   let repayint = 20000
-  let tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params
   let [(lockRef, _)] = utxos
@@ -706,7 +704,7 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
   let oref = getHeadRef sp
   let borrowerNftRef = oref
   let repayint = 20000
-  let tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx repayint borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, _)] = utxos
@@ -759,9 +757,6 @@ returnPartialLoanLessThanItShoudInterestRepayed = do
 getOracleNftVal :: CurrencySymbol -> Integer -> Value
 getOracleNftVal cs = Value.singleton cs getOracleNftTn
 
-builtinFromValidatorHash :: ValidatorHash -> BuiltinByteString
-builtinFromValidatorHash (ValidatorHash bbs) = bbs
-
 getMintOracleNftTx :: Integer -> PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
 getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
   mconcat
@@ -772,23 +767,7 @@ getMintOracleNftTx n pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
     , userSpend usp
     ]
   where
-    valh = validatorHash Helpers.TestValidator.validator
-    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
-    cs   = scriptCurrencySymbol mp
-    rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
-
-getMintOracleNftTxInvalidValHash :: PubKeyHash -> PubKeyHash -> PubKeyHash -> UserSpend -> Tx
-getMintOracleNftTxInvalidValHash pkh1 pkh2 pkh3 usp = addMintRedeemer mp rdm $
-  mconcat
-    [ mintValue mp (getOracleNftVal cs 1)
-    , payToScript Helpers.TestValidator.failValidator
-      0
-      (adaValue 2 <> getOracleNftVal cs 1)
-    , userSpend usp
-    ]
-  where
-    valh = validatorHash Helpers.TestValidator.validator
-    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
+    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3
     cs   = scriptCurrencySymbol mp
     rdm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
 
@@ -869,28 +848,6 @@ mintOracleNftShouldFail7 = do
   -- tx <- signTx u3 tx
   submitTx u1 tx
 
-mintOracleNftShouldFail8 :: Run ()
-mintOracleNftShouldFail8 = do
-  users <- setupSimpleNUsers 3
-  let [u1, u2, u3] = users
-  sp1 <- spend u1 (adaValue 2)
-  let tx = getMintOracleNftTxInvalidValHash u1 u2 u3 sp1
-  tx <- signTx u1 tx
-  tx <- signTx u2 tx
-  tx <- signTx u3 tx
-  submitTx u1 tx
-
-mintOracleNftShouldFail9 :: Run ()
-mintOracleNftShouldFail9 = do
-  users <- setupSimpleNUsers 3
-  let [u1, u2, u3] = users
-  sp1 <- spend u1 (adaValue 2)
-  let tx = getMintOracleNftTx 2 u1 u2 u3 sp1
-  tx <- signTx u1 tx
-  tx <- signTx u2 tx
-  tx <- signTx u3 tx
-  submitTx u1 tx
-
 provideLoanOnTime :: Run Bool
 provideLoanOnTime = do
   users <- setupUsers
@@ -899,7 +856,7 @@ provideLoanOnTime = do
       valToPay = fakeValue collateralCoin 100 <> adaValue 2 <> adaValue 1
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
-  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, _)] = utxos
@@ -926,7 +883,7 @@ provideLoanNotOnTime = do
       valToPay = fakeValue collateralCoin 100 <> adaValue 2 <> adaValue 1
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
-  let tx = createLockFundsTx 0 borrower oref sp 0 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx 0 borrower oref sp 0 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params -- utxoAt  :: HasAddress addr => addr -> Run [(TxOutRef, TxOut)]
   let [(lockRef, _)] = utxos
@@ -968,7 +925,7 @@ happyPath = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let borrowerNftRef = oref
-  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params
   let lockRef = fst . head $ utxos
@@ -1050,7 +1007,7 @@ getMintOracleNftTxLiq n pkh1 pkh2 pkh3 =
     ]
   where
     valh = validatorHash Helpers.TestValidator.validator
-    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3 (builtinFromValidatorHash valh)
+    mp   = OracleNft.policy getOracleNftTn pkh1 pkh2 pkh3
     cs   = scriptCurrencySymbol mp
 
 getTxOutLiquidate :: PubKeyHash -> TxOutRef -> Tx
@@ -1077,7 +1034,7 @@ liquidateBorrower = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let valh = validatorHash Helpers.TestValidator.validator
-      omp  = OracleNft.policy getOracleNftTn oracle1 oracle2 oracle3 (builtinFromValidatorHash valh)
+      omp  = OracleNft.policy getOracleNftTn oracle1 oracle2 oracle3
       ordm = Redeemer (PlutusTx.toBuiltinData (0 :: Integer))
 
   let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol omp) <> getMintBorrowerNftTx borrower oref
@@ -1142,7 +1099,7 @@ lenderDosBorrower = do
       valToPay = fakeValue collateralCoin 100 <> adaValue 2 <> adaValue 1
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
-  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params
   let [(lockRef, _)] = utxos
@@ -1172,7 +1129,7 @@ borrowerDosLender = do
   sp <- spend borrower valToPay
   let oref = getHeadRef sp
   let borrowerNftRef = oref
-  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
+  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <> getMintBorrowerNftTx borrower oref
   submitTx borrower tx
   utxos <- utxoAt $ requestAddress getSc1Params
   let [(lockRef, _)] = utxos

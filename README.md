@@ -25,7 +25,6 @@ This repository hosts on-chain code part of aada-lend project.
 - Return loan
 - Retrieve rest of liquidated collateral
 
-
 #### Lender can
 
 - Lend
@@ -33,167 +32,68 @@ This repository hosts on-chain code part of aada-lend project.
 - Retrieve loan and loan interest
 
 ### Requirements
-When borrower creates a Loan Request, they can safely lock collateral value into Smart Contract. Smart contract `request.hs` allows:
-- Borrower **burns borrower NFT** to cancel loan request and claim back collateral value.
-- Lender, to provide the loan value (defined in request datum) and move collateral value to `collateral.hs` smart contract.
 
-`collateral.hs` is a validator where collateral value is stored while loan is active. Consuming from this validator is enabled when:
-- Borrower repays the loan value + correct amount of interest value (locking it to `interest.hs`) and **burning borrower NFT**.
-- Loan has expired, and Lender can claim the whole collateral value by **burning Lender NFT**
-- Collateral value fell in terms of the loan and **Oracle liquidation NFT is minted** and **lender NFT is burned** in the transaction
-
-`interest.hs` is a validator that makes sure only the holder of Lender NFT can claim the desired Loan + Interest. This validator allows:
-- Lender to claim Loan and interest amount by **burning Lender NFT**
-
-UTXO locked in `liquidation.hs` is a remaining collateral value liquidated by Lender with oracle. Validator allows to:
-- Borrower to claim collateral amount by **burning borrower NFT**.
-
-### Implementation
-
-#### Aada lend smartcontract part
-
+#### Lending
 
 - Up until loan is given to Borrower Borrower should always be able to cancel his loan request.
 - When canceling loan request Borrower should always be able to get all of his collateral back.
 - Only Borrowers Nft owner can cancel loan request. Loan request can be canceled only if Borrowers nft is burnt.
 - Loan receiver is identified by data encoded with datum.
-- Loan request is created by locking collateral funds into  Request.hs  smartcontract together with datum.
+- Loan request is created by locking collateral funds into `Request.hs` smartcontract together with datum.
 - Borrower must provide this information when creating request:
-
-```haskell
-data Datum = Datum
-    { borrowersNFT          :: !CurrencySymbol     -- collateral provider id
-    , borrowersPkh          :: !PaymentPubKeyHash  -- who shall get loan
-    , loantn                :: !TokenName          -- loan asset token name
-    , loancs                :: !CurrencySymbol     -- loan asset currency symbol
-    , loanamnt              :: !Integer            -- amount of loan
-    , interesttn            :: !TokenName          -- interest asset token name
-    , interestcs            :: !CurrencySymbol     -- interest currency symbol
-    , interestamnt          :: !Integer            -- amount of interest
-    , collateralcs          :: !CurrencySymbol     -- collateral currency symbol
-    , repayinterval         :: !POSIXTime          -- repay interval
-    , liquidateNft          :: !CurrencySymbol     -- liquidation oracle id
-    , requestExp            :: !POSIXTime          -- loan request expiration
-    , collateraltn          :: !TokenName          -- collateral token name
-    , collateralamnt        :: !Integer            -- amount of collateral
-    , collateralFactor      :: !Integer            -- Colalteral factor used for liquidation
-    , liquidationCommission :: !Integer            -- How much % borrower will pay for lender when liquidated (before time passes)
-    , requestExpiration     :: !POSIXTime          -- Time loan request is valid to
-    } deriving Show
-```
-
-- Lender can get Vesting rights to borrowers collateral only when loan is given to borrower and collateral funds are
-transfered to `Collateral.hs` smartcontract.
-- Lender can't get Vesting rights to borrowers collateral if loan is not given to owner of **PaymentPubKeyHash** which
+  - **borrowersNftTn** - Borrowers token name encoding utxo to be consumed when minting token. See `AadaNft.hs`.
+  - **borrowersAddress** - Who should receive the loan.
+  - **loan** - Asset of requested loan.
+  - **loanAmnt** - Amount of requested loan.
+  - **interest** - Asset of interest to be paid.
+  - **interestAmnt** - Amount of interest to be paid for loan.
+  - **collateral** - Asset of collateral.
+  - **collateralAmnt** - Amount of collateral.
+  - **loanDuration** - How long till Lender gains rights to claim collateral. Once loan duration passes borrower must pay full **interestAmnt** to claim **collateral** back.
+  - **liquidateNft** - Currency symbol of Nft which when minted grants Lender rights to take **collateral**.
+  - **collateralFactor** - Collateral factor used for liquidation.
+  - **liquidationComission** - How much % borrower will pay lender when liquidated (before **loanDuration** passes).
+  - **requestExpiration** - When does loan request expire. Lender should not be able to provide Loan past this time value.
+- Lender can get Vesting rights to borrowers collateral only when exact amount **loanAmnt** of **loan** is given to **borrowersAddress** and collateral funds are transfered to `Collateral.hs` smartcontract or when **liquidateNft** is minted.
+- Lender can't get Vesting rights to borrowers collateral if loan is not given to owner of **borrowersAddress** which
 is encoded in `Request.hs` smartcontract datum.
-- Lender can't get Vesting rights to borrowers collateral if 1 time NFT is not sent to `Collateral.hs`.
 - Lender can't get Vesting rights to borrowers collateral if collateral from `Request.hs` smartcontract is not
 transfered to `Collateral.hs` smartcontract.
-Lender can't get Vesting rights to borrowers collateral if datum provided with `Request.hs` is different than
-datum provided to `Collateral.hs` smartcontract.
-- Lender can't get Vesting rights to borrowers collateral if 2 Lender NFTs are not minted and one of them is not
-locked into `Collateral.hs` smartcontract.
-- Lender can't retrieve collateral from `Collateral.hs` if **repayinterval** didn't pass and 1 timenft is not burnt or
-datum provided liquidate nft is not minted/burnt unless liqudation OracleNft is burnt.
-- Lender can't retrieve collateral from `Collateral.hs` if 2 Lender Nfts are not burnt and one of them is not from
-`Collateral.hs` smart contract.
+- Lender can't get Vesting rights to borrower collateral if **lenderNftTn** is not minted.
+- Lender can't retrieve collateral from `Collateral.hs` if **loanDuration** didn't pass in datum provided liquidate nft is not minted unless liqudation OracleNft is burnt.
 - Borrower can't retrieve his collateral if borrowers nft encoded in datum is not burnt.
 - Borrower can't retrieve his collateral if loan is not sent to `Interest.hs` smartcontract.
-- Borrower can't retrieve his collateral if enough interest is not sent to `Interest.hs` smartcontract.
-- Borrower can't retrieve his collateral if Lender nft is not sent to `Interest.hs` smartcontract.
-- Lender can't retrieve his interest from `Interest.hs` smartcontract if 2 Lender Nfts are not burnt and one of them
-is not from `Interest.hs` smart contract.
-- If Borrower returns laon sooner than **repayinterval** he only needs to pay `(current time - loan taken time) / repay`
-interval amount of interest.
+- Borrower can't retrieve his collateral if enough interest (depends on when loan is returned based on **loanDuration**) is not sent to `Interest.hs` smartcontract.
+- Borrower can't retrieve his collateral if there are more than 3 different assets in repay transaction.
+- If Borrower returns loan sooner than **repayinterval** he only needs to pay `(current time - loan taken time) / repay` interval amount of interest.
 - Lender shouldn't be able to provide loan to borrower if loan request has expired.
+- Lender shouldn't be able to provide loan if there is incoming utxo in transaction other than from `Request.hs`
+- Lender shouldn't be able to provide loan if these correct datum fields are not provided together with datum already locked in `Request.hs`:
+  - **lenderTn** - Lenders token name encoding utxo to be consumed when minting token. See `AadaNft.hs`.
+  - **lendDate** - upper bound of transaction is valid to submit range.
+- Lender shouldn't be able to provide loan if **rqeuestExpiration** is later than the the end of transaction is valid interval.
+- Lender shouldn't be able to provide loan if there are more than 3 different types of assets in lend transaction.
 
 #### Nfts minting requirements
 
-##### Borrower nft
-
-- It shouldn't be possible to mint more than one Nft at a time
-- It shouldn't be possible to have two Nfts with same CurrencySymbol
-- It shouldn't be possible to mint Borrower nft with other token name than  66 -> B
-
-##### Lender Nft
-
-- It shouldn't be possible to mint other than 2 Nfts at a time
-- It shouldn't be possible to mint Nft if 1 of them is not sent to  Collateral.hs  smartcontract
-- Only two Nfts can be burnt at a time
-- It shouldn't be possible to mint Lender nft with other token name than  76 -> L
-
-##### Time Nft
-
-- It shouldn't be possible to mint Time Nft with other token name than POSIXTime provided as a NFT parameter
-- It shouldn't be possible to mint Time Nft with bigger time than provided with POSIXTime and than the time which is
-currently present
-
-### Validations
-
-#### Create loan request
-
-There is no way to enforce validation on-chain for request creation.
-
-#### Cancel loan request
-
-- One token is burnt AND
-- Token name is B (for borrower) AND
-- Currency symbol is same as in locked datum
-
-#### Return loan
-
-- Value of loan currency symbol and loan token name locked in datum sent to `Interest.hs` is same or more than loan value locked in datum AND
-- Amount of interest currency symbol and interest token name locked in datum sent to `Interest.hs` is same or more than interest to be paid value locked in datum value percentage of repay time passed AND
-- In case both interest currency symbol and token name with loan are the same interest amount to be paid together with loan to be repaid must be more or equal or more than interest and loan to be paid values locked in datum AND
-- Lender NFT locked in `Collateral.hs` must be passed on to `Interest.hs` AND
-- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt AND
-- Interest pay date provided to `Collateral.hs` as a redeemer must be within transaction validity range AND
-- Mint date value provided to `Collateral.hs` as a redeemer must be the same as TimeNFT token name
-
-#### Retrieve rest of liquidated collateral
-
-- One BorrowerNFT which currency symbol is locked in datum and token name is `B` must be burnt 
-
-#### Provide loan
-
-- Hash of datum sent to `Collateral.hs` is same as of datum locked in `Request.hs` AND
-- 2 Lender tokens are minted and one of them is sent to `Collateral.hs` AND
-- Datum provided amound of loan value is sent to borrower `pkh` locked in datum AND
-- TimeNFT is sent to `Collateral.hs` AND
-- Check if request is not expired by checking if tx is valid with expiration value locked in datum
-
-#### Liquidate borrower
-
-- LiquidationNFT locked in datum is burnt
-
-#### Retrieve loan and interest
-
-- Two lender NFTs are burnt and one of them is from `Interest.hs`
-
-#### Nfts minting requirements
-
-##### Borrower nft
-
-- It shouldn't be possible to mint more than one Nft at a time
-- It shouldn't be possible to have two Nfts with same CurrencySymbol
-- It shouldn't be possible to mint Borrower nft with other token name than  66 -> B
+- It shouldn't be possible to mint more than one token at a time
+- It shouldn't be possible to burn more than one token at a time
+- It shouldn't be possible to have two Nfts with same token name
+- It shouldn't be possible to mint token unless utxo is consumed which hash is set as a token name
 
 ##### Lender Nft
 
-- It shouldn't be possible to mint other than 2 Nfts at a time
-- It shouldn't be possible to mint Nft if 1 of them is not sent to  Collateral.hs  smartcontract
-- Only two Nfts can be burnt at a time
-- It shouldn't be possible to mint Lender nft with other token name than  76 -> L
+- LenderNft is depicted by `isLender` minting policy parameter in `AadaNft.hs` if it is set to `True`.
 
-##### Time Nft
+##### Borrower nft
 
-- It shouldn't be possible to mint Time Nft with other token name than POSIXTime provided as a NFT parameter
-- It shouldn't be possible to mint Time Nft with bigger time than provided with POSIXTime and than the time which is
-currently present
+- BorrowerNft is depicted by `isLender` minting policy parameter in `AadaNft.hs` if it is set to `False`.
 
-## Installation
+## Installation and usage
 
-### For M1 mac users
+### Prerequisites
+
+#### For M1 mac users
 
 M1 Macs uses different instruction set (Arm is RISC) than the usuall Intel or AMD processors (CISC - Complex Instruction Set Computing).
 As of writing this readme I haven't managed to make this project work and compile out of the box on M1 Mac and to solve that one solution I have found to work is by using virtualization with 
@@ -264,53 +164,90 @@ hostResolver:
   ipv6: null
 ```
 
-## Prerequisites
+#### Docker
 
-If using docker install docker.
+Install docker.
 
-## Usage
+### Instalation
 
-### Get repo
+#### Get repo
 
 ```bash
 git clone https://github.com/aada-finance/aada-finance.git
 cd aada-finance
 ```
 
-### Build image
+#### Build image
 
 ```bash
 docker build -t aada_lend .
 ```
 
-### Compile smartcontracts
+#### Compile smartcontracts
 
-Compile and create validators:
+To compile and create validators use `compile-validators` executable like so:
 
 ```bash
-docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/compile-validators <validation_script_name>"
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/compile-validators <options>"
 ```
 
-### Compile minting script
+Available options:
+```
+Usage: compile-validators [--hash STRING ((-k|--pubkey) | (-v|--validator)) |
+                            --first INTEGER --second INTEGER --third INTEGER]
+                          [-i|--interest FILEPATH] [-c|--collateral FILEPATH]
+                          [-r|--request FILEPATH] [-l|--liquidation FILEPATH]
+                          [--version]
+
+Available options:
+  -h,--help                Show this help text
+  --hash STRING            Staking credential used to assign rewards. The
+                           transaction that spends this output must be signed by
+                           the key which hash is provided by this parameter
+  -k,--pubkey              Interpret provided staking key hash as PubKeyHash
+  -v,--validator           Interpret provided staking key hash as a Validator
+                           Hash
+  --first INTEGER          first StakingKey pointer parameter
+  --second INTEGER         second StakingKey pointer parameter
+  --third INTEGER          third StakingKey pointer parameter
+  -i,--interest FILEPATH   Enter name of interest validator
+                           (default: "interest.plutus")
+  -c,--collateral FILEPATH Enter name of collateral validator
+                           (default: "collateral.plutus")
+  -r,--request FILEPATH    Enter name of request validator
+                           (default: "request.plutus")
+  -l,--liquidation FILEPATH
+                           Enter name of liquidation validator
+                           (default: "liquidation.plutus")
+  --version                Show project version
+```
+
+#### Compile minting scripts
+
+To get minting policies use `mint-aada-nft` executable like so:
 
 General:
 ```bash
-docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-<option>-nft <minting_script_name> <utxo>"
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-aada-nft minting-policy <options>"
 ```
 
 Options:
-- `mint-borrower-nft <utxo>`. Script name -> `<utxo>.borrowernft`
-- `mint-lender-nft <utxo>`. Script name -> `<utxo>.lendernft`
-- `mint-time-nft`. Script name -> `policyscript.timenft`
+```
+Usage: mint-aada-nft minting-policy [-p|--name FILEPATH]
+                                    ((-b|--borrower) | (-l|--lender))
+  Generate LenderNFT minting policy
 
-Example:
-```bash
-docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-lender-nft 0a630191d2ba7fa96ecdc9096b826a1f9c210028e02fabc9c0288e2e37d3e2b8#0.borrowernft"
+Available options:
+  -h,--help                Show this help text
+  -p,--name FILEPATH       Enter name of aada nft minting policy. Default is
+                           aada.nft (default: "aada.nft")
+  -b,--borrower            choose borrower policy
+  -l,--lender              choose lender policy
 ```
 
 ### Compile OracleNft minting script
 
-General:
+Geting example OracleNft minting script:
 ```bash
 docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft <pkh1> <pkh2> <pkh3> <valh> <tn>"
 ```
@@ -326,23 +263,339 @@ Example:
 ```bash
 docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/mint-oracle-nft ff ff ff ff ff"
 ```
-### Generate OracleNft example
 
-Inside project
+### Usage
+
+#### Get example datum and redeemers
+
+To get example datum and redeemer files use `generate-example-jsons` executable like so:
 ```bash
-cabal run generate-example-jsons
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/generate-example-jsons"
 ```
 
-In docker:
+#### Getting TokenName for Borrower or Lender token
+
+To get TokenName for minting Borrower or Lender token use `mint-aada-nft` executable like so:
 ```bash
-docker run -v /home/user/Programming/aada-finance:/app aada_lend bash -c "/usr/local/bin/generate-example-jsons"
+docker run -v <host_directory>:/app aada_lend bash -c "/usr/local/bin/mint-aada-nft token-name --utxo ff#0"
 ```
 
-
-### Run tests
-
+Options:
 ```
-cabal test
+Usage: mint-aada-nft token-name (-u|--utxo UTXO)
+  Hash utxo get get Lender NFT token name
+
+Available options:
+  -h,--help                Show this help text
+  -u,--utxo UTXO           Enter utxo to be consumed when minting LenderNFT.
+```
+
+#### Creating Loan request
+
+1. Compile smartcontracts (see Instalation and usage)
+2. Get addreesses of compiled smartcontracts: `cardano-cli address build --payment-script-file <script.plutus>  --out-file validator.addr`
+3. Form datum following this format:
+```json
+{
+    "fields": [
+        {
+            "bytes": "6666"
+        },
+        {
+            "fields": [
+                {
+                    "fields": [
+                        {
+                            "bytes": "ff"
+                        }
+                    ],
+                    "constructor": 0
+                },
+                {
+                    "fields": [
+                        {
+                            "fields": [
+                                {
+                                    "fields": [
+                                        {
+                                            "bytes": "6666"
+                                        }
+                                    ],
+                                    "constructor": 0
+                                }
+                            ],
+                            "constructor": 0
+                        }
+                    ],
+                    "constructor": 0
+                }
+            ],
+            "constructor": 0
+        },
+        {
+            "fields": [
+                {
+                    "bytes": "10555a8c6aa2217ed76522758b804a7531d01ff5ee53012ad81ebf23"
+                },
+                {
+                    "bytes": "6c6f616e2d636f696e2d434f4e594d4f4e59"
+                }
+            ],
+            "constructor": 0
+        },
+        {
+            "int": 150
+        },
+        {
+            "fields": [
+                {
+                    "bytes": "5a1a36a39eb541a7db0e7211ae16ed958c55414ed1ef51e2e7d763bb"
+                },
+                {
+                    "bytes": "696e7465726573742d636f696e2d4d4f4e59"
+                }
+            ],
+            "constructor": 0
+        },
+        {
+            "int": 50
+        },
+        {
+            "fields": [
+                {
+                    "bytes": "57cbe9798a05a712df222de7defd4b37a0d783bb40710ea63f64f99e"
+                },
+                {
+                    "bytes": "636f6c6c61746572616c2d636f696e2d434f4e59"
+                }
+            ],
+            "constructor": 0
+        },
+        {
+            "int": 100
+        },
+        {
+            "int": 0
+        },
+        {
+            "bytes": "ff"
+        },
+        {
+            "int": 5
+        },
+        {
+            "int": 150
+        },
+        {
+            "int": 0
+        },
+        {
+            "bytes": "6e6674746e"
+        },
+        {
+            "int": 0
+        }
+    ],
+    "constructor": 0
+}
+```
+
+Important parameters to be provided are:
+- **borrowersNftTn** - Borrowers token name encoding utxo to be consumed when minting token. See `AadaNft.hs`.
+- **borrowersAddress** - Who should receive the loan.
+- **loan** - Asset of requested loan.
+- **loanAmnt** - Amount of requested loan.
+- **interest** - Asset of interest to be paid.
+- **interestAmnt** - Amount of interest to be paid for loan.
+- **collateral** - Asset of collateral.
+- **collateralAmnt** - Amount of collateral.
+- **loanDuration** - How long till Lender gains rights to claim collateral. Once loan duration passes borrower must pay full **interestAmnt** to claim **collateral** back.
+- **liquidateNft** - Currency symbol of Nft which when minted grants Lender rights to take **collateral**.
+- **collateralFactor** - Collateral factor used for liquidation.
+- **liquidationComission** - How much % borrower will pay lender when liquidated (before **loanDuration** passes).
+- **requestExpiration** - When does loan request expire. Lender should not be able to provide Loan past this time value.
+4. Create transaction like so:
+```
+           collateralAmnt   ┌──┐       collateralAmnt of   ┌──────────┐
+┌────────┐ of collateral +  │  │─────────collateral + ────▶│Request.hs│
+│Borrower│─datum + tx fees─▶│  │         datum + 2 Ada     └──────────┘
+└────────┘     + 4 Ada      │  │
+                            │Tx│
+┌────────┐ borrower token   │  │         2 Ada + 1         ┌──────────┐
+│AadaNft │─minting policy──▶│  ├───AadaNft.borrowerNftTn──▶│ Borrower │
+└────────┘     script       │  │                           └──────────┘
+                            └──┘
+```
+> Warning: Borrower won't be able to claim his collateral back if correct Borrower Token is not minted when locking collateral!
+5. Submit transaction
+
+#### Providing loan
+
+1. Compile smartcontracts (see Instalation and usage)
+2. Get addreesses of compiled smartcontracts: `cardano-cli address build --payment-script-file <script.plutus>  --out-file validator.addr`
+3. Form datum. (See #### Creating Loan Request for example)
+Important parameters to be updated are:
+- **lenderNftTn** - Lenders token name encoding utxo to be consumed when minting token. See `AadaNft.hs`.
+- **lendDate** - Upper bound of transaction is valid to submit range.
+4. Form redeemer with **lenderNftTn** like so:
+```json
+{
+    "bytes": "4b3a43f592f577fcfcb5b0e1f42bec5182c9edc414e1f667528f56e7cf0be11d"
+}
+```
+5. Create transaction like so:
+```
+                               ┌──┐
+┌──────┐   loanAmnt of loan +  │  │         2 Ada + 1         ┌──────┐
+│Lender│───tx fees + 6 Ada + ─▶│  │────AadaNft.lenderNftTn───▶│Lender│
+└──────┘    datum + redeemer   │  │                           └──────┘
+                               │  │
+┌──────────┐ collateralAmnt of │  │ collateralAmnt of ┌───────────────┐
+│Request.hs│───collateral + ──▶│Tx├───collateral + ──▶│ Collateral.hs │
+└──────────┘   datum + 2 Ada   │  │   datum + 2 Ada   └───────────────┘
+                               │  │
+┌────────┐    lender token     │  │    loanAmnt of         ┌──────────┐
+│AadaNft │───minting policy───▶│  ├───loan + 2 Ada────────▶│ Borrower │
+└────────┘       script        │  │                        └──────────┘
+                               └──┘
+```
+5. Submit transaction
+
+#### Repaying loan
+
+1. Compile smartcontracts (see Instalation and usage)
+2. Get addreesses of compiled smartcontracts: `cardano-cli address build --payment-script-file <script.plutus>  --out-file validator.addr`
+3. Form datum with **lenderNftTn** like so:
+```json
+{"bytes":"4b3a43f592f577fcfcb5b0e1f42bec5182c9edc414e1f667528f56e7cf0be11d"}
+```
+4. Create transaction like so:
+```
+           loanAmnt of loan + x   ┌──┐
+┌────────┐ of interest + tx fees  │  │
+│Borrower│──────────+ 1 ─────────▶│  │
+└────────┘ AadaNft.borrowerNftTn  │  │
+              + 4 Ada + datum     │  │ loanAmnt of loan + x   ┌───────────┐
+                                  │  │─of interest + 2 Ada +─▶│Interest.hs│
+                                  │  │         datum          └───────────┘
+┌─────────────┐ collateralAmnt of │Tx│
+│Collateral.hs│───collateral + ──▶│  │
+└─────────────┘   datum + 2 Ada   │  │  collateralAmnt        ┌──────────┐
+                                  │  ├──of collateral +──────▶│ Borrower │
+┌────────┐      borrower token    │  │       2 Ada            └──────────┘
+│AadaNft │──────minting policy───▶│  │
+└────────┘          script        │  │
+                                  └──┘
+```
+5. Submit transaction
+
+#### Retrieve interest
+
+1. Compile smartcontracts (see Instalation and usage)
+2. Get addreesses of compiled smartcontracts: `cardano-cli address build --payment-script-file <script.plutus>  --out-file validator.addr`
+3. Form datum with **lenderNftTn** like so:
+```json
+{"bytes":"4b3a43f592f577fcfcb5b0e1f42bec5182c9edc414e1f667528f56e7cf0be11d"}
+```
+4. Create transaction like so:
+```
+┌───────┐                         ┌──┐
+│Lender │───────tx fees + 1 ─────▶│  │
+└───────┘ AadaNft.lenderNftTn + 2 │  │
+                Ada + datum       │  │
+                                  │  │
+┌─────────────┐ loanAmnt of loan  │Tx│  loanAmnt of loan +    ┌──────────┐
+│ Interest.hs │─+ x of interest +▶│  ├───x of interest + 2 ──▶│  Lender  │
+└─────────────┘   2 Ada + datum   │  │          Ada           └──────────┘
+                                  │  │
+┌────────┐       lender token     │  │
+│AadaNft │──────minting policy───▶│  │
+└────────┘          script        └──┘
+```
+5. Submit transaction
+
+#### Liquidate borrower
+
+1. Compile smartcontracts (see Instalation and usage)
+2. Get addreesses of compiled smartcontracts: `cardano-cli address build --payment-script-file <script.plutus>  --out-file validator.addr`
+
+##### Deadline has passed
+
+3. Create transaction like so:
+```
+                                  ┌──┐
+┌────────┐       2 Ada + 1        │  │
+│ Lender │─AadaNft.lenderNftTn +─▶│  │
+└────────┘    tx fees + datum     │  │
+                                  │  │
+┌─────────────┐ collateralAmnt of │Tx│    collateralAmnt      ┌──────────┐
+│Collateral.hs│───collateral + ──▶│  ├────of collateral +────▶│  Lender  │
+└─────────────┘   datum + 2 Ada   │  │         2 Ada          └──────────┘
+                                  │  │
+┌────────┐       lender token     │  │
+│AadaNft │──────minting policy───▶│  │
+└────────┘          script        └──┘
+```
+
+##### Liquidation with Oracle
+
+3. Form datum for `Liquidate.hs`, provide `borrowerNftTn` like so:
+```json
+{"bytes":"4b3a43f592f577fcfcb5b0e1f42bec5182c9edc414e1f667528f56e7cf0be11d"}
+```
+4. Create transaction like so:
+```
+                                  ┌──┐
+┌────────┐       2 Ada + 1        │  │
+│ Lender │─AadaNft.lenderNftTn +─▶│  │
+└────────┘    tx fees + datum     │  │                        ┌──────────┐
+                                  │  ├───x of collateral─────▶│  Lender  │
+┌─────────────┐ collateralAmnt of │  │       + 2 Ada          └──────────┘
+│Collateral.hs│───collateral + ──▶│  │
+└─────────────┘   datum + 2 Ada   │Tx│
+                                  │  │
+┌────────┐       lender token     │  │ borrowerNftTn Datum +
+│AadaNft │──────minting policy───▶│  │        2 Ada +       ┌────────────┐
+└────────┘          script        │  ├─(collateralAmnt - x) │Liquidate.hs│
+                                  │  │     of collateral    └────────────┘
+┌────────┐ minting policy + rest  │  │
+│ Oracle │─what is required like ▶│  │
+└────────┘      signatures        └──┘
+```
+5. Submit transaction
+
+#### Staking
+
+It is possible to receive staking rewards from the funds kept in smartcontracts.
+Smartcontracts can be compiled with wanted staking key by providing it either:
+- `--hash STRING ((-k|--pubkey) | (-v|--validator))` with concrete hash
+or
+- `--first INTEGER --second INTEGER --third INTEGER` with staking key pointer
+
+## aada-tokens-staking
+
+### Build image
+
+```bash
+docker build -t aada_staking .
+```
+
+### Compile smartcontract
+
+```bash
+docker run -v <host_directory>:/app aada_staking bash -c "/usr/local/bin/aada-staking 0 <validation_script_name>"
+```
+
+### Compile minting script
+
+General:
+```bash
+docker run -v <host_directory>:/app aada_staking bash -c "/usr/local/bin/aada-staking 1 <minting_script_name> <PubKeyHash> <utxo>"
+```
+
+Example:
+```bash
+docker run -v /home/user/Programming/aada-finance:/app aada_staking bash -c "/usr/local/bin/aada-staking 1 mint.script 72193caa8e2eaca97c8461f837e7a4d7cd781b0ba6bf626a883cc102 0a630191d2ba7fa96ecdc9096b826a1f9c210028e02fabc9c0288e2e37d3e2b8#0"
 ```
 
 ## Contribution guide
@@ -362,13 +615,12 @@ Use this template:
 
 Raise an issue with a feature request proposal!
 
-
 ### Have a suggested change?
 
 1. Raise a proposal issue
 2. Create tests to cover changes
 3. Implement changes
-4. Make sure nothing breaks
+4. Make sure nothing breaks, run tests with `cabal test`
 5. Create PR
 6. Wait for approval
 
@@ -376,7 +628,7 @@ Raise an issue with a feature request proposal!
 
 Raise an issue with a title `bug - <bug name>`!
 
-Use this template:
+1. Use this template:
 ```
 # <bug name>
 
@@ -396,10 +648,6 @@ Use this template:
 4. Create tests to cover changes
 5. Create pull request
 
-### Found a bug?
-
-Raise an issue and describe what is not working how it is supposed to
-
 ## Contact us
 
 [discord](https://discord.gg/rzVMbFWw)
@@ -410,7 +658,4 @@ Raise an issue and describe what is not working how it is supposed to
 
 [repo manager](https://github.com/tomazvila)
 
-
 - email: `tomas@aada.finance`
-
-
