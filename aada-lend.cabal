@@ -71,6 +71,8 @@ library
                       , Common.Utils
                       , NFTStaking
                       , StakingPolicy
+                      , Liquidator.SafetyModule
+                      , Liquidator.SafetyToken
 
   build-depends:        bytestring
                       , cardano-api
