@@ -34,15 +34,17 @@ import qualified Common.Utils             as U
 import Plutus.V1.Ledger.Api
 import Liquidator.StRedeemer.StRedeemer
 
--- TODO test
 -- TODO refactor
 {-# INLINABLE mkPolicy #-}
 mkPolicy :: CurrencySymbol -> STRedeemer -> ScriptContext -> Bool
-mkPolicy lenderNftCs rdm ctx = case mintedValue of
-    [(cs, tn, n)] -> cs == ownCurrencySymbol ctx && case n of
-      1    -> validateMint cs tn
-      (-1) -> validateBurn tn
-      _    -> False
+mkPolicy lenderNftCs rdm ctx =
+  case mintedValue of
+    [(cs, tn, n)] -> cs == ownCurrencySymbol ctx &&
+      if n == 1 then
+          validateMint cs tn
+        else if n == (-1) then
+          validateBurn tn
+        else False
     _             -> False
   where
     mintFlattened :: [(CurrencySymbol, TokenName, Integer)]
@@ -55,45 +57,45 @@ mkPolicy lenderNftCs rdm ctx = case mintedValue of
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    containsNewDatum :: TxOut -> AssetClass -> Bool
+    containsNewDatum :: TxOut -> TokenName -> Bool
     containsNewDatum txo safetyToken = findDatumHash' safetyToken (U.info ctx) == txOutDatumHash txo
 
-    validateLenderNft :: TxOut -> AssetClass -> CurrencySymbol -> TokenName -> Integer -> Bool
+    validateLenderNft :: TxOut -> TokenName -> CurrencySymbol -> TokenName -> Integer -> Bool
     validateLenderNft txo safetyToken cs tn n =
       cs == lenderNftCs &&
       n == 1 &&
-      validateTxOuts (assetClass cs tn) &&
       lenderNftSentToSafetyModule cs tn &&
-      containsNewDatum txo safetyToken
+      validateTxOuts (assetClass cs tn) safetyToken
 
     -- TODO rename to better names
-    inputHasLenderNft :: AssetClass -> TxOut -> Bool
+    inputHasLenderNft :: TokenName -> TxOut -> Bool
     inputHasLenderNft safetyToken txin = any (\(cs, tn, n) -> validateLenderNft txin safetyToken cs tn n) $ (flattenValue . txOutValue) txin
 
     lenderNftSentToSafetyModule :: CurrencySymbol -> TokenName -> Bool
     lenderNftSentToSafetyModule cs tn =
       any (\x -> txOutAddress x == safetyModule rdm && valueOf (txOutValue x) cs tn == 1) $ txInfoOutputs (U.info ctx)
 
-    validateTxOut :: AssetClass -> TxOut -> Bool
-    validateTxOut lenderNft txo =
+    validateTxOut :: AssetClass -> TokenName -> TxOut -> Bool
+    validateTxOut lenderNft safetyToken txo =
       assetClassValueOf (txOutValue txo) lenderNft == 1 &&
-      txOutAddress txo == safetyModule rdm
+      txOutAddress txo == safetyModule rdm &&
+      containsNewDatum txo safetyToken
 
-    validateTxOuts :: AssetClass -> Bool
-    validateTxOuts lenderNft = any (validateTxOut lenderNft) $ txInfoOutputs (U.info ctx)
+    validateTxOuts :: AssetClass -> TokenName -> Bool
+    validateTxOuts lenderNft safetyToken = any (validateTxOut lenderNft safetyToken) $ txInfoOutputs (U.info ctx)
 
-    validateTxIn :: AssetClass -> TxOut -> Bool
+    validateTxIn :: TokenName -> TxOut -> Bool
     validateTxIn safetyToken txin =
       inputHasLenderNft safetyToken txin
 
-    validateTxIns :: AssetClass -> Bool
+    validateTxIns :: TokenName -> Bool
     validateTxIns safetyToken = any (validateTxIn safetyToken) $ txInInfoResolved <$> txInfoInputs (U.info ctx)
 
     validateMint :: CurrencySymbol -> TokenName -> Bool
     validateMint cs tn =
       U.hasUTxO (utxo rdm) ctx &&
       U.validateTokenName' tn (liquidateInterestScAddr rdm) (safetyModule rdm) (utxo rdm) &&
-      validateTxIns (assetClass cs tn)
+      validateTxIns tn
 
     inputHasLenderNft' :: TxOut -> Bool
     inputHasLenderNft' txin = any (\(cs, _tn, n) -> cs == lenderNftCs && n == 1) $ (flattenValue . txOutValue) txin

@@ -73,6 +73,7 @@ library
                       , StakingPolicy
                       , Liquidator.SafetyModule
                       , Liquidator.SafetyToken
+                      , Liquidator.StRedeemer.StRedeemer
 
   build-depends:        bytestring
                       , cardano-api

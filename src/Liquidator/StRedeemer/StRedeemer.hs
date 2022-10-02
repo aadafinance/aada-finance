@@ -19,11 +19,12 @@ module Liquidator.StRedeemer.StRedeemer where
 
 import qualified PlutusTx
 import Plutus.V1.Ledger.Api
+import           Prelude              (Show (..))
 
 data STRedeemer = STRedeemer {
     utxo                    :: TxOutRef
   , liquidateInterestScAddr :: Address
   , safetyModule            :: Address
-}
+} deriving (Show)
 
 PlutusTx.makeIsDataIndexed ''STRedeemer [('STRedeemer, 0)]

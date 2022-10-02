@@ -57,7 +57,7 @@ data CollateralDatum = CollateralDatum
     , loanDuration          :: !POSIXTime
     , liquidateNft          :: !CurrencySymbol
     , collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
-    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+    , liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes) 1500000000000000 is 15%
     , requestExpiration     :: !POSIXTime
     , lenderNftTn           :: !TokenName
     , lendDate              :: !POSIXTime

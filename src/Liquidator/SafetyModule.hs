@@ -21,6 +21,7 @@ module Liquidator.SafetyModule
   , validator
   , typedValidator
   , safetyAddress
+  , LiquidationAction(..)
   , ContractInfo(..)
   ) where
 
@@ -44,6 +45,7 @@ import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON)
 import qualified Collateral as C
 import Plutus.V1.Ledger.Api (UnsafeFromData(unsafeFromBuiltinData))
+import PlutusTx.Builtins (divideInteger, multiplyInteger)
 
 data LiquidationAction = Cancel | LiquidateByDeadline | LiquidateWithOracle
   deriving (Generic, ToJSON, FromJSON)
@@ -58,14 +60,15 @@ data ContractInfo = ContractInfo
     { lenderNftCs   :: !CurrencySymbol
     , collateralSc  :: !Address
     , interestSc    :: !Address
+    , safetyTokenCs :: !CurrencySymbol
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 PlutusTx.makeIsDataIndexed ''ContractInfo [('ContractInfo, 1)]
 PlutusTx.makeLift ''ContractInfo
 
-{-# INLINABLE mkValidator #-} -- TODO change from AssetClass to TokenName
-mkValidator :: ContractInfo -> AssetClass -> LiquidationAction -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} safetyToken action ctx =
+{-# INLINABLE mkValidator #-}
+mkValidator :: ContractInfo -> TokenName -> LiquidationAction -> ScriptContext -> Bool
+mkValidator contractInfo@ContractInfo{..} safetyTokenTn action ctx =
   case action of
     Cancel    -> validateCancelRequest
     LiquidateByDeadline -> validateLiquidate
@@ -80,16 +83,22 @@ mkValidator contractInfo@ContractInfo{..} safetyToken action ctx =
 --       Just mbdh -> mbdh
 --       Nothing -> Nothing
 
---  maybe Nothing (txOutDatumHash . txInInfoResolved) (findOwnInput ctx)
+    findDatumHash' :: PlutusTx.ToData a => a -> TxInfo -> Maybe DatumHash
+    findDatumHash' datum info = findDatumHash (Datum $ PlutusTx.toBuiltinData datum) info
 
     hasSafetyDatum :: TxOut -> Bool
-    hasSafetyDatum txo = getOwnLockedDatum == txOutDatumHash txo
+    hasSafetyDatum txo =
+      traceBool "datum is correct" "datum is not correct" $
+      (txOutDatumHash txo == findDatumHash' safetyTokenTn (U.info ctx))
+
+    calculateLiquidateCommission :: C.CollateralDatum -> Integer
+    calculateLiquidateCommission dat =
+      C.collateralAmnt dat `multiplyInteger` 1000000000000 `divideInteger` C.liquidationCommission dat
 
     collatSentToInterest :: TxOut -> C.CollateralDatum -> Bool
-    collatSentToInterest txo dat =
-      txOutAddress txo == interestSc &&
-      assetClassValueOf (txOutValue txo) (C.collateral dat) == C.collateralAmnt dat - C.liquidationCommission dat -- TODO use percentage from collateral
-      -- Think about partial collateral
+    collatSentToInterest txo dat = -- True
+      traceBool "txout address IS to interestSc" "tx out address is not to interestsc" $ txOutAddress txo == interestSc -- &&
+      -- assetClassValueOf (txOutValue txo) (C.collateral dat) == C.collateralAmnt dat - calculateLiquidateCommission dat
 
     validateTxOut :: C.CollateralDatum -> TxOut -> Bool
     validateTxOut dat txo =
@@ -110,14 +119,14 @@ mkValidator contractInfo@ContractInfo{..} safetyToken action ctx =
       validateDatum txin
 
     validateLiquidate :: Bool
-    validateLiquidate = any validateTxIn (txInfoOutputs (U.info ctx))
+    validateLiquidate = any validateTxIn (txInInfoResolved <$> txInfoInputs (U.info ctx))
 
     containsSafetyToken :: TxOut -> Bool
-    containsSafetyToken txin = assetClassValueOf (txOutValue txin) safetyToken == 1
+    containsSafetyToken txin = valueOf (txOutValue txin) safetyTokenCs safetyTokenTn == 1
 
     safetyTokenIsBurnt :: Bool
     safetyTokenIsBurnt = case U.mintFlattened ctx of
-      [(cs, tn, n)] -> (n == (-1)) && assetClass cs tn == safetyToken
+      [(cs, tn, n)] -> (n == (-1)) && assetClass cs tn == assetClass safetyTokenCs safetyTokenTn
       _             -> False
 
     validateCancelRequest :: Bool
@@ -127,7 +136,7 @@ mkValidator contractInfo@ContractInfo{..} safetyToken action ctx =
 
 data SafetyModule
 instance Scripts.ValidatorTypes SafetyModule where
-    type instance DatumType SafetyModule = AssetClass
+    type instance DatumType SafetyModule = TokenName
     type instance RedeemerType SafetyModule = LiquidationAction
 
 typedValidator :: ContractInfo -> Scripts.TypedValidator SafetyModule
@@ -137,7 +146,7 @@ typedValidator contractInfo = Scripts.mkTypedValidator @SafetyModule
     PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @AssetClass @LiquidationAction
+    wrap = Scripts.wrapValidator @TokenName @LiquidationAction
 
 validator :: ContractInfo -> Validator
 validator = Scripts.validatorScript . typedValidator
