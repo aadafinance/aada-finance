@@ -40,7 +40,8 @@ liquidatorTests :: BchConfig -> TestTree
 liquidatorTests cfg =
     testGroup ""
     [
-        testNoErrorsTrace (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "liquidate" testLiquidate
+        testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "liquidate" testLiquidate
+      , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "cancel liquidation request" testCancelLiquidationRq
     ]
 
 type RepayInterval = POSIXTime
@@ -392,8 +393,91 @@ testLiquidate = do
           submitTx lender tx
           -- Liquidate loan
 
-  --         -- TODO liquidate
-  --         -- TODO liquidate
+          pure True
+      Nothing -> do
+        logInfo "did not found locked datum"
+        pure False
+
+getTxInFromSafetyModule :: UserSpend -> TokenName -> Sm.LiquidationAction -> TxOutRef -> Tx
+getTxInFromSafetyModule lender smDat smRdm sMscriptTxOut =
+  mconcat
+  [ spendScript (Sm.typedValidator getSafetyModuleParams) sMscriptTxOut smRdm smDat
+  , userSpend lender
+  ]
+
+getTxOutCancelLiquidationRq :: PubKeyHash -> TxOutRef -> TokenName -> Value -> Tx
+getTxOutCancelLiquidationRq lender safetyTokenRef smInterestDat lenderNftVal =
+  addMintRedeemer getSafetyTokenMp (getStRedeemer safetyTokenRef) $
+    mconcat
+      [ mintValue getSafetyTokenMp (getSafetyTokenValue safetyTokenRef (-1))
+      , payToPubKey lender (adaValue 4 <> lenderNftVal)
+      ]
+
+testCancelLiquidationRq :: Run Bool
+testCancelLiquidationRq = do
+  users <- setupUsers
+  let borrower = head users
+      lender   = last users
+
+  let valToPay = fakeValue collateralCoin 100 <> adaValue 2 <> adaValue 1
+  sp <- spend borrower valToPay
+  let oref = getHeadRef sp
+  let borrowerNftRef = oref
+  let tx = createLockFundsTx 0 borrower oref sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff") <>
+           getMintBorrowerNftTx borrower oref
+  submitTx borrower tx
+  utxos <- utxoAt $ requestAddress getSc1Params
+  let lockRef = fst . head $ utxos
+  let lenderNftRef = lockRef
+  lockDat <- datumAt @RequestDatum lockRef
+  case lockDat of
+      Just dat -> do
+          -- Provide loan transaction
+          logInfo "create liquidation request phase"
+          curTime <- currentTime
+          let mintTime = POSIXTime 9000
+          let convertedDat        = getCollatDatumFromRequestDat dat (getAadaTokenName lenderNftRef) mintTime
+              valForLenderToSpend = fakeValue loanCoin 150 <> adaValue 4
+
+          sp <- spend lender valForLenderToSpend
+          let tx = getTxIn sp dat lockRef (getAadaTokenName lenderNftRef)  <>
+                   getTxOutLend borrower lender convertedDat lockRef (adaValueOf 0)
+  --         logInfo $  "ref: " ++ show lenderNftRef
+  --         logInfo $  "hash: " ++ show (getAadaTokenName lenderNftRef)
+          logInfo $  "mint time: " ++ show mintTime
+          logInfo $  "curTime time: " ++ show curTime
+          -- logInfo $  "test: " ++ show tx
+          tx <- validateIn (interval 2000 8000) tx
+          submitTx lender tx
+          -- Provide loan transaction
+
+          -- Opt for liquidation transaction, create liquidation request
+          logInfo "create liquidation request phase"
+          let lenderNftVal = getLNftVal 1 getLenderNftCs lenderNftRef
+          sp1 <- spend lender lenderNftVal
+          sp2 <- spend lender $ adaValue 4
+          val <- valueAt lender
+          logInfo $ "sp1 of lender: " <> show sp1
+          logInfo $ "sp2 of lender: " <> show sp2
+          logInfo $ "value of lender: " <> show val
+          logInfo $ "lenderNftVal: " <> show lenderNftVal
+          let safetyTokenRef = getHeadRef sp2
+          let smDat = getSafetyTokenName safetyTokenRef
+          let tx = getOptForLiquidationTx sp1 safetyTokenRef lenderNftVal lender smDat <> userSpend sp2
+          submitTx lender tx
+          -- Opt for liquidation transaction, create liquidation request
+
+          -- Cancel liquidation request
+          logInfo "cancel liquidation request"
+          utxos <- utxoAt $ Sm.safetyAddress getSafetyModuleParams
+          let [(smRef, _)] = utxos
+          lenderSp <- spend lender (adaValue 2 <> (getSafetyTokenValue safetyTokenRef 1))
+          logInfo $ "debug lenderSp: " <> show lenderSp
+          let smRdm = Sm.Cancel
+          let cancel = getTxInFromSafetyModule lenderSp smDat smRdm smRef <>
+                       getTxOutCancelLiquidationRq lender safetyTokenRef (getSafetyTokenName safetyTokenRef) lenderNftVal
+          submitTx lender cancel
+          -- Cancel liquidation request
 
           pure True
       Nothing -> do

@@ -108,7 +108,7 @@ mkPolicy lenderNftCs rdm ctx =
       && U.validateTokenName' tn (liquidateInterestScAddr rdm) (safetyModule rdm) (utxo rdm))
 
     validateBurnTxIns :: TokenName -> Bool
-    validateBurnTxIns tn = any (validateBurnTxIn tn) $ txInfoOutputs (U.info ctx)
+    validateBurnTxIns tn = any (validateBurnTxIn tn) $ (txInInfoResolved <$> txInfoInputs (U.info ctx))
 
     validateBurn :: TokenName -> Bool
     validateBurn = validateBurnTxIns

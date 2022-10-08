@@ -131,7 +131,7 @@ mkValidator contractInfo@ContractInfo{..} safetyTokenTn action ctx =
 
     validateCancelRequest :: Bool
     validateCancelRequest =
-      any containsSafetyToken (txInfoOutputs (U.info ctx)) &&
+      any containsSafetyToken (txInInfoResolved <$> txInfoInputs (U.info ctx)) &&
       safetyTokenIsBurnt
 
 data SafetyModule

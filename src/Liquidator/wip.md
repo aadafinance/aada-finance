@@ -1,7 +1,4 @@
 # Markdown
-## Test SafetyToken
-- [x] create lock tx
-- [ ] create opt for liquidator tx
 
 ### create request transaction
 ```
@@ -70,4 +67,20 @@ Liquidate loan
 ```
 collateralFactor      :: !Integer   -- Colalteral factor used for liquidation
 liquidationCommission :: !Integer   -- How much % borrower will pay for lender when liquidated (before time passes)
+```
+
+## Test cancel liquidation request
+```
+                                 ┌──┐
+┌──────┐            2 Ada +      │  │
+│Lender│─────────1 SafetyToken──▶│  │
+└──────┘                         │  │
+                                 │  │
+┌───────────────┐   2 Ada + 1    │Tx│                        ┌──────┐
+│SafetyModule.hs│───LenderNft ──▶│  ├──2 Ada + 1 LenderNft──▶│Lender│
+└───────────────┘    + Datum     │  │                        └──────┘
+                                 │  │
+┌──────────────┐ MintingPolicy   │  │
+│SafetyToken.hs│─────script─────▶│  │
+└──────────────┘                 └──┘
 ```
