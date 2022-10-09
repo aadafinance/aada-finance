@@ -5,8 +5,8 @@
 module Main (main) where
 
 import           Prelude
-import           Cardano.Api
-import           Cardano.Api.Shelley
+import           Cardano.Api hiding (Address)
+import           Cardano.Api.Shelley hiding (Address)
 
 import qualified Cardano.Ledger.Alonzo.Data as Alonzo
 import           Plutus.V1.Ledger.Api
@@ -21,9 +21,11 @@ import Data.Version (showVersion)
 import               Interest
 import               Collateral
 import               Request
+import               DebtRequest
 import               Liquidation
 import               AadaNft
 import               Liquidator.SafetyModule as Safety
+import               Liquidator.SafetyToken as Safety
 
 data HashType =
   ValidatorHash' | PubKeyHash'
@@ -46,6 +48,7 @@ data Command = Command {
   , interestFp      :: FilePath
   , collateralFp    :: FilePath
   , requestFp       :: FilePath
+  , debtRequestFp   :: FilePath
   , liquidationFp   :: FilePath
   , safetyModulefp  :: FilePath
   , versionFlag     :: ShowVersion
@@ -109,6 +112,19 @@ requestPathParser = strOption
        , metavar "FILEPATH"
        , value defaultRequestFp ])
 
+defaultDebtRequestFp :: FilePath
+defaultDebtRequestFp = "debt_request.plutus"
+
+debtRequestPathParser :: Parser FilePath
+debtRequestPathParser = strOption
+      (mconcat
+       [ help "Enter name of debt request validator"
+       , long "debt"
+       , short 'd'
+       , showDefault
+       , metavar "FILEPATH"
+       , value defaultDebtRequestFp ])
+
 liquidationInterestFp :: FilePath
 liquidationInterestFp = "liquidation.plutus"
 
@@ -169,12 +185,16 @@ parseCommand = Command <$> optional parseStakingKey'
   <*> interestPathParser
   <*> collateralPathParser
   <*> requestPathParser
+  <*> debtRequestPathParser
   <*> liquidationPathParser
   <*> safetyModuleFpParser
   <*> versionFlagParser
 
 parser :: ParserInfo Command
 parser = info (helper <*> parseCommand) fullDesc
+
+getSafetyTokenCs :: CurrencySymbol
+getSafetyTokenCs = scriptCurrencySymbol $ Safety.policy getLenderNftCs
 
 getLenderNftPolicy :: MintingPolicy
 getLenderNftPolicy = AadaNft.policy True
@@ -202,10 +222,17 @@ getRequestScParams stakingCredential = Request.ContractInfo {
       , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator (getCollateralScParams stakingCredential))) stakingCredential
     }
 
+getDebtRequestScParams :: Maybe StakingCredential -> DebtRequest.ContractInfo
+getDebtRequestScParams stakingCredential = DebtRequest.ContractInfo {
+        DebtRequest.lenderNftCs    = getLenderNftCs
+      , DebtRequest.borrowersNftCs = getBorrowerNftCs
+      , DebtRequest.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator (getCollateralScParams stakingCredential))) stakingCredential
+    }
+
 getStakingCredentialFromOpts :: Command -> Maybe StakingCredential
 getStakingCredentialFromOpts opts = case opts of
-  Command Nothing _ _ _ _ _ _        -> Nothing
-  Command (Just stakeKey) _ _ _ _ _ _ -> case stakeKey of
+  Command Nothing _ _ _ _ _ _ _        -> Nothing
+  Command (Just stakeKey) _ _ _ _ _ _ _ -> case stakeKey of
     StakingKeyHash (StakingHash' h ValidatorHash') -> Just . StakingHash . ScriptCredential . ValidatorHash . getLedgerBytes . FS.fromString $ h
     StakingKeyHash (StakingHash' h PubKeyHash') -> Just . StakingHash . PubKeyCredential . PubKeyHash . getLedgerBytes . FS.fromString $ h
     StakingKeyPtr a b c -> Just $ StakingPtr a b c
@@ -223,13 +250,14 @@ main :: IO ()
 main = do
   opts <- execParser parser
   case opts of
-    (Command _ _ _ _ _ _ True) -> print $ showVersion version
+    (Command _ _ _ _ _ _ _ True) -> print $ showVersion version
     _ -> do
       let stakeKey = getStakingCredentialFromOpts opts
           scriptnum = 0
       writePlutusScript scriptnum (interestFp opts) (Interest.interestScript (Interest.ContractInfo getLenderNftCs)) (interestShortBs (Interest.ContractInfo getLenderNftCs))
       writePlutusScript scriptnum (collateralFp opts) (Collateral.collateralScript (getCollateralScParams stakeKey)) (collateralShortBs (getCollateralScParams stakeKey))
       writePlutusScript scriptnum (requestFp opts) (Request.request (getRequestScParams stakeKey)) (requestShortBs (getRequestScParams stakeKey))
+      writePlutusScript scriptnum (debtRequestFp opts) (DebtRequest.debtRequest (getDebtRequestScParams stakeKey)) (debtRequestShortBs (getDebtRequestScParams stakeKey))
       writePlutusScript scriptnum (liquidationFp opts) (Liquidation.liquidation $ Liquidation.ContractInfo getBorrowerNftCs) (liquidationShortBs  $ Liquidation.ContractInfo getBorrowerNftCs)
       writePlutusScript scriptnum (safetyModulefp opts) (Safety.safetyScript $ getSafetyModuleParams stakeKey) (liquidationShortBs  $ Liquidation.ContractInfo getBorrowerNftCs)
 

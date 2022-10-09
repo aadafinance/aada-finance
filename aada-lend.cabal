@@ -65,6 +65,7 @@ library
                       , Interest
                       , Liquidation
                       , Request
+                      , DebtRequest
                       , OracleNft
                       , Helpers.TestValidator
                       , Spec.Test

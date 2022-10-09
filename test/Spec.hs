@@ -11,8 +11,8 @@ main = do
     testGroup
       "Test Suites"
       [
-        -- Spec.Test.mainTests cfg
-        Spec.Liquidator.Test.liquidatorTests cfg
+        Spec.Test.mainTests cfg
+        -- Spec.Liquidator.Test.liquidatorTests cfg
       -- , Spec.Test.testSize cfg
       -- , Spec.Test.mintOracleNftTests cfg
       ]
