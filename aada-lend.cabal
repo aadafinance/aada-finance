@@ -65,12 +65,16 @@ library
                       , Interest
                       , Liquidation
                       , Request
+                      , DebtRequest
                       , OracleNft
                       , Helpers.TestValidator
                       , Spec.Test
                       , Common.Utils
                       , NFTStaking
                       , StakingPolicy
+                      , Liquidator.SafetyModule
+                      , Liquidator.SafetyToken
+                      , Liquidator.StRedeemer.StRedeemer
 
   build-depends:        bytestring
                       , cardano-api

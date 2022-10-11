@@ -49,7 +49,7 @@ RUN bash -c "cabal update"
 WORKDIR /app
 COPY . .
 
-RUN cabal install --install-method=copy --installdir=/app
+RUN cabal install -j4 --install-method=copy --installdir=/app
 FROM debian:stable-slim as runner
 
 # Install dependencies *You don't need all of them
