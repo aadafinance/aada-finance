@@ -14,6 +14,7 @@ import qualified PlutusTx
 import Ledger
 import Plutus.V1.Ledger.Credential
 import Spec.Test
+import Liquidator.SafetyModule as Sm
 
 main :: IO ()
 main = do
@@ -26,6 +27,14 @@ main = do
   writeData "example-request-redeemer.json" exampleRequestRedeemer
   let exampleAadaNftRedeemer = Redeemer (PlutusTx.toBuiltinData (TxOutRef "ff" 1))
   writeData "example-aada-nft-redeemer.json" exampleAadaNftRedeemer
+  let liquidationActionCancel = Redeemer (PlutusTx.toBuiltinData Sm.Cancel)
+  writeData "example-liquidation-action-cancel.json" liquidationActionCancel
+  let liquidationActionCancel = Redeemer (PlutusTx.toBuiltinData Sm.Cancel)
+  writeData "example-liquidation-action-cancel.json" liquidationActionCancel
+  let liquidationActionLiquidateByDeadline = Redeemer (PlutusTx.toBuiltinData Sm.LiquidateByDeadline)
+  writeData "example-liquidation-action-liquidate-by-deadline.json" liquidationActionLiquidateByDeadline
+  let liquidationActionLiquidateWithOracle = Redeemer (PlutusTx.toBuiltinData Sm.LiquidateWithOracle)
+  writeData "example-liquidation-action-liquidate-with-oracle.json" liquidationActionLiquidateWithOracle
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()
