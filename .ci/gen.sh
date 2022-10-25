@@ -44,6 +44,9 @@ docker-compose exec -T aada-finance mint-aada-nft \
     minting-policy \
     -b \
     -p ${VERSION}/borrower.nft
+docker-compose exec -T aada-finance mint-aada-nft \
+    minting-policy -s \
+    -p ${VERSION}/safety_token.nft
 
 if [[ "${BRANCH}" == "master" ]]; then
   MAGIC="--mainnet"
@@ -81,6 +84,9 @@ LENDER_POLICY=$(cardano-cli transaction \
 BORROWER_POLICY=$(cardano-cli transaction \
     policyid \
     --script-file $NODE_ARF_PATH/borrower.nft)
+SAFETY_TOKEN_POLICY=$(cardano-cli transaction \
+    policyid \
+    --script-file $NODE_ARF_PATH/safety_token.nft)
 
 echo "Writing the version details to ${WRITE_PATH} ..."
 cat > ${WRITE_PATH} <<EOF
@@ -93,8 +99,11 @@ cat > ${WRITE_PATH} <<EOF
     "LIQUIDATION_ADDRESS": "${LIQUIDATION_ADDRESS}",
     "LENDER_REQUEST_ADDRESS": "${LENDER_REQUEST_ADDRESS}",
     "LIQUIDATION_ADDRESS": "${LIQUIDATION_ADDRESS}",
-    "LENDER_POLICY": "${LENDER_POLICY}",
     "SAFETY_MODULE_ADDRESS": "${SAFETY_MODULE_ADDRESS}"
+    "LENDER_POLICY": "${LENDER_POLICY}",
+    "BORROWER_POLICY":"${BORROWER_POLICY}",
+    "SAFETY_TOKEN":"${SAFETY_TOKEN_POLICY}",
+
   }
 }
 EOF
