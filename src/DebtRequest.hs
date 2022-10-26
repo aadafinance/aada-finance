@@ -123,7 +123,7 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
       collateralAmnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
 
     containsNewDatum :: TxOut -> Bool
-    containsNewDatum txo = case U.getUpperBound ctx of
+    containsNewDatum txo = case U.getLowerBound ctx of
       Just ub -> findDatumHash' (expectedNewDatum ub) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
 

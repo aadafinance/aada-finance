@@ -34,6 +34,12 @@ getUpperBound ctx = case ivTo (range ctx) of
     UpperBound (Finite x) _ -> Just x
     _                       -> Nothing
 
+{-# INLINEABLE getLowerBound #-}
+getLowerBound :: ScriptContext -> Maybe POSIXTime
+getLowerBound ctx = case ivFrom (range ctx) of
+    LowerBound (Finite x) _ -> Just x
+    _                       -> Nothing
+
 {-# INLINEABLE calculateTokenNameHash #-}
 calculateTokenNameHash :: TxOutRef -> BuiltinByteString
 calculateTokenNameHash utxo =
