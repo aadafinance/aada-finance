@@ -35,8 +35,8 @@ docker-compose exec -T aada-finance compile-validators \
     -c ${VERSION}/collateral.plutus \
     -r ${VERSION}/request.plutus \
     -d ${VERSION}/lender_request.plutus \
-    -s ${VERSION}/safety_module.plutus 
-    
+    -s ${VERSION}/safety_module.plutus
+
 docker-compose exec -T aada-finance mint-aada-nft \
     minting-policy -l \
     -p ${VERSION}/lender.nft
@@ -99,7 +99,7 @@ cat > ${WRITE_PATH} <<EOF
     "LIQUIDATION_ADDRESS": "${LIQUIDATION_ADDRESS}",
     "LENDER_REQUEST_ADDRESS": "${LENDER_REQUEST_ADDRESS}",
     "LIQUIDATION_ADDRESS": "${LIQUIDATION_ADDRESS}",
-    "SAFETY_MODULE_ADDRESS": "${SAFETY_MODULE_ADDRESS}"
+    "SAFETY_MODULE_ADDRESS": "${SAFETY_MODULE_ADDRESS}",
     "LENDER_POLICY": "${LENDER_POLICY}",
     "BORROWER_POLICY":"${BORROWER_POLICY}",
     "SAFETY_TOKEN":"${SAFETY_TOKEN_POLICY}",
