@@ -124,7 +124,7 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
 
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = case U.getLowerBound ctx of
-      Just ub -> findDatumHash' (expectedNewDatum ub) (U.info ctx) == txOutDatumHash txo
+      Just lb -> findDatumHash' (expectedNewDatum lb) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
 
     checkForTokensDos :: TxOut -> Bool
