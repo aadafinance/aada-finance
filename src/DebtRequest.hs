@@ -127,8 +127,10 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
 
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = case U.getUpperBound ctx of
-      Just ub -> findDatumHash' (expectedNewDatum ub (collateralAmount txo)) (U.info ctx) == txOutDatumHash txo
+      Just ub -> findDatumHash' (expectedNewDatum ub updatedCollateral) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
+     where
+      updatedCollateral = collateralAmount txo
 
     checkForTokensDos :: TxOut -> Bool
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
