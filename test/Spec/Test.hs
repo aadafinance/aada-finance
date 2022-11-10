@@ -1290,75 +1290,15 @@ debtRequestTest = do
   lockDat <- datumAt @DebtRequestDatum lockRef
   case lockDat of
       Just dat -> do
-          curTime <- currentTime
-          let mintTime = POSIXTime 7000
-          let convertedDat          = getCollatDatumFromDebtRequestDat dat (getAadaTokenName borrowerNftRef) mintTime
+          let convertedDat          = getCollatDatumFromDebtRequestDat dat (getAadaTokenName borrowerNftRef) 2000
               valForBorrowerToSpend = fakeValue collateralCoin 100 <> adaValue 2
 
           sp <- spend borrower valForBorrowerToSpend
           let tx = getDebtRequestTxIn sp dat lockRef (getAadaTokenName borrowerNftRef)
                    <> getTxOutBorrow borrower convertedDat lockRef (adaValueOf 0)
 
-          logInfo $  "mint time: " ++ show mintTime
-          logInfo $  "curTime time: " ++ show curTime
           tx <- validateIn (interval 2000 6000) tx
 
           submitTx borrower tx
-
-          -- loan return phase
-          -- Bellow is commented out because there is a bug at the plutus-simple-model testing library at the revision
-          -- this code was tested
-          -- Code bellow produces duplicated txOuts with invalid address.
-          -- borrower gets 150 of loan coin while it is set to interest.sc only
-          -- let valTmp1 = getBNftVal 1 getBorrowerNftCs borrowerNftRef <>
-          --               fakeValue loanCoin 150 <>
-          --               fakeValue interestCoin 50 <>
-          --                         adaValue 1
-          -- -- let valTmp1 = getBNftVal 1 getBorrowerNftCs borrowerNftRef <>
-          -- --               adaValue 1
-          -- --     valTmp2 = fakeValue loanCoin 150 <>
-          -- --               adaValue 1
-          -- --     valTmp3 = fakeValue interestCoin 50 <>
-          -- --               adaValue 3
-
-          -- wait 2000
-          -- intPayDate <- currentTime
-
-          -- sp1 <- spend borrower valTmp1
-          -- -- sp2 <- spend borrower valTmp2
-          -- -- sp3 <- spend borrower valTmp3
-
-          -- utxos <- utxoAt $ Collateral.collateralAddress getSc2Params
-          -- let [(lockRef, _)] = utxos
-          -- let intDat = Collateral.lenderNftTn convertedDat
-
-          -- -- let tx2 = getTxInFromCollateral [sp1, sp2, sp3] convertedDat 0 lockRef <>
-          -- let tx2 = getTxInFromCollateral [sp1] convertedDat 0 lockRef <>
-          --           getTxOutReturn' 50 borrower intDat (adaValueOf 0) borrowerNftRef
-
-          -- logInfo $  "int pay date time: " ++ show intPayDate
-          -- tx2 <- validateIn (interval 5000 intPayDate) tx2
-          -- howMuch <- valueAt $ Collateral.collateralAddress getSc2Params
-          -- howMuch2 <- valueAt borrower
-          -- logInfo $  "how much there is at collat addr: " ++ show howMuch
-          -- logInfo $  "how much there is at borrower: " ++ show howMuch2
-          -- logInfo $  "tx: " ++ show tx2
-          -- logInfo $  "borrower addr: " ++ show borrower
-
-          -- submitTx lender tx2
-
-          -- -- retrieve loan and interest phase
-          -- utxos <- utxoAt (Interest.interestAddress (Interest.ContractInfo getLenderNftCs))
-          -- let lenderPay = adaValue 2 <> getLNftVal 1 getLenderNftCs lenderNftRef
-          -- sp <- spend lender lenderPay
-          -- case utxos of
-          --   [(lockRef, _)] -> do
-          --     let tx = getTxInFromInterestSc sp lockRef intDat <>
-          --              getTxOutFromInterestSc 50 lender lenderNftRef
-
-          --     submitTx lender tx
-
-          --     pure True
-          --   _ -> pure False
           pure True
       Nothing -> pure False
