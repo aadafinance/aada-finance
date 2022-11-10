@@ -13,6 +13,7 @@ import Cardano.Api.Shelley ( fromPlutusData )
 import qualified PlutusTx
 import Ledger
 import Plutus.V1.Ledger.Credential
+import Plutus.V1.Ledger.Value
 import Spec.Test
 import Liquidator.SafetyModule as Sm
 
@@ -35,6 +36,8 @@ main = do
   writeData "example-liquidation-action-liquidate-by-deadline.json" liquidationActionLiquidateByDeadline
   let liquidationActionLiquidateWithOracle = Redeemer (PlutusTx.toBuiltinData Sm.LiquidateWithOracle)
   writeData "example-liquidation-action-liquidate-with-oracle.json" liquidationActionLiquidateWithOracle
+  let liquidateDatum = Datum (PlutusTx.toBuiltinData $ unTokenName "ff")
+  writeData "example-liquidation-datum.json" liquidateDatum
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()

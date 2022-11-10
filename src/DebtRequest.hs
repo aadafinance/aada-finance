@@ -93,8 +93,8 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    expectedNewDatum :: POSIXTime -> Collateral.CollateralDatum
-    expectedNewDatum ld = Collateral.CollateralDatum {
+    expectedNewDatum :: POSIXTime -> Integer -> Collateral.CollateralDatum
+    expectedNewDatum ld updatedColat = Collateral.CollateralDatum {
         Collateral.borrowersNftTn        = borrowerTn
       , Collateral.borrowersAddress      = borrowersAddress dat
       , Collateral.loan                  = loan dat
@@ -102,7 +102,7 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
       , Collateral.interest              = interest dat
       , Collateral.interestAmnt          = interestAmnt dat
       , Collateral.collateral            = collateral dat
-      , Collateral.collateralAmnt        = collateralAmnt dat
+      , Collateral.collateralAmnt        = updatedColat
       , Collateral.loanDuration          = loanDuration dat
       , Collateral.liquidateNft          = liquidateNft dat
       , Collateral.collateralFactor      = collateralFactor dat
@@ -118,14 +118,19 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
     isItToCollateral :: TxOut -> Bool
     isItToCollateral txo = txOutAddress txo == collateralSc
 
+    collateralAmount :: TxOut -> Integer
+    collateralAmount txo = assetClassValueOf (txOutValue txo) (collateral dat)
+
     containsRequiredCollateralAmount :: TxOut -> Bool
     containsRequiredCollateralAmount txo =
-      collateralAmnt dat <= assetClassValueOf (txOutValue txo) (collateral dat)
+      collateralAmnt dat <= collateralAmount txo
 
     containsNewDatum :: TxOut -> Bool
     containsNewDatum txo = case U.getLowerBound ctx of
-      Just lb -> findDatumHash' (expectedNewDatum lb) (U.info ctx) == txOutDatumHash txo
+      Just lb -> findDatumHash' (expectedNewDatum lb updatedCollateral) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
+     where
+      updatedCollateral = collateralAmount txo
 
     checkForTokensDos :: TxOut -> Bool
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
