@@ -58,6 +58,22 @@ data DebtRequestDatum = DebtRequestDatum
 PlutusTx.makeIsDataIndexed ''DebtRequestDatum [('DebtRequestDatum, 0)]
 PlutusTx.makeLift ''DebtRequestDatum
 
+data DebtRequestAction = TakeLoan | Cancel
+  deriving (Generic, ToJSON, FromJSON)
+
+PlutusTx.makeIsDataIndexed ''DebtRequestAction [ ('TakeLoan,    0)
+                                               , ('Cancel, 1)
+                                               ]
+PlutusTx.makeLift ''DebtRequestAction
+
+data DebtRequestRedeemer = DebtRequestRedeemer
+  { debtRequestAction :: DebtRequestAction
+  , borrowerTn :: TokenName
+  } deriving (Generic, ToJSON, FromJSON)
+
+PlutusTx.makeIsDataIndexed ''DebtRequestRedeemer [('DebtRequestRedeemer, 0)]
+PlutusTx.makeLift ''DebtRequestRedeemer
+
 data ContractInfo = ContractInfo
     { lenderNftCs    :: !CurrencySymbol
     , borrowersNftCs :: !CurrencySymbol
@@ -65,8 +81,11 @@ data ContractInfo = ContractInfo
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
-mkValidator :: ContractInfo -> DebtRequestDatum -> TokenName -> ScriptContext -> Bool
-mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
+mkValidator :: ContractInfo -> DebtRequestDatum -> DebtRequestRedeemer -> ScriptContext -> Bool
+mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
+  case debtRequestAction rdm of
+    TakeLoan -> validate
+    Cancel   -> validateCancelDebtRequest
   where
     borrowerGetsWhatHeWants :: Bool
     borrowerGetsWhatHeWants =
@@ -86,7 +105,7 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
     validateMint :: Bool
     validateMint = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (cs == borrowersNftCs) &&
-                         (tn == borrowerTn) &&
+                         (tn == borrowerTn rdm) &&
                          (amt == 1)
       _               -> False
 
@@ -95,7 +114,7 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
 
     expectedNewDatum :: POSIXTime -> Integer -> Collateral.CollateralDatum
     expectedNewDatum ld updatedColat = Collateral.CollateralDatum {
-        Collateral.borrowersNftTn        = borrowerTn
+        Collateral.borrowersNftTn        = borrowerTn rdm
       , Collateral.borrowersAddress      = borrowersAddress dat
       , Collateral.loan                  = loan dat
       , Collateral.loanAmnt              = loanAmnt dat
@@ -158,13 +177,12 @@ mkValidator contractInfo@ContractInfo{..} dat borrowerTn ctx = validate
       validateMint &&
       txHasOneDebtRequestInputOnly &&
       txHasOneScInputOnly &&
-      validateExpiration ||
-      validateCancelDebtRequest
+      validateExpiration
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
     type instance DatumType    RequestDataTypes = DebtRequestDatum
-    type instance RedeemerType RequestDataTypes = TokenName
+    type instance RedeemerType RequestDataTypes = DebtRequestRedeemer
 
 debtRequestTypedValidator :: ContractInfo -> Scripts.TypedValidator RequestDataTypes
 debtRequestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTypes
@@ -173,7 +191,7 @@ debtRequestTypedValidator contractInfo = Scripts.mkTypedValidator @RequestDataTy
     PlutusTx.liftCode contractInfo)
     $$(PlutusTx.compile [|| wrap ||])
   where
-    wrap = Scripts.wrapValidator @DebtRequestDatum @TokenName
+    wrap = Scripts.wrapValidator @DebtRequestDatum @DebtRequestRedeemer
 
 debtRequestValidator :: ContractInfo -> Validator
 debtRequestValidator = Scripts.validatorScript . debtRequestTypedValidator
