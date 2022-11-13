@@ -87,16 +87,8 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
     TakeLoan -> validate
     Cancel   -> validateCancelDebtRequest
   where
-    borrowerGetsWhatHeWants :: Bool
-    borrowerGetsWhatHeWants =
-      assetClassValueOf (U.valuePaidToAddress ctx (borrowersAddress dat)) (loan dat)
-      == loanAmnt dat
-
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
-
-    txHasOneDebtRequestInputOnly :: Bool
-    txHasOneDebtRequestInputOnly = length (filter ownHashFilter $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
 
     txHasOneScInputOnly :: Bool
     txHasOneScInputOnly =
@@ -175,7 +167,6 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
     validate =
       validateTxOuts &&
       validateMint &&
-      txHasOneDebtRequestInputOnly &&
       txHasOneScInputOnly &&
       validateExpiration
 
