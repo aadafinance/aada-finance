@@ -1294,7 +1294,7 @@ debtRequestTest = do
               valForBorrowerToSpend = fakeValue collateralCoin 100 <> adaValue 2
 
           sp <- spend borrower valForBorrowerToSpend
-          let tx = getDebtRequestTxIn sp dat lockRef (DebtRequestRedeemer TakeLoan (getAadaTokenName borrowerNftRef))
+          let tx = getDebtRequestTxIn sp dat lockRef (TakeLoan (getAadaTokenName borrowerNftRef))
                    <> getTxOutBorrow borrower convertedDat lockRef (adaValueOf 0)
 
           tx <- validateIn (interval 2000 6000) tx

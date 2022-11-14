@@ -58,20 +58,12 @@ data DebtRequestDatum = DebtRequestDatum
 PlutusTx.makeIsDataIndexed ''DebtRequestDatum [('DebtRequestDatum, 0)]
 PlutusTx.makeLift ''DebtRequestDatum
 
-data DebtRequestAction = TakeLoan | Cancel
+data DebtRequestRedeemer = TakeLoan TokenName | Cancel
   deriving (Generic, ToJSON, FromJSON)
 
-PlutusTx.makeIsDataIndexed ''DebtRequestAction [ ('TakeLoan,    0)
-                                               , ('Cancel, 1)
-                                               ]
-PlutusTx.makeLift ''DebtRequestAction
-
-data DebtRequestRedeemer = DebtRequestRedeemer
-  { debtRequestAction :: DebtRequestAction
-  , borrowerTn :: TokenName
-  } deriving (Generic, ToJSON, FromJSON)
-
-PlutusTx.makeIsDataIndexed ''DebtRequestRedeemer [('DebtRequestRedeemer, 0)]
+PlutusTx.makeIsDataIndexed ''DebtRequestRedeemer [ ('TakeLoan, 0)
+                                                 , ('Cancel,   1)
+                                                 ]
 PlutusTx.makeLift ''DebtRequestRedeemer
 
 data ContractInfo = ContractInfo
@@ -83,10 +75,42 @@ data ContractInfo = ContractInfo
 {-# INLINABLE mkValidator #-}
 mkValidator :: ContractInfo -> DebtRequestDatum -> DebtRequestRedeemer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
-  case debtRequestAction rdm of
-    TakeLoan -> validate
-    Cancel   -> validateCancelDebtRequest
+  case rdm of
+    TakeLoan tn -> validateTakeLoan ctx dat tn collateralSc borrowersNftCs
+    Cancel      -> validateCancelDebtRequest ctx lenderNftCs (lenderNftTn dat)
+
+{-# INLINABLE validateTakeLoan #-}
+validateTakeLoan :: ScriptContext -> DebtRequestDatum -> TokenName -> Address -> CurrencySymbol -> Bool
+validateTakeLoan ctx dat borrowerTn collateralSc borrowersNftCs =
+    validateTxOuts borrowerTn &&
+    validateMint borrowersNftCs &&
+    txHasOneScInputOnly &&
+    validateExpiration
   where
+    validateTxOuts :: TokenName -> Bool
+    validateTxOuts borrowerTn = any (txOutValidate borrowerTn) (txInfoOutputs $ U.info ctx)
+
+    txOutValidate :: TokenName -> TxOut -> Bool
+    txOutValidate borrowerTn txo =
+      isItToCollateral txo &&
+      containsRequiredCollateralAmount txo &&
+      containsNewDatum txo borrowerTn &&
+      checkForTokensDos txo
+
+    isItToCollateral :: TxOut -> Bool
+    isItToCollateral txo = txOutAddress txo == collateralSc
+
+    containsRequiredCollateralAmount :: TxOut -> Bool
+    containsRequiredCollateralAmount txo =
+      collateralAmnt dat <= collateralAmount txo
+
+    containsNewDatum :: TxOut -> TokenName -> Bool
+    containsNewDatum txo borrowerTn = case U.getLowerBound ctx of
+      Just lb -> findDatumHash' (expectedNewDatum lb updatedCollateral borrowerTn) (U.info ctx) == txOutDatumHash txo
+      Nothing -> False
+     where
+      updatedCollateral = collateralAmount txo
+
     ownHashFilter :: Maybe ValidatorHash -> Bool
     ownHashFilter mvh = Just (ownHash ctx) == mvh
 
@@ -94,19 +118,19 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
     txHasOneScInputOnly =
       length (filter isJust $ toValidatorHash . txOutAddress . txInInfoResolved <$> txInfoInputs (U.info ctx)) == 1
 
-    validateMint :: Bool
-    validateMint = case U.mintFlattened ctx of
+    validateMint :: CurrencySymbol -> Bool
+    validateMint borrowersNftCs = case U.mintFlattened ctx of
       [(cs, tn, amt)] -> (cs == borrowersNftCs) &&
-                         (tn == borrowerTn rdm) &&
+                         (tn == borrowerTn) &&
                          (amt == 1)
       _               -> False
 
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    expectedNewDatum :: POSIXTime -> Integer -> Collateral.CollateralDatum
-    expectedNewDatum ld updatedColat = Collateral.CollateralDatum {
-        Collateral.borrowersNftTn        = borrowerTn rdm
+    expectedNewDatum :: POSIXTime -> Integer -> TokenName -> Collateral.CollateralDatum
+    expectedNewDatum ld updatedColat borrowerTn = Collateral.CollateralDatum {
+        Collateral.borrowersNftTn        = borrowerTn
       , Collateral.borrowersAddress      = borrowersAddress dat
       , Collateral.loan                  = loan dat
       , Collateral.loanAmnt              = loanAmnt dat
@@ -126,49 +150,20 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
     validateExpiration :: Bool
     validateExpiration = after (requestExpiration dat) (U.range ctx)
 
-    isItToCollateral :: TxOut -> Bool
-    isItToCollateral txo = txOutAddress txo == collateralSc
-
     collateralAmount :: TxOut -> Integer
     collateralAmount txo = assetClassValueOf (txOutValue txo) (collateral dat)
-
-    containsRequiredCollateralAmount :: TxOut -> Bool
-    containsRequiredCollateralAmount txo =
-      collateralAmnt dat <= collateralAmount txo
-
-    containsNewDatum :: TxOut -> Bool
-    containsNewDatum txo = case U.getLowerBound ctx of
-      Just lb -> findDatumHash' (expectedNewDatum lb updatedCollateral) (U.info ctx) == txOutDatumHash txo
-      Nothing -> False
-     where
-      updatedCollateral = collateralAmount txo
 
     checkForTokensDos :: TxOut -> Bool
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
 
-    txOutValidate :: TxOut -> Bool
-    txOutValidate txo =
-      isItToCollateral txo &&
-      containsRequiredCollateralAmount txo &&
-      containsNewDatum txo &&
-      checkForTokensDos txo
-
-    validateTxOuts :: Bool
-    validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
-
-    validateCancelDebtRequest :: Bool
-    validateCancelDebtRequest = case U.mintFlattened ctx of
-      [(cs, tn, amt)] -> (cs == lenderNftCs) &&
-                         (tn == lenderNftTn dat) &&
-                         (amt == (-1))
-      _               -> False
-
-    validate :: Bool
-    validate =
-      validateTxOuts &&
-      validateMint &&
-      txHasOneScInputOnly &&
-      validateExpiration
+{-# INLINABLE validateCancelDebtRequest #-}
+validateCancelDebtRequest :: ScriptContext -> CurrencySymbol -> TokenName -> Bool
+validateCancelDebtRequest ctx lenderNftCs lenderNftTn =
+  case U.mintFlattened ctx of
+    [(cs, tn, amt)] -> (cs == lenderNftCs) &&
+                       (tn == lenderNftTn) &&
+                       (amt == (-1))
+    _               -> False
 
 data RequestDataTypes
 instance Scripts.ValidatorTypes RequestDataTypes where
