@@ -82,19 +82,19 @@ mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
 {-# INLINABLE validateTakeLoan #-}
 validateTakeLoan :: ScriptContext -> DebtRequestDatum -> TokenName -> Address -> CurrencySymbol -> Bool
 validateTakeLoan ctx dat borrowerTn collateralSc borrowersNftCs =
-    validateTxOuts borrowerTn &&
+    validateTxOuts &&
     validateMint borrowersNftCs &&
     txHasOneScInputOnly &&
     validateExpiration
   where
-    validateTxOuts :: TokenName -> Bool
-    validateTxOuts borrowerTn = any (txOutValidate borrowerTn) (txInfoOutputs $ U.info ctx)
+    validateTxOuts :: Bool
+    validateTxOuts = any txOutValidate (txInfoOutputs $ U.info ctx)
 
-    txOutValidate :: TokenName -> TxOut -> Bool
-    txOutValidate borrowerTn txo =
+    txOutValidate :: TxOut -> Bool
+    txOutValidate txo =
       isItToCollateral txo &&
       containsRequiredCollateralAmount txo &&
-      containsNewDatum txo borrowerTn &&
+      containsNewDatum txo &&
       checkForTokensDos txo
 
     isItToCollateral :: TxOut -> Bool
@@ -104,9 +104,9 @@ validateTakeLoan ctx dat borrowerTn collateralSc borrowersNftCs =
     containsRequiredCollateralAmount txo =
       collateralAmnt dat <= collateralAmount txo
 
-    containsNewDatum :: TxOut -> TokenName -> Bool
-    containsNewDatum txo borrowerTn = case U.getLowerBound ctx of
-      Just lb -> findDatumHash' (expectedNewDatum lb updatedCollateral borrowerTn) (U.info ctx) == txOutDatumHash txo
+    containsNewDatum :: TxOut -> Bool
+    containsNewDatum txo = case U.getLowerBound ctx of
+      Just lb -> findDatumHash' (expectedNewDatum lb updatedCollateral) (U.info ctx) == txOutDatumHash txo
       Nothing -> False
      where
       updatedCollateral = collateralAmount txo
@@ -128,8 +128,8 @@ validateTakeLoan ctx dat borrowerTn collateralSc borrowersNftCs =
     findDatumHash' :: ToData a => a -> TxInfo -> Maybe DatumHash
     findDatumHash' datum info = findDatumHash (Datum $ toBuiltinData datum) info
 
-    expectedNewDatum :: POSIXTime -> Integer -> TokenName -> Collateral.CollateralDatum
-    expectedNewDatum ld updatedColat borrowerTn = Collateral.CollateralDatum {
+    expectedNewDatum :: POSIXTime -> Integer -> Collateral.CollateralDatum
+    expectedNewDatum ld updatedColat = Collateral.CollateralDatum {
         Collateral.borrowersNftTn        = borrowerTn
       , Collateral.borrowersAddress      = borrowersAddress dat
       , Collateral.loan                  = loan dat
