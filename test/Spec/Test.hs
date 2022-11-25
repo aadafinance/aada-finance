@@ -1255,10 +1255,10 @@ getMintLenderNftTx pkh oref = addMintRedeemer getLenderNftPolicy oref $
   where
     cs  = scriptCurrencySymbol getLenderNftPolicy
 
-getDebtRequestTxIn :: UserSpend -> DebtRequestDatum -> TxOutRef -> TokenName -> Tx
-getDebtRequestTxIn usp dat scriptTxOut borrowerTn =
+getDebtRequestTxIn :: UserSpend -> DebtRequestDatum -> TxOutRef -> DebtRequestRedeemer -> Tx
+getDebtRequestTxIn usp dat scriptTxOut borrowerRdm =
   mconcat
-  [ spendScript (debtRequestTypedValidator getSc1Params') scriptTxOut borrowerTn dat
+  [ spendScript (debtRequestTypedValidator getSc1Params') scriptTxOut borrowerRdm dat
   , userSpend usp
   ]
 
@@ -1294,7 +1294,7 @@ debtRequestTest = do
               valForBorrowerToSpend = fakeValue collateralCoin 100 <> adaValue 2
 
           sp <- spend borrower valForBorrowerToSpend
-          let tx = getDebtRequestTxIn sp dat lockRef (getAadaTokenName borrowerNftRef)
+          let tx = getDebtRequestTxIn sp dat lockRef (TakeLoan (getAadaTokenName borrowerNftRef))
                    <> getTxOutBorrow borrower convertedDat lockRef (adaValueOf 0)
 
           tx <- validateIn (interval 2000 6000) tx

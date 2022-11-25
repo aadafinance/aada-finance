@@ -16,6 +16,7 @@ import Plutus.V1.Ledger.Credential
 import Plutus.V1.Ledger.Value
 import Spec.Test
 import Liquidator.SafetyModule as Sm
+import DebtRequest (DebtRequestRedeemer(..))
 
 main :: IO ()
 main = do
@@ -26,6 +27,10 @@ main = do
   writeData "example-collateral-redeemer.json" (POSIXTime 2)
   let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getAadaTokenName (TxOutRef "ff" 1))
   writeData "example-request-redeemer.json" exampleRequestRedeemer
+  let exampleDebtRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ (TakeLoan (getAadaTokenName (TxOutRef "ff" 1))))
+  writeData "example-debt-request-redeemer-take-loan.json" exampleDebtRequestRedeemer
+  let exampleDebtRequestRedeemer = Redeemer (PlutusTx.toBuiltinData DebtRequest.Cancel)
+  writeData "example-debt-request-redeemer-cancel.json" exampleDebtRequestRedeemer
   let exampleAadaNftRedeemer = Redeemer (PlutusTx.toBuiltinData (TxOutRef "ff" 1))
   writeData "example-aada-nft-redeemer.json" exampleAadaNftRedeemer
   let liquidationActionCancel = Redeemer (PlutusTx.toBuiltinData Sm.Cancel)
