@@ -58,7 +58,7 @@ data DebtRequestDatum = DebtRequestDatum
 PlutusTx.makeIsDataIndexed ''DebtRequestDatum [('DebtRequestDatum, 0)]
 PlutusTx.makeLift ''DebtRequestDatum
 
-data DebtRequestRedeemer = TakeLoan TokenName | Cancel
+data DebtRequestRedeemer = TakeLoan TokenName AssetClass | Cancel
   deriving (Generic, ToJSON, FromJSON)
 
 PlutusTx.makeIsDataIndexed ''DebtRequestRedeemer [ ('TakeLoan, 0)
@@ -76,12 +76,12 @@ data ContractInfo = ContractInfo
 mkValidator :: ContractInfo -> DebtRequestDatum -> DebtRequestRedeemer -> ScriptContext -> Bool
 mkValidator contractInfo@ContractInfo{..} dat rdm ctx =
   case rdm of
-    TakeLoan tn -> validateTakeLoan ctx dat tn collateralSc borrowersNftCs
-    Cancel      -> validateCancelDebtRequest ctx lenderNftCs (lenderNftTn dat)
+    TakeLoan tn newCollateral -> validateTakeLoan ctx dat tn collateralSc borrowersNftCs newCollateral
+    Cancel                    -> validateCancelDebtRequest ctx lenderNftCs (lenderNftTn dat)
 
 {-# INLINABLE validateTakeLoan #-}
-validateTakeLoan :: ScriptContext -> DebtRequestDatum -> TokenName -> Address -> CurrencySymbol -> Bool
-validateTakeLoan ctx dat borrowerTn collateralSc borrowersNftCs =
+validateTakeLoan :: ScriptContext -> DebtRequestDatum -> TokenName -> Address -> CurrencySymbol -> AssetClass -> Bool
+validateTakeLoan ctx dat borrowerTn collateralSc borrowersNftCs newCollateral =
     validateTxOuts &&
     validateMint borrowersNftCs &&
     txHasOneScInputOnly &&
@@ -151,7 +151,7 @@ validateTakeLoan ctx dat borrowerTn collateralSc borrowersNftCs =
     validateExpiration = after (requestExpiration dat) (U.range ctx)
 
     collateralAmount :: TxOut -> Integer
-    collateralAmount txo = assetClassValueOf (txOutValue txo) (collateral dat)
+    collateralAmount txo = assetClassValueOf (txOutValue txo) newCollateral
 
     checkForTokensDos :: TxOut -> Bool
     checkForTokensDos txo = length ((flattenValue . txOutValue) txo) <= 3
