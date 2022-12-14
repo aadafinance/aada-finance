@@ -44,6 +44,8 @@ jobs:
           port: ${{ secrets.PROD_PORT }}
           script: |
 
+            set -e
+
             cd /gz/aada-finance/
             git fetch
             git checkout -f ${{ github.ref_name }}
