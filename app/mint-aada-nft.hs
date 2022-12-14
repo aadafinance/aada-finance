@@ -12,10 +12,12 @@ import qualified Data.ByteString.Short as SBS
 import qualified Data.String           as FS
 import Text.Hex (encodeHex)
 import Ledger.Value (TokenName(unTokenName))
+import Ledger (scriptCurrencySymbol)
 
 import Options.Applicative
 
-import           AadaNft (aadaNftShortBs, aadaNft)
+import           AadaNft (aadaNftShortBs, aadaNft, policy)
+import qualified Liquidator.SafetyToken as St
 import Spec.Test
 
 writeAadaNftMintingPolicyScript :: String -> Bool -> IO ()
@@ -39,6 +41,7 @@ data Command =
 data NftType =
     BorrowerNft
   | LenderNft
+  | SafetyToken
   deriving Show
 
 parserInfo' :: ParserInfo CompleteCommand
@@ -47,13 +50,12 @@ parserInfo' = info' parser' "Generate LenderNFT minting policy or its token name
     parser' :: Parser CompleteCommand
     parser' = (subparser . foldMap command')
       [ ("token-name", "Hash utxo get get Lender NFT token name", tokenNameP)
-      , ("minting-policy", "Generate LenderNFT minting policy", mintingPolicyP)
+      , ("minting-policy", "Generate LenderNFT minting policy or SafetyToken policy", mintingPolicyP)
       ]
 
     tokenNameP = CompleteCommand <$> tokenNameArg <*> pure LenderNft
     mintingPolicyP = CompleteCommand <$> mintingPolicyArg <*> nftTypeP
-
-    nftTypeP = borrowerNftTypeFlag <|> lenderNftTypeFlag
+    nftTypeP = borrowerNftTypeFlag <|> lenderNftTypeFlag <|> safetyTokenTypeFlag
 
     borrowerNftTypeFlag = flag' BorrowerNft (
       long "borrower"
@@ -65,6 +67,12 @@ parserInfo' = info' parser' "Generate LenderNFT minting policy or its token name
       long "lender"
       <> short 'l'
       <> help "choose lender"
+      )
+
+    safetyTokenTypeFlag = flag' SafetyToken (
+      long "safety"
+      <> short 's'
+      <> help "choose safety token"
       )
 
     tokenNameArg = TokenName <$> strOption
@@ -103,6 +111,8 @@ main = do
       writeAadaNftMintingPolicyScript fp True
     CompleteCommand (MintingPolicy fp) BorrowerNft -> do
       writeAadaNftMintingPolicyScript fp False
+    CompleteCommand (MintingPolicy fp) SafetyToken -> do
+      writeSafetyTokenMintingPolicyScript fp
 
 parseUTxO :: String -> Plutus.TxOutRef
 parseUTxO s =
@@ -110,6 +120,12 @@ parseUTxO s =
     (x, y) = span (/= '#') s
   in
     Plutus.TxOutRef (Plutus.TxId $ Plutus.getLedgerBytes $ FS.fromString x) $ read $ tail y
+
+writeSafetyTokenMintingPolicyScript :: String -> IO ()
+writeSafetyTokenMintingPolicyScript fp = do
+  putStrLn $ "Writing output to: " ++ fp
+  let lenderNftCs = scriptCurrencySymbol $ AadaNft.policy True
+  writePlutusMintingScript 0 fp (St.aadaNft lenderNftCs) (St.aadaNftShortBs lenderNftCs)
 
 writePlutusMintingScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusMintingScript scriptnum filename scriptSerial scriptSBS =

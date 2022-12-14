@@ -13,7 +13,10 @@ import Cardano.Api.Shelley ( fromPlutusData )
 import qualified PlutusTx
 import Ledger
 import Plutus.V1.Ledger.Credential
+import Plutus.V1.Ledger.Value
 import Spec.Test
+import Liquidator.SafetyModule as Sm
+import DebtRequest (DebtRequestRedeemer(..))
 
 main :: IO ()
 main = do
@@ -24,8 +27,22 @@ main = do
   writeData "example-collateral-redeemer.json" (POSIXTime 2)
   let exampleRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ getAadaTokenName (TxOutRef "ff" 1))
   writeData "example-request-redeemer.json" exampleRequestRedeemer
+  let exampleDebtRequestRedeemer = Redeemer (PlutusTx.toBuiltinData $ (TakeLoan (getAadaTokenName (TxOutRef "ff" 1))))
+  writeData "example-debt-request-redeemer-take-loan.json" exampleDebtRequestRedeemer
+  let exampleDebtRequestRedeemer = Redeemer (PlutusTx.toBuiltinData DebtRequest.Cancel)
+  writeData "example-debt-request-redeemer-cancel.json" exampleDebtRequestRedeemer
   let exampleAadaNftRedeemer = Redeemer (PlutusTx.toBuiltinData (TxOutRef "ff" 1))
   writeData "example-aada-nft-redeemer.json" exampleAadaNftRedeemer
+  let liquidationActionCancel = Redeemer (PlutusTx.toBuiltinData Sm.Cancel)
+  writeData "example-liquidation-action-cancel.json" liquidationActionCancel
+  let liquidationActionCancel = Redeemer (PlutusTx.toBuiltinData Sm.Cancel)
+  writeData "example-liquidation-action-cancel.json" liquidationActionCancel
+  let liquidationActionLiquidateByDeadline = Redeemer (PlutusTx.toBuiltinData Sm.LiquidateByDeadline)
+  writeData "example-liquidation-action-liquidate-by-deadline.json" liquidationActionLiquidateByDeadline
+  let liquidationActionLiquidateWithOracle = Redeemer (PlutusTx.toBuiltinData Sm.LiquidateWithOracle)
+  writeData "example-liquidation-action-liquidate-with-oracle.json" liquidationActionLiquidateWithOracle
+  let liquidateDatum = Datum (PlutusTx.toBuiltinData $ unTokenName "ff")
+  writeData "example-liquidation-datum.json" liquidateDatum
   putStrLn "Done"
 
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()

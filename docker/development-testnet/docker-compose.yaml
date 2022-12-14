@@ -8,6 +8,7 @@ x-logging:
 services:
   aada-finance:
     image: mantasand/aada-finance:development-testnet-latest
+    container_name: development-testnet_aada-finance_1
     restart: always
     stdin_open: true
     tty: true

@@ -33,7 +33,10 @@ docker-compose exec -T aada-finance compile-validators \
     -l ${VERSION}/liquidation.plutus \
     -i ${VERSION}/interest.plutus \
     -c ${VERSION}/collateral.plutus \
-    -r ${VERSION}/request.plutus
+    -r ${VERSION}/request.plutus \
+    -d ${VERSION}/lender_request.plutus \
+    -s ${VERSION}/safety_module.plutus
+
 docker-compose exec -T aada-finance mint-aada-nft \
     minting-policy -l \
     -p ${VERSION}/lender.nft
@@ -41,6 +44,9 @@ docker-compose exec -T aada-finance mint-aada-nft \
     minting-policy \
     -b \
     -p ${VERSION}/borrower.nft
+docker-compose exec -T aada-finance mint-aada-nft \
+    minting-policy -s \
+    -p ${VERSION}/safety_token.nft
 
 if [[ "${BRANCH}" == "master" ]]; then
   MAGIC="--mainnet"
@@ -64,12 +70,23 @@ INTEREST_ADDRESS=$(cardano-cli address \
     build \
     --payment-script-file $NODE_ARF_PATH/interest.plutus  \
     --stake-verification-key-file ${ARF_PATH}/stake.vkey $MAGIC)
+LENDER_REQUEST_ADDRESS=$(cardano-cli address \
+    build \
+    --payment-script-file $NODE_ARF_PATH/lender_request.plutus  \
+    --stake-verification-key-file ${ARF_PATH}/stake.vkey $MAGIC)
+SAFETY_MODULE_ADDRESS=$(cardano-cli address \
+    build \
+    --payment-script-file $NODE_ARF_PATH/safety_module.plutus  \
+    --stake-verification-key-file ${ARF_PATH}/stake.vkey $MAGIC)
 LENDER_POLICY=$(cardano-cli transaction \
     policyid \
     --script-file $NODE_ARF_PATH/lender.nft)
 BORROWER_POLICY=$(cardano-cli transaction \
     policyid \
     --script-file $NODE_ARF_PATH/borrower.nft)
+SAFETY_TOKEN_POLICY=$(cardano-cli transaction \
+    policyid \
+    --script-file $NODE_ARF_PATH/safety_token.nft)
 
 echo "Writing the version details to ${WRITE_PATH} ..."
 cat > ${WRITE_PATH} <<EOF
@@ -80,8 +97,12 @@ cat > ${WRITE_PATH} <<EOF
     "REQUEST_ADDRESS": "${REQUEST_ADDRESS}",
     "INTEREST_ADDRESS": "${INTEREST_ADDRESS}",
     "LIQUIDATION_ADDRESS": "${LIQUIDATION_ADDRESS}",
+    "LENDER_REQUEST_ADDRESS": "${LENDER_REQUEST_ADDRESS}",
+    "LIQUIDATION_ADDRESS": "${LIQUIDATION_ADDRESS}",
+    "SAFETY_MODULE_ADDRESS": "${SAFETY_MODULE_ADDRESS}",
     "LENDER_POLICY": "${LENDER_POLICY}",
-    "BORROWER_POLICY": "${BORROWER_POLICY}"
+    "BORROWER_POLICY":"${BORROWER_POLICY}",
+    "SAFETY_TOKEN":"${SAFETY_TOKEN_POLICY}"
   }
 }
 EOF

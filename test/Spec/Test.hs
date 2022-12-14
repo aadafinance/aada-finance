@@ -15,6 +15,7 @@ import Test.Tasty
 import Plutus.V1.Ledger.Api
 
 import           Request
+import           DebtRequest
 import qualified Collateral
 import qualified Interest
 import qualified AadaNft
@@ -36,7 +37,8 @@ mainTests cfg =
   testGroup
     "Main tests"
     [
-      testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path" happyPath
+      testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Debt request" debtRequestTest
+    , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Happy path" happyPath
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower cancels loan test" borrowerCancelsLoan
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns full interest when loan return time has passed" returnFullLoan
     , testNoErrors (adaValue 10_000_000 <> borrowerInitialFunds <> lenderInitialFunds) cfg "Borrower returns less than it should then full time has passed" (mustFail returnNotEnoughInterest)
@@ -167,6 +169,13 @@ getSc1Params = Request.ContractInfo {
       , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator getSc2Params)) Nothing
     }
 
+getSc1Params' :: DebtRequest.ContractInfo
+getSc1Params' = DebtRequest.ContractInfo {
+        DebtRequest.lenderNftCs    = getLenderNftCs
+      , DebtRequest.borrowersNftCs = getBorrowerNftCs
+      , DebtRequest.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator getSc2Params)) Nothing
+    }
+
 getSc2Params :: Collateral.ContractInfo
 getSc2Params = Collateral.ContractInfo {
         Collateral.lenderNftCs    = getLenderNftCs
@@ -176,6 +185,25 @@ getSc2Params = Collateral.ContractInfo {
 
 getTestDatum :: RepayInterval -> BorrowerTokenName -> LiquidationNftCs -> BorrowersAddressPkh -> RequestExpirationDate -> LenderTokenName -> LendDate -> Maybe StakingCredential -> RequestDatum
 getTestDatum returnt bNftTn liqNft pkh expiration ltn t staking = RequestDatum
+  { borrowersNftTn        = bNftTn
+  , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
+  , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
+  , loanAmnt              = 150
+  , interest              = assetClass (fakeCoinCs interestCoin) "interest-coin-MONY"
+  , interestAmnt          = 50
+  , collateral            = assetClass (fakeCoinCs collateralCoin) "collateral-coin-CONY"
+  , collateralAmnt        = 100                    -- amount of collateral
+  , loanDuration         = returnt
+  , liquidateNft          = liqNft
+  , collateralFactor      = 5                      -- Colalteral factor used for liquidation
+  , liquidationCommission = 150                    -- How much % borrower will pay for lender when liquidated (before time passes)
+  , requestExpiration     = expiration
+  , lenderNftTn           = ltn
+  , lendDate              = t
+  }
+
+getTestDatum' :: RepayInterval -> BorrowerTokenName -> LiquidationNftCs -> BorrowersAddressPkh -> RequestExpirationDate -> LenderTokenName -> LendDate -> Maybe StakingCredential -> DebtRequestDatum
+getTestDatum' returnt bNftTn liqNft pkh expiration ltn t staking = DebtRequestDatum
   { borrowersNftTn        = bNftTn
   , borrowersAddress      = Address (PubKeyCredential pkh) staking -- (Just . StakingHash . PubKeyCredential . PubKeyHash $ "ff")
   , loan                  = assetClass (fakeCoinCs loanCoin) "loan-coin-CONYMONY"
@@ -222,12 +250,31 @@ getCollatDatumFromRequestDat rqDat@RequestDatum{..} newTn newMint = Collateral.C
           , Collateral.interestAmnt          = interestAmnt
           , Collateral.collateral            = collateral
           , Collateral.collateralAmnt        = 100                    -- amount of collateral
-          , Collateral.loanDuration         = loanDuration
+          , Collateral.loanDuration          = loanDuration
           , Collateral.liquidateNft          = liquidateNft
           , Collateral.collateralFactor      = 5                      -- Colalteral factor used for liquidation
           , Collateral.liquidationCommission = 150
           , Collateral.requestExpiration     = requestExpiration
           , Collateral.lenderNftTn           = newTn
+          , Collateral.lendDate              = newMint
+        }
+
+getCollatDatumFromDebtRequestDat :: DebtRequestDatum -> TokenName -> POSIXTime -> Collateral.CollateralDatum
+getCollatDatumFromDebtRequestDat rqDat@DebtRequestDatum{..} newTn newMint = Collateral.CollateralDatum
+          { Collateral.borrowersNftTn        = newTn
+          , Collateral.borrowersAddress      = borrowersAddress
+          , Collateral.loan                  = loan
+          , Collateral.loanAmnt              = loanAmnt
+          , Collateral.interest              = interest
+          , Collateral.interestAmnt          = interestAmnt
+          , Collateral.collateral            = collateral
+          , Collateral.collateralAmnt        = 100                    -- amount of collateral
+          , Collateral.loanDuration          = loanDuration
+          , Collateral.liquidateNft          = liquidateNft
+          , Collateral.collateralFactor      = 5                      -- Colalteral factor used for liquidation
+          , Collateral.liquidationCommission = 150
+          , Collateral.requestExpiration     = requestExpiration
+          , Collateral.lenderNftTn           = lenderNftTn
           , Collateral.lendDate              = newMint
         }
 
@@ -304,6 +351,17 @@ getTxOutReturn interest borrower dat valToInt oref = addMintRedeemer getBorrower
       dat
       (fakeValue loanCoin 150 <> fakeValue interestCoin interest <> adaValue 2 <> valToInt)
   , payToPubKey borrower (fakeValue collateralCoin 100 <> adaValue 3)
+  ]
+
+getTxOutReturn' :: Integer -> PubKeyHash ->  TokenName -> Value -> TxOutRef  -> Tx
+getTxOutReturn' interest borrower dat valToInt oref = addMintRedeemer getBorrowerNftPolicy oref $
+ mconcat
+  [ mintValue getBorrowerNftPolicy (getBNftVal (-1) getBorrowerNftCs oref)
+  , payToScript
+      (Interest.typedValidator (Interest.ContractInfo getLenderNftCs))
+      dat
+      (fakeValue loanCoin 150 <> fakeValue interestCoin interest <> adaValue 2 <> valToInt)
+  , payToPubKey borrower (fakeValue collateralCoin 100 <> adaValue 1)
   ]
 
 getTxInFromCollateral :: [UserSpend] -> Collateral.CollateralDatum -> Integer -> TxOutRef -> Tx
@@ -1175,5 +1233,72 @@ borrowerDosLender = do
           logInfo $  "int pay date time: " ++ show intPayDate
           tx2 <- validateIn (interval 6000 intPayDate) tx2
           submitTx lender tx2
+          pure True
+      Nothing -> pure False
+
+createDebtRequestTx :: RepayInterval -> BorrowersAddressPkh -> TxOutRef -> UserSpend -> RequestExpirationDate -> LendDate -> LiquidationNftCs -> Tx
+createDebtRequestTx t pkh oref usp expiration mintDate oracle =
+    mconcat
+      [ userSpend usp
+      , payToScript
+        (debtRequestTypedValidator getSc1Params')
+        (getTestDatum' t "" oracle pkh expiration (getAadaTokenName oref) mintDate Nothing)
+        (fakeValue loanCoin 150 <> adaValue 2)
+      ]
+
+getMintLenderNftTx :: PubKeyHash -> TxOutRef -> Tx
+getMintLenderNftTx pkh oref = addMintRedeemer getLenderNftPolicy oref $
+  mconcat
+    [ mintValue (AadaNft.policy True) (getLNftVal 1 cs oref)
+    , payToPubKey pkh (adaValue 1 <> getLNftVal 1 cs oref)
+    ]
+  where
+    cs  = scriptCurrencySymbol getLenderNftPolicy
+
+getDebtRequestTxIn :: UserSpend -> DebtRequestDatum -> TxOutRef -> DebtRequestRedeemer -> Tx
+getDebtRequestTxIn usp dat scriptTxOut borrowerRdm =
+  mconcat
+  [ spendScript (debtRequestTypedValidator getSc1Params') scriptTxOut borrowerRdm dat
+  , userSpend usp
+  ]
+
+getTxOutBorrow :: PubKeyHash -> Collateral.CollateralDatum -> TxOutRef -> Value -> Tx
+getTxOutBorrow borrower dat utxo valToScript = addMintRedeemer getBorrowerNftPolicy utxo $
+ mconcat
+  [ mintValue getBorrowerNftPolicy (getBNftVal 1 getBorrowerNftCs utxo)
+  , payToScript
+      (Collateral.collateralTypedValidator getSc2Params)
+      dat
+      (fakeValue collateralCoin 100 <> adaValue 2 <> valToScript)
+  , payToPubKey borrower (fakeValue loanCoin 150 <> adaValue 2 <> getBNftVal 1 getBorrowerNftCs utxo)
+  ]
+
+debtRequestTest :: Run Bool
+debtRequestTest = do
+  users <- setupUsers
+  let borrower = head users
+      lender   = last users
+      valToPay = fakeValue loanCoin 150 <> adaValue 3
+  sp <- spend lender valToPay
+  let lenderNftRef = getHeadRef sp
+  let tx = createDebtRequestTx 0 borrower lenderNftRef sp 100000 0 (scriptCurrencySymbol $ OracleNft.policy "ff" "ff" "ff" "ff")
+           <> getMintLenderNftTx lender lenderNftRef
+  submitTx lender tx
+  utxos <- utxoAt $ debtRequestAddress getSc1Params'
+  let lockRef = fst . head $ utxos
+  let borrowerNftRef = lockRef
+  lockDat <- datumAt @DebtRequestDatum lockRef
+  case lockDat of
+      Just dat -> do
+          let convertedDat          = getCollatDatumFromDebtRequestDat dat (getAadaTokenName borrowerNftRef) 2000
+              valForBorrowerToSpend = fakeValue collateralCoin 100 <> adaValue 2
+
+          sp <- spend borrower valForBorrowerToSpend
+          let tx = getDebtRequestTxIn sp dat lockRef (TakeLoan (getAadaTokenName borrowerNftRef))
+                   <> getTxOutBorrow borrower convertedDat lockRef (adaValueOf 0)
+
+          tx <- validateIn (interval 2000 6000) tx
+
+          submitTx borrower tx
           pure True
       Nothing -> pure False
