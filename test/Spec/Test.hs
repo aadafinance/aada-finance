@@ -178,9 +178,10 @@ getSc1Params' = DebtRequest.ContractInfo {
 
 getSc2Params :: Collateral.ContractInfo
 getSc2Params = Collateral.ContractInfo {
-        Collateral.lenderNftCs    = getLenderNftCs
-      , Collateral.borrowersNftCs = getBorrowerNftCs
-      , Collateral.interestSc     = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) Nothing
+        Collateral.lenderNftCs              = getLenderNftCs
+      , Collateral.borrowersNftCs           = getBorrowerNftCs
+      , Collateral.interestSc               = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) Nothing
+      , Collateral.minInterestFeePercentage = 200000
     }
 
 getTestDatum :: RepayInterval -> BorrowerTokenName -> LiquidationNftCs -> BorrowersAddressPkh -> RequestExpirationDate -> LenderTokenName -> LendDate -> Maybe StakingCredential -> RequestDatum
