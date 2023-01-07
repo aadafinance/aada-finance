@@ -185,7 +185,7 @@ defaultPercentage :: Integer
 defaultPercentage = 2000000
 
 parseMinimumPercentage :: Parser Integer
-parseMinimumPercentage = option auto (long "minimum interest fee percentage"
+parseMinimumPercentage = option auto (long "fee"
   <> metavar "INTEGER"
   <> help "Enter minimum interest fee percentage. Resulting percentage is number provided divded by 1_000_000"
   <> showDefault
