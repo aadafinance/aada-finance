@@ -52,6 +52,7 @@ data Command = Command {
   , liquidationFp   :: FilePath
   , safetyModulefp  :: FilePath
   , versionFlag     :: ShowVersion
+  , minPercentage   :: Integer
 } deriving Show
 
 -- ints :: Parser [Integer]
@@ -180,6 +181,17 @@ parseHashType = parseHashTypePubKeyHash <|> parseHashTypeValidator
 parseStakingKey' :: Parser StakingKey
 parseStakingKey' = (StakingKeyHash <$> parseStakingKeyHash) <|> parseStakingKeyPtr
 
+defaultPercentage :: Integer
+defaultPercentage = 2000000
+
+parseMinimumPercentage :: Parser Integer
+parseMinimumPercentage = option auto (long "minimum interest fee percentage"
+  <> metavar "INTEGER"
+  <> help "Enter minimum interest fee percentage. Resulting percentage is number provided divded by 1_000_000"
+  <> showDefault
+  <> value defaultPercentage
+  )
+
 parseCommand :: Parser Command
 parseCommand = Command <$> optional parseStakingKey'
   <*> interestPathParser
@@ -189,6 +201,7 @@ parseCommand = Command <$> optional parseStakingKey'
   <*> liquidationPathParser
   <*> safetyModuleFpParser
   <*> versionFlagParser
+  <*> parseMinimumPercentage
 
 parser :: ParserInfo Command
 parser = info (helper <*> parseCommand) fullDesc
@@ -208,58 +221,65 @@ getLenderNftCs = scriptCurrencySymbol getLenderNftPolicy
 getBorrowerNftCs :: CurrencySymbol
 getBorrowerNftCs = scriptCurrencySymbol getBorrowerNftPolicy
 
-getCollateralScParams :: Maybe StakingCredential -> Collateral.ContractInfo
-getCollateralScParams stakingCredential = Collateral.ContractInfo {
-        Collateral.lenderNftCs    = getLenderNftCs
-      , Collateral.borrowersNftCs = getBorrowerNftCs
-      , Collateral.interestSc     = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) stakingCredential
+getCollateralScParams :: Maybe StakingCredential -> Integer -> Collateral.ContractInfo
+getCollateralScParams stakingCredential minPercentage = Collateral.ContractInfo {
+        Collateral.lenderNftCs              = getLenderNftCs
+      , Collateral.borrowersNftCs           = getBorrowerNftCs
+      , Collateral.interestSc               = Address (ScriptCredential (validatorHash (Interest.validator (Interest.ContractInfo getLenderNftCs)))) stakingCredential
+      , Collateral.minInterestFeePercentage = minPercentage
     }
 
-getRequestScParams :: Maybe StakingCredential -> Request.ContractInfo
-getRequestScParams stakingCredential = Request.ContractInfo {
+getRequestScParams :: Maybe StakingCredential -> Integer -> Request.ContractInfo
+getRequestScParams stakingCredential minPercentage = Request.ContractInfo {
         Request.lenderNftCs    = getLenderNftCs
       , Request.borrowersNftCs = getBorrowerNftCs
-      , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator (getCollateralScParams stakingCredential))) stakingCredential
+      , Request.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator (getCollateralScParams stakingCredential minPercentage))) stakingCredential
     }
 
-getDebtRequestScParams :: Maybe StakingCredential -> DebtRequest.ContractInfo
-getDebtRequestScParams stakingCredential = DebtRequest.ContractInfo {
+getDebtRequestScParams :: Maybe StakingCredential -> Integer -> DebtRequest.ContractInfo
+getDebtRequestScParams stakingCredential minPercentage = DebtRequest.ContractInfo {
         DebtRequest.lenderNftCs    = getLenderNftCs
       , DebtRequest.borrowersNftCs = getBorrowerNftCs
-      , DebtRequest.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator (getCollateralScParams stakingCredential))) stakingCredential
+      , DebtRequest.collateralSc   = Address (ScriptCredential (validatorHash $ Collateral.validator (getCollateralScParams stakingCredential minPercentage))) stakingCredential
     }
 
 getStakingCredentialFromOpts :: Command -> Maybe StakingCredential
 getStakingCredentialFromOpts opts = case opts of
-  Command Nothing _ _ _ _ _ _ _        -> Nothing
-  Command (Just stakeKey) _ _ _ _ _ _ _ -> case stakeKey of
+  Command Nothing _ _ _ _ _ _ _ _       -> Nothing
+  Command (Just stakeKey) _ _ _ _ _ _ _ _ -> case stakeKey of
     StakingKeyHash (StakingHash' h ValidatorHash') -> Just . StakingHash . ScriptCredential . ValidatorHash . getLedgerBytes . FS.fromString $ h
     StakingKeyHash (StakingHash' h PubKeyHash') -> Just . StakingHash . PubKeyCredential . PubKeyHash . getLedgerBytes . FS.fromString $ h
     StakingKeyPtr a b c -> Just $ StakingPtr a b c
 
-getCollateralAddr :: Maybe StakingCredential -> Address
-getCollateralAddr stakingCredential = Collateral.collateralAddress $ getCollateralScParams stakingCredential
+getCollateralAddr :: Maybe StakingCredential -> Integer -> Address
+getCollateralAddr stakingCredential minPercentage = Collateral.collateralAddress $ getCollateralScParams stakingCredential minPercentage
 
 getInterestLiquidateAddr :: Address
 getInterestLiquidateAddr = Interest.interestAddress $ Interest.ContractInfo getSafetyTokenCs
 
-getSafetyModuleParams :: Maybe StakingCredential -> Safety.ContractInfo
-getSafetyModuleParams stakingCredential = Safety.ContractInfo getLenderNftCs (getCollateralAddr stakingCredential) getInterestLiquidateAddr getSafetyTokenCs
+getSafetyModuleParams :: Maybe StakingCredential -> Integer -> Safety.ContractInfo
+getSafetyModuleParams stakingCredential minPercentage = Safety.ContractInfo getLenderNftCs (getCollateralAddr stakingCredential minPercentage) getInterestLiquidateAddr getSafetyTokenCs
+
+getMinFeePercentageFromOpts :: Command -> Integer
+getMinFeePercentageFromOpts opts = case opts of
+  Command Nothing _ _ _ _ _ _ _ amount -> amount
+  _ -> defaultPercentage
 
 main :: IO ()
 main = do
   opts <- execParser parser
   case opts of
-    (Command _ _ _ _ _ _ _ True) -> print $ showVersion version
+    (Command _ _ _ _ _ _ _ True _) -> print $ showVersion version
     _ -> do
       let stakeKey = getStakingCredentialFromOpts opts
           scriptnum = 0
+          minFee = getMinFeePercentageFromOpts opts
       writePlutusScript scriptnum (interestFp opts) (Interest.interestScript (Interest.ContractInfo getLenderNftCs)) (interestShortBs (Interest.ContractInfo getLenderNftCs))
-      writePlutusScript scriptnum (collateralFp opts) (Collateral.collateralScript (getCollateralScParams stakeKey)) (collateralShortBs (getCollateralScParams stakeKey))
-      writePlutusScript scriptnum (requestFp opts) (Request.request (getRequestScParams stakeKey)) (requestShortBs (getRequestScParams stakeKey))
-      writePlutusScript scriptnum (debtRequestFp opts) (DebtRequest.debtRequest (getDebtRequestScParams stakeKey)) (debtRequestShortBs (getDebtRequestScParams stakeKey))
+      writePlutusScript scriptnum (collateralFp opts) (Collateral.collateralScript (getCollateralScParams stakeKey minFee)) (collateralShortBs (getCollateralScParams stakeKey minFee))
+      writePlutusScript scriptnum (requestFp opts) (Request.request (getRequestScParams stakeKey minFee)) (requestShortBs (getRequestScParams stakeKey minFee))
+      writePlutusScript scriptnum (debtRequestFp opts) (DebtRequest.debtRequest (getDebtRequestScParams stakeKey minFee)) (debtRequestShortBs (getDebtRequestScParams stakeKey minFee))
       writePlutusScript scriptnum (liquidationFp opts) (Liquidation.liquidation $ Liquidation.ContractInfo getBorrowerNftCs) (liquidationShortBs  $ Liquidation.ContractInfo getBorrowerNftCs)
-      writePlutusScript scriptnum (safetyModulefp opts) (Safety.safetyScript $ getSafetyModuleParams stakeKey) (liquidationShortBs  $ Liquidation.ContractInfo getBorrowerNftCs)
+      writePlutusScript scriptnum (safetyModulefp opts) (Safety.safetyScript $ getSafetyModuleParams stakeKey minFee) (liquidationShortBs  $ Liquidation.ContractInfo getBorrowerNftCs)
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
 writePlutusScript scriptnum filename scriptSerial scriptSBS =

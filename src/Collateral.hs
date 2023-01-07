@@ -64,9 +64,10 @@ data CollateralDatum = CollateralDatum
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 data ContractInfo = ContractInfo
-    { lenderNftCs    :: !CurrencySymbol
-    , borrowersNftCs :: !CurrencySymbol
-    , interestSc     :: !Address
+    { lenderNftCs              :: !CurrencySymbol
+    , borrowersNftCs           :: !CurrencySymbol
+    , interestSc               :: !Address
+    , minInterestFeePercentage :: !Integer
     } deriving (Show, Generic, ToJSON, FromJSON)
 
 {-# INLINABLE mkValidator #-}
@@ -82,8 +83,11 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
     validateDebtAmnt :: TxOut -> Bool
     validateDebtAmnt txo = getLoanAmnt (txOutValue txo) >= loanAmnt dat
 
-    getPartialInterest :: POSIXTime -> Integer
-    getPartialInterest interestPayDate = if repayIntEnd > interestPayDate && denominator > 0
+    minimumInterest :: Integer
+    minimumInterest = (minInterestFeePercentage `multiplyInteger` interestAmnt dat) `divideInteger` 1000000
+
+    partialInterest :: POSIXTime -> Integer
+    partialInterest interestPayDate = if repayIntEnd > interestPayDate && denominator > 0
       then
         (loanHeld `multiplyInteger` interestAmnt dat) `divideInteger` denominator
       else
@@ -91,7 +95,13 @@ mkValidator contractInfo@ContractInfo{..} dat _ ctx = validate
       where
         denominator = getPOSIXTime (loanDuration dat)
         repayIntEnd = lendDate dat + loanDuration dat
-        loanHeld = getPOSIXTime $ interestPayDate - lendDate dat
+        loanHeld    = getPOSIXTime $ interestPayDate - lendDate dat
+
+    getPartialInterest :: POSIXTime -> Integer
+    getPartialInterest interestPayDate =
+      if partialInterest interestPayDate < minimumInterest
+        then minimumInterest
+        else partialInterest interestPayDate
 
     validateInterestAmnt :: TxOut -> Bool
     validateInterestAmnt txo = case U.getUpperBound ctx of
