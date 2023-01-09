@@ -182,7 +182,7 @@ parseStakingKey' :: Parser StakingKey
 parseStakingKey' = (StakingKeyHash <$> parseStakingKeyHash) <|> parseStakingKeyPtr
 
 defaultPercentage :: Integer
-defaultPercentage = 2000000
+defaultPercentage = 200000
 
 parseMinimumPercentage :: Parser Integer
 parseMinimumPercentage = option auto (long "fee"
